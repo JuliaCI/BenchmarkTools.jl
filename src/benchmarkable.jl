@@ -4,8 +4,8 @@
 
 const DEFAULT_TIME_LIMIT = 5.0
 
-execute(benchmark::Function, t = nothing) = isa(t, Void) ? benchmark() : benchmark(Float64(t))
-ntrials(trials, f::Function, t = nothing) = Trial[execute(f, t) for _ in 1:trials]
+execute(benchmark::Function, t::Number = NaN) = benchmark(Float64(t))
+ntrials(trials, f::Function, t::Number = NaN) = Trial[execute(f, t) for _ in 1:trials]
 
 macro benchmark(args...)
     tmp = gensym()
@@ -31,7 +31,8 @@ macro benchmarkable(args...)
             _trialfn = gensym("trial")
             eval(current_module(), quote
                 @noinline $(_wrapfn)() = $($(Expr(:quote, core)))
-                @noinline function $(_trialfn)(time_limit::Float64 = $($(Expr(:quote, Float64(time_limit)))))
+                @noinline function $(_trialfn)(time_limit::Float64)
+                    time_limit = time_limit == NaN ? $($(Expr(:quote, Float64(time_limit)))) : time_limit
                     @assert time_limit > 0.0 "time limit must be greater than 0.0"
                     gc()
                     time_limit_ns = time_limit * 1e9

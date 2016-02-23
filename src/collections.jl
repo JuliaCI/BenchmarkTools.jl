@@ -11,12 +11,12 @@ end
 BenchmarkGroup(id, tags) = BenchmarkGroup(id, tags, Dict())
 
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(group.benchmarks))
-Base.getindex(group::BenchmarkGroup, x) = group.benchmarks[x]
-Base.setindex!(group::BenchmarkGroup, x, y) = setindex!(group.benchmarks, x, y)
+Base.getindex(group::BenchmarkGroup, x...) = group.benchmarks[x...]
+Base.setindex!(group::BenchmarkGroup, x, y...) = setindex!(group.benchmarks, x, y...)
 
 hastag(group::BenchmarkGroup, tag) = tag == group.id || in(tag, group.tags)
 
-function execute(group::BenchmarkGroup, t = nothing)
+function execute(group::BenchmarkGroup, t::Number = NaN)
     result = BenchmarkGroup(group.id, group.tags)
     for id in keys(group.benchmarks)
         result[id] = execute(group[id], t)
@@ -71,7 +71,7 @@ Base.getindex(ensemble::BenchmarkEnsemble, id) = ensemble.groups[id]
 Base.setindex!(ensemble::BenchmarkEnsemble, group::BenchmarkGroup, id) = setindex!(ensemble.groups, group, id)
 
 function addgroup!(ensemble::BenchmarkEnsemble, id, tags)
-    @assert !(haskey(ensemble, id)) "BenchmarkEnsemble already has group with ID \"$(id)\""
+    @assert !(haskey(ensemble.groups, id)) "BenchmarkEnsemble already has group with ID \"$(id)\""
     group = BenchmarkGroup(id, tags)
     ensemble[id] = group
     return group
@@ -93,9 +93,7 @@ function tagpred!(expr::Expr, sym::Symbol)
     return expr
 end
 
-execute(ensemble::BenchmarkEnsemble) = execute(ensemble, @tagged ALL)
-
-function execute(ensemble::BenchmarkEnsemble, pred, t::Union{Number,Void} = nothing)
+function execute(ensemble::BenchmarkEnsemble, pred, t::Number = NaN)
     result_ensemble = BenchmarkEnsemble()
     for (id, group) in ensemble.groups
         if pred(group)
