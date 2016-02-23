@@ -70,7 +70,13 @@ Base.copy(ensemble::BenchmarkEnsemble) = BenchmarkEnsemble(copy(ensemble.groups)
 Base.getindex(ensemble::BenchmarkEnsemble, id) = ensemble.groups[id]
 Base.setindex!(ensemble::BenchmarkEnsemble, group::BenchmarkGroup, id) = setindex!(ensemble.groups, group, id)
 
-addgroup!(ensemble::BenchmarkEnsemble, id, tags) = setindex!(ensemble, BenchmarkGroup(id, tags), id)
+function addgroup!(ensemble::BenchmarkEnsemble, id, tags)
+    @assert !(haskey(ensemble, id)) "BenchmarkEnsemble already has group with ID \"$(id)\""
+    group = BenchmarkGroup(id, tags)
+    ensemble[id] = group
+    return group
+end
+
 rmgroup!(ensemble::BenchmarkEnsemble, id) = delete!(ensemble.groups, id)
 
 macro tagged(pred)
