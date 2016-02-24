@@ -32,7 +32,15 @@ function execute(group::BenchmarkGroup, seconds::Number = NaN; verbose::Bool = f
     return result
 end
 
-function execute(ensemble::BenchmarkEnsemble, pred, seconds::Number = NaN; verbose::Bool = false)
+function execute(ensemble::BenchmarkEnsemble, seconds::Number = NaN; verbose::Bool = false)
+    return execute(ensemble, seconds, @tagged(ALL); verbose = verbose)
+end
+
+function execute(ensemble::BenchmarkEnsemble, pred::Function; verbose::Bool = false)
+    return execute(ensemble, NaN, pred; verbose = verbose)
+end
+
+function execute(ensemble::BenchmarkEnsemble, seconds::Number, pred::Function; verbose::Bool = false)
     result_ensemble = BenchmarkEnsemble()
     for (id, group) in ensemble.groups
         if pred(group)
