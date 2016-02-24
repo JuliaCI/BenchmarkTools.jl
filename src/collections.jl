@@ -10,6 +10,7 @@ end
 
 BenchmarkGroup(id, tags) = BenchmarkGroup(id, tags, Dict())
 
+Base.length(group::BenchmarkGroup) = length(group.benchmarks)
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(group.benchmarks))
 Base.getindex(group::BenchmarkGroup, x...) = group.benchmarks[x...]
 Base.setindex!(group::BenchmarkGroup, x, y...) = setindex!(group.benchmarks, x, y...)
@@ -58,6 +59,7 @@ end
 
 BenchmarkEnsemble() = BenchmarkEnsemble(Dict{Tag,BenchmarkGroup}())
 
+Base.length(ensemble::BenchmarkEnsemble) = length(ensemble.groups)
 Base.copy(ensemble::BenchmarkEnsemble) = BenchmarkEnsemble(copy(ensemble.groups))
 Base.getindex(ensemble::BenchmarkEnsemble, id) = ensemble.groups[id]
 Base.setindex!(ensemble::BenchmarkEnsemble, group::BenchmarkGroup, id) = setindex!(ensemble.groups, group, id)
@@ -125,4 +127,13 @@ function Base.show(io::IO, group::BenchmarkGroup)
     end
 end
 
-compactshow(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup(\"", group.id, "\", ", tagrepr(group.tags), ")")
+function Base.show(io::IO, ensemble::BenchmarkEnsemble)
+    print(io, "BenchmarkTools.BenchmarkEnsemble:")
+    for group in values(ensemble.groups)
+        println(io)
+        print(io, "  ")
+        compactshow(io, group)
+    end
+end
+
+compactshow(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup(\"", group.id, "\")")
