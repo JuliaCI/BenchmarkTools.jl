@@ -27,7 +27,8 @@ typealias Tag UTF8String
 compactshow(io::IO, x) = showcompact(io, x)
 
 include("trials.jl")
-include("collections.jl")
 include("benchmarkable.jl")
+include("collections.jl")
+include("execution.jl")
 
 end # module BenchmarkTools

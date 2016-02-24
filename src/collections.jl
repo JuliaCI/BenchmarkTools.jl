@@ -16,14 +16,6 @@ Base.setindex!(group::BenchmarkGroup, x, y...) = setindex!(group.benchmarks, x, 
 
 hastag(group::BenchmarkGroup, tag) = tag == group.id || in(tag, group.tags)
 
-function execute(group::BenchmarkGroup, t::Number = NaN)
-    result = BenchmarkGroup(group.id, group.tags)
-    for id in keys(group.benchmarks)
-        result[id] = execute(group[id], t)
-    end
-    return result
-end
-
 function Base.map(f, a::BenchmarkGroup, b::BenchmarkGroup)
     result = BenchmarkGroup(a.id, a.tags)
     for id in keys(a.benchmarks)
@@ -78,30 +70,6 @@ function addgroup!(ensemble::BenchmarkEnsemble, id, tags)
 end
 
 rmgroup!(ensemble::BenchmarkEnsemble, id) = delete!(ensemble.groups, id)
-
-macro tagged(pred)
-    return :(x -> $(tagpred!(pred, :x)))
-end
-
-tagpred!(item::AbstractString, sym::Symbol) = :(hastag($sym, $item))
-tagpred!(item::Symbol, sym::Symbol) = item == :ALL ? true : item
-
-function tagpred!(expr::Expr, sym::Symbol)
-    for i in eachindex(expr.args)
-        expr.args[i] = tagpred!(expr.args[i], sym)
-    end
-    return expr
-end
-
-function execute(ensemble::BenchmarkEnsemble, pred, t::Number = NaN)
-    result_ensemble = BenchmarkEnsemble()
-    for (id, group) in ensemble.groups
-        if pred(group)
-            result_ensemble[id] = execute(group, t)
-        end
-    end
-    return result_ensemble
-end
 
 function Base.map(f, a::BenchmarkEnsemble, b::BenchmarkEnsemble)
     result_ensemble = BenchmarkEnsemble()
