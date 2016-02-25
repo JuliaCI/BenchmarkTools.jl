@@ -170,7 +170,7 @@ function Base.show(io::IO, group::BenchmarkGroup)
     for benchmark in keys(group.benchmarks)
         println(io)
         print(io, "  ", benchmark, " => ")
-        compactshow(io, group[benchmark])
+        showcompact(io, group[benchmark])
     end
 end
 
@@ -179,8 +179,8 @@ function Base.show(io::IO, ensemble::BenchmarkEnsemble)
     for group in values(ensemble.groups)
         println(io)
         print(io, "  ")
-        compactshow(io, group)
+        showcompact(io, group)
     end
 end
 
-compactshow(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup(\"", group.id, "\")")
+Base.showcompact(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup(\"", group.id, "\")")

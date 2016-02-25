@@ -158,6 +158,6 @@ function Base.show(io::IO, t::TrialJudgement)
     print(io,   "  allocs: ", prettydiff(allocs(ratio(t))), " => ", allocs(t))
 end
 
-compactshow(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
-compactshow(io::IO, t::TrialMetrics) = print(io, "TrialMetrics(", prettypercent(time(t)), ")")
-compactshow(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
+Base.showcompact(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
+Base.showcompact(io::IO, t::TrialMetrics) = print(io, "TrialMetrics(", prettypercent(time(t)), ")")
+Base.showcompact(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
