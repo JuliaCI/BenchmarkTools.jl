@@ -56,6 +56,5 @@ end
 # ntrials #
 ###########
 
-function ntrials(f::Function, trials::Number; seconds::Number = NaN, verbose::Bool = true)
-    return Trial[execute(f; seconds = seconds, verbose = verbose) for _ in 1:trials]
-end
+ntrials(exe, trials::Number, seconds = NaN; kwargs...) = [execute(exe, seconds; kwargs...) for _ in 1:trials]
+ntrials(exe, trials; kwargs...) = [execute(exe, t; kwargs...) for t in trials]
