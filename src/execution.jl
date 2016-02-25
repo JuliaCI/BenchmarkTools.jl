@@ -1,22 +1,4 @@
 ###########
-# @tagged #
-###########
-
-macro tagged(pred)
-    return :(x -> $(tagpred!(pred, :x)))
-end
-
-tagpred!(item::AbstractString, sym::Symbol) = :(hastag($sym, $item))
-tagpred!(item::Symbol, sym::Symbol) = item == :ALL ? true : item
-
-function tagpred!(expr::Expr, sym::Symbol)
-    for i in eachindex(expr.args)
-        expr.args[i] = tagpred!(expr.args[i], sym)
-    end
-    return expr
-end
-
-###########
 # execute #
 ###########
 
@@ -33,21 +15,11 @@ function execute(group::BenchmarkGroup, seconds::Number = NaN; verbose::Bool = f
 end
 
 function execute(ensemble::BenchmarkEnsemble, seconds::Number = NaN; verbose::Bool = false)
-    return execute(ensemble, seconds, @tagged(ALL); verbose = verbose)
-end
-
-function execute(ensemble::BenchmarkEnsemble, pred::Function; verbose::Bool = false)
-    return execute(ensemble, NaN, pred; verbose = verbose)
-end
-
-function execute(ensemble::BenchmarkEnsemble, seconds::Number, pred::Function; verbose::Bool = false)
     result_ensemble = BenchmarkEnsemble()
     for (id, group) in ensemble.groups
-        if pred(group)
-            verbose && (println("Running BenchmarkGroup \"", group.id, "\"..."); tic())
-            result_ensemble[id] = execute(group, seconds; verbose = verbose)
-            verbose && println("  Completed BenchmarkGroup \"", group.id, "\" (took ", toq(), " seconds)")
-        end
+        verbose && (println("Running BenchmarkGroup \"", group.id, "\"..."); tic())
+        result_ensemble[id] = execute(group, seconds; verbose = verbose)
+        verbose && println("  Completed BenchmarkGroup \"", group.id, "\" (took ", toq(), " seconds)")
     end
     return result_ensemble
 end

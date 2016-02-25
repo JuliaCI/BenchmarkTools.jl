@@ -2,7 +2,7 @@
 # BenchmarkGroup #
 ##################
 
-type BenchmarkGroup
+immutable BenchmarkGroup
     id::Tag
     tags::Vector{Tag}
     benchmarks::Dict{Any,Any}
@@ -10,14 +10,18 @@ end
 
 BenchmarkGroup(id, tags) = BenchmarkGroup(id, tags, Dict())
 
+# indexing #
+#----------#
+
 Base.length(group::BenchmarkGroup) = length(group.benchmarks)
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(group.benchmarks))
 Base.getindex(group::BenchmarkGroup, x...) = group.benchmarks[x...]
 Base.setindex!(group::BenchmarkGroup, x, y...) = setindex!(group.benchmarks, x, y...)
 
-hastag(group::BenchmarkGroup, tag) = tag == group.id || in(tag, group.tags)
+# mapping/filtering #
+#-------------------#
 
-function Base.map(f, a::BenchmarkGroup, b::BenchmarkGroup)
+function mapvals(f, a::BenchmarkGroup, b::BenchmarkGroup)
     result = BenchmarkGroup(a.id, a.tags)
     for id in keys(a.benchmarks)
         if haskey(b.benchmarks, id)
@@ -27,27 +31,54 @@ function Base.map(f, a::BenchmarkGroup, b::BenchmarkGroup)
     return result
 end
 
-function Base.map!(f, result::BenchmarkGroup, group::BenchmarkGroup)
+function mapvals!(f, result::BenchmarkGroup, group::BenchmarkGroup)
     for (id, val) in group.benchmarks
         result[id] = f(val)
     end
     return result
 end
 
-Base.map!(f, group::BenchmarkGroup) = Base.map!(f, group, copy(group))
-Base.map(f, group::BenchmarkGroup) = Base.map!(f, BenchmarkGroup(group.id, group.tags), group)
+mapvals!(f, group::BenchmarkGroup) = mapvals!(f, group, copy(group))
+mapvals(f, group::BenchmarkGroup) = mapvals!(f, BenchmarkGroup(group.id, group.tags), group)
 
 Base.filter!(f, group::BenchmarkGroup) = (filter!(f, group.benchmarks); return group)
 Base.filter(f, group::BenchmarkGroup) = BenchmarkGroup(group.id, group.tags, filter(f, group.benchmarks))
 
-Base.time(group::BenchmarkGroup) = map(time, group)
-gctime(group::BenchmarkGroup) = map(gctime, group)
-memory(group::BenchmarkGroup) = map(memory, group)
-allocs(group::BenchmarkGroup) = map(allocs, group)
-ratio(a::BenchmarkGroup, b::BenchmarkGroup) = map(ratio, a, b)
-judge(a::BenchmarkGroup, b::BenchmarkGroup, args...) = map((a, b) -> judge(a, b, args...), a, b)
+# value retrieval #
+#-----------------#
+
+Base.time(group::BenchmarkGroup) = mapvals(time, group)
+gctime(group::BenchmarkGroup) = mapvals(gctime, group)
+memory(group::BenchmarkGroup) = mapvals(memory, group)
+allocs(group::BenchmarkGroup) = mapvals(allocs, group)
+ratio(a::BenchmarkGroup, b::BenchmarkGroup) = mapvals(ratio, a, b)
+judge(a::BenchmarkGroup, b::BenchmarkGroup, args...) = mapvals((a, b) -> judge(a, b, args...), a, b)
 regressions(group::BenchmarkGroup) = filter((id, t) -> hasregression(t), group)
 improvements(group::BenchmarkGroup) = filter((id, t) -> hasimprovement(t), group)
+
+###########
+# tagging #
+###########
+
+immutable TagFilter{P}
+    pred::P
+end
+
+hastag(group::BenchmarkGroup, tag) = tag == group.id || in(tag, group.tags)
+
+macro tagged(pred)
+    return :(BenchmarkTools.TagFilter(g -> $(tagpred!(pred, :g))))
+end
+
+tagpred!(item::AbstractString, sym::Symbol) = :(hastag($sym, $item))
+tagpred!(item::Symbol, sym::Symbol) = item == :ALL ? true : item
+
+function tagpred!(expr::Expr, sym::Symbol)
+    for i in eachindex(expr.args)
+        expr.args[i] = tagpred!(expr.args[i], sym)
+    end
+    return expr
+end
 
 #####################
 # BenchmarkEnsemble #
@@ -59,10 +90,17 @@ end
 
 BenchmarkEnsemble() = BenchmarkEnsemble(Dict{Tag,BenchmarkGroup}())
 
+# indexing #
+#----------#
+
 Base.length(ensemble::BenchmarkEnsemble) = length(ensemble.groups)
 Base.copy(ensemble::BenchmarkEnsemble) = BenchmarkEnsemble(copy(ensemble.groups))
-Base.getindex(ensemble::BenchmarkEnsemble, id) = ensemble.groups[id]
-Base.setindex!(ensemble::BenchmarkEnsemble, group::BenchmarkGroup, id) = setindex!(ensemble.groups, group, id)
+Base.getindex(ensemble::BenchmarkEnsemble, id...) = ensemble.groups[id...]
+Base.getindex(ensemble::BenchmarkEnsemble, filt::TagFilter) = filter((id, g) -> filt.pred(g), ensemble)
+Base.setindex!(ensemble::BenchmarkEnsemble, group::BenchmarkGroup, id...) = setindex!(ensemble.groups, group, id...)
+
+# adding/removing groups #
+#------------------------#
 
 function addgroup!(ensemble::BenchmarkEnsemble, id, tags)
     @assert !(haskey(ensemble.groups, id)) "BenchmarkEnsemble already has group with ID \"$(id)\""
@@ -71,45 +109,54 @@ function addgroup!(ensemble::BenchmarkEnsemble, id, tags)
     return group
 end
 
-rmgroup!(ensemble::BenchmarkEnsemble, id) = delete!(ensemble.groups, id)
+delete!(ensemble::BenchmarkEnsemble, id) = delete!(ensemble.groups, id)
 
-function Base.map(f, a::BenchmarkEnsemble, b::BenchmarkEnsemble)
+# mapping/filtering #
+#-------------------#
+
+function mapvals(f, a::BenchmarkEnsemble, b::BenchmarkEnsemble)
     result_ensemble = BenchmarkEnsemble()
     for id in keys(a.groups)
         if haskey(b.groups, id)
-            result_ensemble[id] = map(f, a[id], b[id])
+            result_ensemble[id] = mapvals(f, a[id], b[id])
         end
     end
     return result_ensemble
 end
 
-function Base.map!(f, result::BenchmarkEnsemble, ensemble::BenchmarkEnsemble)
+function mapvals!(f, result::BenchmarkEnsemble, ensemble::BenchmarkEnsemble)
     for (id, group) in ensemble.groups
-        result[id] = map(f, group)
+        result[id] = mapvals(f, group)
     end
     return result
 end
 
-Base.map!(f, ensemble::BenchmarkEnsemble) = Base.map!(f, ensemble, copy(ensemble))
-Base.map(f, ensemble::BenchmarkEnsemble) = Base.map!(f, BenchmarkEnsemble(), ensemble)
+mapvals!(f, ensemble::BenchmarkEnsemble) = mapvals!(f, ensemble, copy(ensemble))
+mapvals(f, ensemble::BenchmarkEnsemble) = mapvals!(f, BenchmarkEnsemble(), ensemble)
 
-function Base.filter!(f, ensemble::BenchmarkEnsemble)
+function filtervals!(f, ensemble::BenchmarkEnsemble)
     for (id, group) in ensemble.groups
-        ensemble[id] = filter!(f, group)
+        ensemble[id] = filtervals!(f, group)
     end
     return ensemble
 end
 
-Base.filter(f, ensemble::BenchmarkEnsemble) = filter!(f, ensemble)
+filtervals(f, ensemble::BenchmarkEnsemble) = filtervals!(f, ensemble)
 
-Base.time(ensemble::BenchmarkEnsemble) = map(time, ensemble)
-gctime(ensemble::BenchmarkEnsemble) = map(gctime, ensemble)
-memory(ensemble::BenchmarkEnsemble) = map(memory, ensemble)
-allocs(ensemble::BenchmarkEnsemble) = map(allocs, ensemble)
-ratio(a::BenchmarkEnsemble, b::BenchmarkEnsemble) = map(ratio, a, b)
-judge(a::BenchmarkEnsemble, b::BenchmarkEnsemble, args...) = map((a, b) -> judge(a, b, args...), a, b)
-regressions(ensemble::BenchmarkEnsemble) = filter((id, t) -> hasregression(t), ensemble)
-improvements(ensemble::BenchmarkEnsemble) = filter((id, t) -> hasimprovement(t), ensemble)
+Base.filter!(f, ensemble::BenchmarkEnsemble) = (filter!(f, ensemble.groups); return ensemble)
+Base.filter(f, ensemble::BenchmarkEnsemble) = BenchmarkEnsemble(filter(f, ensemble.groups))
+
+# value retrieval #
+#-----------------#
+
+Base.time(ensemble::BenchmarkEnsemble) = mapvals(time, ensemble)
+gctime(ensemble::BenchmarkEnsemble) = mapvals(gctime, ensemble)
+memory(ensemble::BenchmarkEnsemble) = mapvals(memory, ensemble)
+allocs(ensemble::BenchmarkEnsemble) = mapvals(allocs, ensemble)
+ratio(a::BenchmarkEnsemble, b::BenchmarkEnsemble) = mapvals(ratio, a, b)
+judge(a::BenchmarkEnsemble, b::BenchmarkEnsemble, args...) = mapvals((a, b) -> judge(a, b, args...), a, b)
+regressions(ensemble::BenchmarkEnsemble) = filtervals((id, t) -> hasregression(t), ensemble)
+improvements(ensemble::BenchmarkEnsemble) = filtervals((id, t) -> hasimprovement(t), ensemble)
 
 ###################
 # Pretty Printing #
