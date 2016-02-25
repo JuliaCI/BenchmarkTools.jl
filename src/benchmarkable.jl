@@ -8,7 +8,7 @@ macro benchmark(args...)
     tmp = gensym()
     return esc(quote
         $(tmp) = BenchmarkTools.@benchmarkable $(args...)
-        BenchmarkTools.execute($(tmp), 0.001) # precompile
+        BenchmarkTools.execute($(tmp), 1e-6) # precompile
         BenchmarkTools.execute($(tmp))
     end)
 end
