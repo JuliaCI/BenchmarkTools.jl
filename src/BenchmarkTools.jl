@@ -25,5 +25,6 @@ include("trials.jl")
 include("benchmarkable.jl")
 include("collections.jl")
 include("execution.jl")
+include("analysis.jl")
 
 end # module BenchmarkTools
