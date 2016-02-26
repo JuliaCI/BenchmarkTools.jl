@@ -10,13 +10,15 @@ end
 
 BenchmarkGroup(id, tags) = BenchmarkGroup(id, tags, Dict())
 
-# indexing #
-#----------#
+# collection methods #
+#--------------------#
 
 Base.length(group::BenchmarkGroup) = length(group.benchmarks)
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(group.benchmarks))
 Base.getindex(group::BenchmarkGroup, x...) = group.benchmarks[x...]
 Base.setindex!(group::BenchmarkGroup, x, y...) = setindex!(group.benchmarks, x, y...)
+Base.keys(group::BenchmarkGroup) = keys(group.benchmarks)
+Base.values(group::BenchmarkGroup) = values(group.benchmarks)
 
 # mapping/filtering #
 #-------------------#
@@ -98,6 +100,8 @@ Base.copy(ensemble::BenchmarkEnsemble) = BenchmarkEnsemble(copy(ensemble.groups)
 Base.getindex(ensemble::BenchmarkEnsemble, id...) = ensemble.groups[id...]
 Base.getindex(ensemble::BenchmarkEnsemble, filt::TagFilter) = filter((id, g) -> filt.pred(g), ensemble)
 Base.setindex!(ensemble::BenchmarkEnsemble, group::BenchmarkGroup, id...) = setindex!(ensemble.groups, group, id...)
+Base.keys(ensemble::BenchmarkEnsemble) = keys(ensemble.groups)
+Base.values(ensemble::BenchmarkEnsemble) = values(ensemble.groups)
 
 # adding/removing groups #
 #------------------------#
