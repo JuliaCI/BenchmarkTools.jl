@@ -1,9 +1,9 @@
-function trim(data, percent = 0.05)
-    cut = floor(Int, length(data) * percent)
-    return sort(data)[(1 + cut):(end - cut)]
+function trim(indexable, percent = 0.05)
+    cut = floor(Int, length(indexable) * percent)
+    return sort(indexable)[(1 + cut):(end - cut)]
 end
 
-function mmspread(v)
-    avg = mean(v)
-    return (avg, (maximum(v) - avg) / avg, (avg - minimum(v)) / avg)
+function mmspread(iterable)
+    avg = mean(iterable)
+    return (avg, (maximum(iterable) - avg) / avg, (avg - minimum(iterable)) / avg)
 end

@@ -2,8 +2,7 @@ module BenchmarkTools
 
 using Compat
 
-export BenchmarkEnsemble,
-       execute,
+export execute,
        ntrials,
        addgroup!,
        rmgroup!,
@@ -16,8 +15,8 @@ export BenchmarkEnsemble,
        allocs,
        ratio,
        judge,
-       regressions,
-       improvements
+       hasregression,
+       hasimprovement
 
 typealias Tag UTF8String
 

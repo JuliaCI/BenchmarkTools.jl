@@ -1,62 +1,66 @@
-##################
-# BenchmarkGroup #
-##################
+abstract AbstractBenchmarkCollection <: Associative
 
-immutable BenchmarkGroup
-    id::Tag
-    tags::Vector{Tag}
-    benchmarks::Dict{Any,Any}
-end
+Base.length(c::AbstractBenchmarkCollection) = length(data(c))
+Base.getindex(c::AbstractBenchmarkCollection, k...) = getindex(data(c), k...)
+Base.setindex!(c::AbstractBenchmarkCollection, v, k...) = setindex!(data(c), v, k...)
+Base.delete!(c::AbstractBenchmarkCollection, v, k...) = delete!(data(c), v, k...)
+Base.haskey(c::AbstractBenchmarkCollection, k) = haskey(data(c), k)
+Base.keys(c::AbstractBenchmarkCollection) = keys(data(c))
+Base.values(c::AbstractBenchmarkCollection) = values(data(c))
+Base.start(c::AbstractBenchmarkCollection) = start(data(c))
+Base.next(c::AbstractBenchmarkCollection, state) = next(data(c), state)
+Base.done(c::AbstractBenchmarkCollection, state) = done(data(c), state)
 
-BenchmarkGroup(id, tags) = BenchmarkGroup(id, tags, Dict())
-
-# collection methods #
-#--------------------#
-
-Base.length(group::BenchmarkGroup) = length(group.benchmarks)
-Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(group.benchmarks))
-Base.getindex(group::BenchmarkGroup, x...) = group.benchmarks[x...]
-Base.setindex!(group::BenchmarkGroup, x, y...) = setindex!(group.benchmarks, x, y...)
-Base.keys(group::BenchmarkGroup) = keys(group.benchmarks)
-Base.values(group::BenchmarkGroup) = values(group.benchmarks)
-
-# mapping/filtering #
-#-------------------#
-
-function mapvals(f, a::BenchmarkGroup, b::BenchmarkGroup)
-    result = BenchmarkGroup(a.id, a.tags)
-    for id in keys(a.benchmarks)
-        if haskey(b.benchmarks, id)
+function Base.map{C<:AbstractBenchmarkCollection}(f, a::C, b::C)
+    result = similar(a)
+    for id in keys(a)
+        if haskey(b, id)
             result[id] = f(a[id], b[id])
         end
     end
     return result
 end
 
-function mapvals!(f, result::BenchmarkGroup, group::BenchmarkGroup)
-    for (id, val) in group.benchmarks
-        result[id] = f(val)
+function Base.map(f, c::AbstractBenchmarkCollection)
+    result = similar(c)
+    for (k, v) in c
+        result[k] = f(v)
     end
     return result
 end
 
-mapvals!(f, group::BenchmarkGroup) = mapvals!(f, group, copy(group))
-mapvals(f, group::BenchmarkGroup) = mapvals!(f, BenchmarkGroup(group.id, group.tags), group)
+Base.filter!(f, c::AbstractBenchmarkCollection) = (filter!((k, v) -> f(v), data(c)); return c)
+Base.filter(f, c::AbstractBenchmarkCollection) = filter!(f, copy(c))
+Base.count(f, c::AbstractBenchmarkCollection) = count(f, values(data(c)))
 
-Base.filter!(f, group::BenchmarkGroup) = (filter!(f, group.benchmarks); return group)
-Base.filter(f, group::BenchmarkGroup) = BenchmarkGroup(group.id, group.tags, filter(f, group.benchmarks))
+Base.time(c::AbstractBenchmarkCollection) = map(time, c)
+gctime(c::AbstractBenchmarkCollection) = map(gctime, c)
+memory(c::AbstractBenchmarkCollection) = map(memory, c)
+allocs(c::AbstractBenchmarkCollection) = map(allocs, c)
+ratio(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection) = map(ratio, a, b)
+ratio(c::AbstractBenchmarkCollection) = map(ratio, c)
+judge(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection, args...) = map((x, y) -> judge(x, y, args...), a, b)
+hasjudgement(c::AbstractBenchmarkCollection, sym::Symbol) = count(trial -> hasjudgement(trial, sym), c) > 0
+hasimprovement(c::AbstractBenchmarkCollection) = count(hasimprovement, c) > 0
+hasregression(c::AbstractBenchmarkCollection) = count(hasregression, c) > 0
+Base.minimum(c::AbstractBenchmarkCollection) = map(minimum, c)
 
-# value retrieval #
-#-----------------#
+##################
+# BenchmarkGroup #
+##################
 
-Base.time(group::BenchmarkGroup) = mapvals(time, group)
-gctime(group::BenchmarkGroup) = mapvals(gctime, group)
-memory(group::BenchmarkGroup) = mapvals(memory, group)
-allocs(group::BenchmarkGroup) = mapvals(allocs, group)
-ratio(a::BenchmarkGroup, b::BenchmarkGroup) = mapvals(ratio, a, b)
-judge(a::BenchmarkGroup, b::BenchmarkGroup, args...) = mapvals((a, b) -> judge(a, b, args...), a, b)
-regressions(group::BenchmarkGroup) = filter((id, t) -> hasregression(t), group)
-improvements(group::BenchmarkGroup) = filter((id, t) -> hasimprovement(t), group)
+immutable BenchmarkGroup <: AbstractBenchmarkCollection
+    id::Tag
+    tags::Vector{Tag}
+    data::Dict{Any,Any}
+end
+
+BenchmarkGroup(id, tags) = BenchmarkGroup(id, tags, Dict())
+
+data(group::BenchmarkGroup) = group.data
+
+Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(data(group)))
+Base.similar(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), similar(data(group)))
 
 ###########
 # tagging #
@@ -82,85 +86,30 @@ function tagpred!(expr::Expr, sym::Symbol)
     return expr
 end
 
-#####################
-# BenchmarkEnsemble #
-#####################
+###################
+# GroupCollection #
+###################
 
-type BenchmarkEnsemble
-    groups::Dict{Tag,BenchmarkGroup}
+immutable GroupCollection <: AbstractBenchmarkCollection
+    data::Dict{Tag,BenchmarkGroup}
 end
 
-BenchmarkEnsemble() = BenchmarkEnsemble(Dict{Tag,BenchmarkGroup}())
+GroupCollection() = GroupCollection(Dict{Tag,BenchmarkGroup}())
 
-# indexing #
-#----------#
+data(groups::GroupCollection) = groups.data
 
-Base.length(ensemble::BenchmarkEnsemble) = length(ensemble.groups)
-Base.copy(ensemble::BenchmarkEnsemble) = BenchmarkEnsemble(copy(ensemble.groups))
-Base.getindex(ensemble::BenchmarkEnsemble, id...) = ensemble.groups[id...]
-Base.getindex(ensemble::BenchmarkEnsemble, filt::TagFilter) = filter((id, g) -> filt.pred(g), ensemble)
-Base.setindex!(ensemble::BenchmarkEnsemble, group::BenchmarkGroup, id...) = setindex!(ensemble.groups, group, id...)
-Base.keys(ensemble::BenchmarkEnsemble) = keys(ensemble.groups)
-Base.values(ensemble::BenchmarkEnsemble) = values(ensemble.groups)
+Base.copy(groups::GroupCollection) = GroupCollection(copy(data(groups)))
+Base.similar(groups::GroupCollection) = GroupCollection(similar(data(groups)))
+Base.getindex(groups::GroupCollection, filt::TagFilter) = filter(filt.pred, groups)
 
-# adding/removing groups #
-#------------------------#
+addgroup!(groups::GroupCollection, id, tags::AbstractString...) = addgroup!(groups, id, collect(tags))
+addgroup!(groups::GroupCollection, id, tags::Vector) = addgroup!(groups, BenchmarkGroup(id, tags))
 
-function addgroup!(ensemble::BenchmarkEnsemble, id, tags)
-    @assert !(haskey(ensemble.groups, id)) "BenchmarkEnsemble already has group with ID \"$(id)\""
-    group = BenchmarkGroup(id, tags)
-    ensemble[id] = group
+function addgroup!(groups::GroupCollection, group::BenchmarkGroup)
+    @assert !(haskey(groups, group.id)) "GroupCollection already has group with ID \"$(group.id)\""
+    groups[group.id] = group
     return group
 end
-
-delete!(ensemble::BenchmarkEnsemble, id) = delete!(ensemble.groups, id)
-
-# mapping/filtering #
-#-------------------#
-
-function mapvals(f, a::BenchmarkEnsemble, b::BenchmarkEnsemble)
-    result_ensemble = BenchmarkEnsemble()
-    for id in keys(a.groups)
-        if haskey(b.groups, id)
-            result_ensemble[id] = mapvals(f, a[id], b[id])
-        end
-    end
-    return result_ensemble
-end
-
-function mapvals!(f, result::BenchmarkEnsemble, ensemble::BenchmarkEnsemble)
-    for (id, group) in ensemble.groups
-        result[id] = mapvals(f, group)
-    end
-    return result
-end
-
-mapvals!(f, ensemble::BenchmarkEnsemble) = mapvals!(f, ensemble, copy(ensemble))
-mapvals(f, ensemble::BenchmarkEnsemble) = mapvals!(f, BenchmarkEnsemble(), ensemble)
-
-function filtervals!(f, ensemble::BenchmarkEnsemble)
-    for (id, group) in ensemble.groups
-        ensemble[id] = filtervals!(f, group)
-    end
-    return ensemble
-end
-
-filtervals(f, ensemble::BenchmarkEnsemble) = filtervals!(f, ensemble)
-
-Base.filter!(f, ensemble::BenchmarkEnsemble) = (filter!(f, ensemble.groups); return ensemble)
-Base.filter(f, ensemble::BenchmarkEnsemble) = BenchmarkEnsemble(filter(f, ensemble.groups))
-
-# value retrieval #
-#-----------------#
-
-Base.time(ensemble::BenchmarkEnsemble) = mapvals(time, ensemble)
-gctime(ensemble::BenchmarkEnsemble) = mapvals(gctime, ensemble)
-memory(ensemble::BenchmarkEnsemble) = mapvals(memory, ensemble)
-allocs(ensemble::BenchmarkEnsemble) = mapvals(allocs, ensemble)
-ratio(a::BenchmarkEnsemble, b::BenchmarkEnsemble) = mapvals(ratio, a, b)
-judge(a::BenchmarkEnsemble, b::BenchmarkEnsemble, args...) = mapvals((a, b) -> judge(a, b, args...), a, b)
-regressions(ensemble::BenchmarkEnsemble) = filtervals((id, t) -> hasregression(t), ensemble)
-improvements(ensemble::BenchmarkEnsemble) = filtervals((id, t) -> hasimprovement(t), ensemble)
 
 ###################
 # Pretty Printing #
@@ -168,23 +117,23 @@ improvements(ensemble::BenchmarkEnsemble) = filtervals((id, t) -> hasimprovement
 
 tagrepr(tags) = string("[", join(map(x -> "\"$x\"", tags), ", "), "]")
 
-function Base.show(io::IO, group::BenchmarkGroup)
-    println(io, "BenchmarkTools.BenchmarkGroup \"", group.id, "\":")
-    print(io, "  tags: ", tagrepr(group.tags))
-    for benchmark in keys(group.benchmarks)
+function Base.show(io::IO, group::BenchmarkGroup, pad = "")
+    println(io, pad, "BenchmarkTools.BenchmarkGroup \"", group.id, "\":")
+    print(io, pad, "  tags: ", tagrepr(group.tags))
+    for (k, v) in group
         println(io)
-        print(io, "  ", benchmark, " => ")
-        showcompact(io, group[benchmark])
+        print(io, pad, "  ", k, " => ")
+        showcompact(io, v)
     end
 end
 
-function Base.show(io::IO, ensemble::BenchmarkEnsemble)
-    print(io, "BenchmarkTools.BenchmarkEnsemble:")
-    for group in values(ensemble.groups)
+function Base.show(io::IO, groups::GroupCollection)
+    print(io, "BenchmarkTools.GroupCollection:")
+    for group in values(groups)
         println(io)
-        print(io, "  ")
-        showcompact(io, group)
+        showcompact(io, group, "  ")
     end
 end
 
-Base.showcompact(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup(\"", group.id, "\")")
+# This definition is annoying on v0.5, where showcompact is used instead of show by default
+# Base.showcompact(io::IO, group::BenchmarkGroup) = print(io, " BenchmarkGroup(\"$(group.id)\", $(tagrepr(group.tags)))")

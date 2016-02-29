@@ -51,7 +51,7 @@ end
 # TrialJudgement #
 ##################
 
-const DEFAULT_TOLERANCE = 0.2
+const DEFAULT_TOLERANCE = 0.1
 
 immutable TrialJudgement
     ratio::TrialRatio
