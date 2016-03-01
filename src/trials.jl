@@ -10,6 +10,10 @@ immutable Trial
     allocs::Float64
 end
 
+function Trial(time::Number, gctime::Number, memory::Number, allocs::Number)
+    return Trial(1.0, time, gctime, memory, allocs)
+end
+
 Base.time(t::Trial) = t.time / t.evals
 gctime(t::Trial) = t.gctime / t.evals
 memory(t::Trial) = fld(t.memory, t.evals)
