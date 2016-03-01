@@ -131,7 +131,7 @@ function Base.show(io::IO, groups::GroupCollection)
     print(io, "BenchmarkTools.GroupCollection:")
     for group in values(groups)
         println(io)
-        showcompact(io, group, "  ")
+        show(io, group, "  ")
     end
 end
 
