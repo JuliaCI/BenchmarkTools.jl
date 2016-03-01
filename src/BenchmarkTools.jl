@@ -3,7 +3,7 @@ module BenchmarkTools
 using Compat
 
 export execute,
-       ntrials,
+       warmup,
        addgroup!,
        rmgroup!,
        @tagged,
@@ -21,7 +21,6 @@ export execute,
 typealias Tag UTF8String
 
 include("trials.jl")
-include("benchmarkable.jl")
 include("collections.jl")
 include("execution.jl")
 include("analysis.jl")

@@ -1,5 +1,6 @@
 abstract AbstractBenchmarkCollection <: Associative
 
+Base.isempty(c::AbstractBenchmarkCollection) = isempty(data(c))
 Base.length(c::AbstractBenchmarkCollection) = length(data(c))
 Base.getindex(c::AbstractBenchmarkCollection, k...) = getindex(data(c), k...)
 Base.setindex!(c::AbstractBenchmarkCollection, v, k...) = setindex!(data(c), v, k...)
@@ -11,24 +12,18 @@ Base.start(c::AbstractBenchmarkCollection) = start(data(c))
 Base.next(c::AbstractBenchmarkCollection, state) = next(data(c), state)
 Base.done(c::AbstractBenchmarkCollection, state) = done(data(c), state)
 
-function Base.map{C<:AbstractBenchmarkCollection}(f, a::C, b::C)
-    result = similar(a)
-    for id in keys(a)
-        if haskey(b, id)
-            result[id] = f(a[id], b[id])
+@generated function Base.map!{C<:AbstractBenchmarkCollection}(f, dest::C, src::C...)
+    getinds = [:(src[$i][k]) for i in 1:length(src)]
+    return quote
+        for k in keys(first(src))
+            dest[k] = f($(getinds...))
         end
+        return dest
     end
-    return result
 end
 
-function Base.map(f, c::AbstractBenchmarkCollection)
-    result = similar(c)
-    for (k, v) in c
-        result[k] = f(v)
-    end
-    return result
-end
-
+Base.map!(f, c::AbstractBenchmarkCollection) = map!(f, similar(c), c)
+Base.map(f, c::AbstractBenchmarkCollection...) = map!(f, similar(first(c)), c...)
 Base.filter!(f, c::AbstractBenchmarkCollection) = (filter!((k, v) -> f(v), data(c)); return c)
 Base.filter(f, c::AbstractBenchmarkCollection) = filter!(f, copy(c))
 Base.count(f, c::AbstractBenchmarkCollection) = count(f, values(data(c)))
@@ -40,10 +35,7 @@ allocs(c::AbstractBenchmarkCollection) = map(allocs, c)
 ratio(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection) = map(ratio, a, b)
 ratio(c::AbstractBenchmarkCollection) = map(ratio, c)
 judge(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection, args...) = map((x, y) -> judge(x, y, args...), a, b)
-hasjudgement(c::AbstractBenchmarkCollection, sym::Symbol) = count(trial -> hasjudgement(trial, sym), c) > 0
-hasimprovement(c::AbstractBenchmarkCollection) = count(hasimprovement, c) > 0
-hasregression(c::AbstractBenchmarkCollection) = count(hasregression, c) > 0
-Base.minimum(c::AbstractBenchmarkCollection) = map(minimum, c)
+Base.min(c::AbstractBenchmarkCollection...) = map(min, c...)
 
 ##################
 # BenchmarkGroup #
@@ -61,6 +53,8 @@ data(group::BenchmarkGroup) = group.data
 
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(data(group)))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), similar(data(group)))
+
+changes(group::BenchmarkGroup) = filter(x -> hasregression(x) || hasimprovement(x), group)
 
 ###########
 # tagging #
@@ -101,6 +95,8 @@ data(groups::GroupCollection) = groups.data
 Base.copy(groups::GroupCollection) = GroupCollection(copy(data(groups)))
 Base.similar(groups::GroupCollection) = GroupCollection(similar(data(groups)))
 Base.getindex(groups::GroupCollection, filt::TagFilter) = filter(filt.pred, groups)
+
+changes(groups::GroupCollection) = filter!(g -> !(isempty(g)), map(changes, groups))
 
 addgroup!(groups::GroupCollection, id, tags::AbstractString...) = addgroup!(groups, id, collect(tags))
 addgroup!(groups::GroupCollection, id, tags::Vector) = addgroup!(groups, BenchmarkGroup(id, tags))
