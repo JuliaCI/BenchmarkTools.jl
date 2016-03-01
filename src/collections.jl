@@ -115,14 +115,14 @@ end
 # Pretty Printing #
 ###################
 
-tagrepr(tags) = string("[", join(map(x -> "\"$x\"", tags), ", "), "]")
+tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
 function Base.show(io::IO, group::BenchmarkGroup, pad = "")
     println(io, pad, "BenchmarkTools.BenchmarkGroup \"", group.id, "\":")
     print(io, pad, "  tags: ", tagrepr(group.tags))
     for (k, v) in group
         println(io)
-        print(io, pad, "  ", k, " => ")
+        print(io, pad, "  ", repr(k), " => ")
         showcompact(io, v)
     end
 end
