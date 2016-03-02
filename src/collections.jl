@@ -1,4 +1,4 @@
-abstract AbstractBenchmarkCollection <: Associative
+abstract AbstractBenchmarkCollection
 
 Base.isempty(c::AbstractBenchmarkCollection) = isempty(data(c))
 Base.length(c::AbstractBenchmarkCollection) = length(data(c))
