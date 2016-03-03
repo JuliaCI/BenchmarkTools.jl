@@ -16,7 +16,8 @@ export execute,
        ratio,
        judge,
        hasregression,
-       hasimprovement
+       hasimprovement,
+       changes
 
 typealias Tag UTF8String
 
