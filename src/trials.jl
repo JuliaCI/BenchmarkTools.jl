@@ -3,7 +3,7 @@
 #########
 
 immutable Trial
-    evals::Float64
+    evals::Int128
     time::Float64
     gctime::Float64
     memory::Float64
@@ -11,7 +11,7 @@ immutable Trial
 end
 
 function Trial(time::Number, gctime::Number, memory::Number, allocs::Number)
-    return Trial(1.0, time, gctime, memory, allocs)
+    return Trial(one(Int128), time, gctime, memory, allocs)
 end
 
 Base.time(t::Trial) = t.time / t.evals

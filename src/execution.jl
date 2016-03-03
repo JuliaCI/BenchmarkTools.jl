@@ -69,16 +69,20 @@ macro benchmarkable(args...)
                     @assert seconds > 0.0 "time limit must be greater than 0.0"
                     gcbool && gc()
                     time_limit_ns = seconds * 1e9
-                    total_evals = 0.0
+                    total_evals = zero(Int128)
                     gc_start = Base.gc_num()
                     start_time = time_ns()
                     growth_rate = 1.01
                     iter_evals = 2.0
                     while (time_ns() - start_time) < time_limit_ns
-                        for _ in 1:floor(iter_evals)
+                        # this inner loop allows time spent in the core function to diverge
+                        # from the "noise floor" of the while loop, so that we're not
+                        # contaminating fast running benchmarks with the while loop overhead
+                        floor_iter_evals = floor(Int128, iter_evals)
+                        for _ in 1:floor_iter_evals
                             $(_wrapfn)()
                         end
-                        total_evals += iter_evals
+                        total_evals += floor_iter_evals
                         iter_evals *= growth_rate
                     end
                     elapsed_time = time_ns() - start_time
