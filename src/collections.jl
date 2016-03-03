@@ -8,9 +8,9 @@ Base.delete!(c::AbstractBenchmarkCollection, v, k...) = delete!(data(c), v, k...
 Base.haskey(c::AbstractBenchmarkCollection, k) = haskey(data(c), k)
 Base.keys(c::AbstractBenchmarkCollection) = keys(data(c))
 Base.values(c::AbstractBenchmarkCollection) = values(data(c))
-Base.start(c::AbstractBenchmarkCollection) = start(data(c))
-Base.next(c::AbstractBenchmarkCollection, state) = next(data(c), state)
-Base.done(c::AbstractBenchmarkCollection, state) = done(data(c), state)
+Base.start(c::AbstractBenchmarkCollection) = start(values(c))
+Base.next(c::AbstractBenchmarkCollection, state) = next(values(c), state)
+Base.done(c::AbstractBenchmarkCollection, state) = done(values(c), state)
 
 @generated function Base.map!{C<:AbstractBenchmarkCollection}(f, dest::C, src::C...)
     getinds = [:(src[$i][k]) for i in 1:length(src)]
@@ -26,7 +26,7 @@ Base.map!(f, c::AbstractBenchmarkCollection) = map!(f, similar(c), c)
 Base.map(f, c::AbstractBenchmarkCollection...) = map!(f, similar(first(c)), c...)
 Base.filter!(f, c::AbstractBenchmarkCollection) = (filter!((k, v) -> f(v), data(c)); return c)
 Base.filter(f, c::AbstractBenchmarkCollection) = filter!(f, copy(c))
-Base.count(f, c::AbstractBenchmarkCollection) = count(f, values(data(c)))
+Base.min(c::AbstractBenchmarkCollection...) = map(min, c...)
 
 Base.time(c::AbstractBenchmarkCollection) = map(time, c)
 gctime(c::AbstractBenchmarkCollection) = map(gctime, c)
@@ -35,7 +35,8 @@ allocs(c::AbstractBenchmarkCollection) = map(allocs, c)
 ratio(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection) = map(ratio, a, b)
 ratio(c::AbstractBenchmarkCollection) = map(ratio, c)
 judge(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection, args...) = map((x, y) -> judge(x, y, args...), a, b)
-Base.min(c::AbstractBenchmarkCollection...) = map(min, c...)
+hasregression(c::AbstractBenchmarkCollection) = any(hasregression, c)
+hasimprovement(c::AbstractBenchmarkCollection) = any(hasimprovement, c)
 
 ##################
 # BenchmarkGroup #
@@ -116,16 +117,16 @@ tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 function Base.show(io::IO, group::BenchmarkGroup, pad = "")
     println(io, pad, "BenchmarkTools.BenchmarkGroup \"", group.id, "\":")
     print(io, pad, "  tags: ", tagrepr(group.tags))
-    for (k, v) in group
+    for k in keys(group)
         println(io)
         print(io, pad, "  ", repr(k), " => ")
-        showcompact(io, v)
+        showcompact(io, group[k])
     end
 end
 
 function Base.show(io::IO, groups::GroupCollection)
     print(io, "BenchmarkTools.GroupCollection:")
-    for group in values(groups)
+    for group in groups
         println(io)
         show(io, group, "  ")
     end

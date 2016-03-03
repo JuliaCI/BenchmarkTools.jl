@@ -15,9 +15,9 @@ execute(benchmark::Function, seconds::Number, gcbool::Bool) = benchmark(Float64(
 function execute(group::BenchmarkGroup, args...; verbose::Bool = false)
     result = similar(group)
     gc() # run GC before running group, even if individual benchmarks don't manually GC
-    for (id, benchmark) in group
+    for id in keys(group)
         verbose && (print("  benchmarking ", id, "..."); tic())
-        result[id] = execute(benchmark, args...)
+        result[id] = execute(group[id], args...)
         verbose && println("done (took ", toq(), " seconds)")
     end
     return result
@@ -25,10 +25,10 @@ end
 
 function execute(groups::GroupCollection, args...; verbose::Bool = false)
     result = similar(groups)
-    for (id, group) in groups
-        verbose && (println("Running BenchmarkGroup \"", id, "\"..."); tic())
-        result[id] = execute(group, args...; verbose = verbose)
-        verbose && println("  Completed BenchmarkGroup \"", id, "\" (took ", toq(), " seconds)")
+    for group in groups
+        verbose && (println("Running BenchmarkGroup \"", group.id, "\"..."); tic())
+        result[group.id] = execute(group, args...; verbose = verbose)
+        verbose && println("  Completed BenchmarkGroup \"", group.id, "\" (took ", toq(), " seconds)")
     end
     return result
 end
