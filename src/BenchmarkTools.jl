@@ -3,7 +3,6 @@ module BenchmarkTools
 using Compat
 
 export execute,
-       warmup,
        addgroup!,
        rmgroup!,
        @tagged,

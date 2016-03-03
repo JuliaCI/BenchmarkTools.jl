@@ -1,9 +1,3 @@
-##########
-# warmup #
-##########
-
-warmup(item; kwargs...) = (execute(item, 1e-6, false; kwargs...); return nothing)
-
 ###########
 # execute #
 ###########
@@ -45,7 +39,7 @@ macro benchmark(args...)
     tmp = gensym()
     return esc(quote
         $(tmp) = BenchmarkTools.@benchmarkable $(args...)
-        BenchmarkTools.warmup($(tmp)) # precompile
+        BenchmarkTools.execute($(tmp), 1e-3) # precompile
         BenchmarkTools.execute($(tmp))
     end)
 end
