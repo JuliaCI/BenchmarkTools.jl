@@ -25,4 +25,6 @@ include("trials.jl")
 include("collections.jl")
 include("execution.jl")
 
+loadplotting() = include(joinpath(Pkg.dir("BenchmarkTools"), "src", "plotting.jl"))
+
 end # module BenchmarkTools
