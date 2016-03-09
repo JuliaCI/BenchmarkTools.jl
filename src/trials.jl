@@ -47,7 +47,7 @@ immutable TrialEstimate
     allocs::Int
 end
 
-function ideal(trial::Trial)
+function Base.minimum(trial::Trial)
     ts = time(trial)
     i = indmin(ts)
     t = ts[i]
@@ -190,20 +190,20 @@ function prettymemory(b)
 end
 
 function Base.show(io::IO, t::Trial)
-    i = ideal(t)
+    i = minimum(t)
     r = linreg(t)
     println(io, "BenchmarkTools.Trial: ")
-    println(io, "  # of samples:           ", length(t))
-    println(io, "  max evals/sample:       ", Int(last(t.evals)))
-    println(io, "  ------------------------")
-    println(io, "  ideal time estimate:    ", prettytime(time(i)))
-    println(io, "  ideal gctime estimate:  ", prettytime(gctime(i)), " (", prettypercent(gctime(i) / time(i)),")")
-    println(io, "  ------------------------")
-    println(io, "  linreg time estimate:   ", prettytime(time(r)))
-    println(io, "  linreg gctime estimate: ", prettytime(gctime(r)), " (", prettypercent(gctime(r) / time(r)),")")
-    println(io, "  ------------------------")
-    println(io, "  memory estimate:        ", prettymemory(memory(i)))
-    print(io,   "  allocs estimate:        ", allocs(i))
+    println(io, "  # of samples:            ", length(t))
+    println(io, "  max evals/sample:        ", Int(last(t.evals)))
+    println(io, "  -------------------------")
+    println(io, "  minimum time estimate:   ", prettytime(time(i)))
+    println(io, "  minimum gctime estimate: ", prettytime(gctime(i)), " (", prettypercent(gctime(i) / time(i)),")")
+    println(io, "  -------------------------")
+    println(io, "  linreg time estimate:    ", prettytime(time(r)))
+    println(io, "  linreg gctime estimate:  ", prettytime(gctime(r)), " (", prettypercent(gctime(r) / time(r)),")")
+    println(io, "  -------------------------")
+    println(io, "  memory estimate:         ", prettymemory(memory(i)))
+    print(io,   "  allocs estimate:         ", allocs(i))
 end
 
 function Base.show(io::IO, t::TrialEstimate)

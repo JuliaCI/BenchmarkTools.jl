@@ -26,10 +26,9 @@ Base.map!(f, c::AbstractBenchmarkCollection) = map!(f, similar(c), c)
 Base.map(f, c::AbstractBenchmarkCollection...) = map!(f, similar(first(c)), c...)
 Base.filter!(f, c::AbstractBenchmarkCollection) = (filter!((k, v) -> f(v), data(c)); return c)
 Base.filter(f, c::AbstractBenchmarkCollection) = filter!(f, copy(c))
-Base.min(c::AbstractBenchmarkCollection...) = map(min, c...)
 
 Base.linreg(c::AbstractBenchmarkCollection) = map(linreg, c)
-ideal(c::AbstractBenchmarkCollection) = map(ideal, c)
+Base.minimum(c::AbstractBenchmarkCollection) = map(minimum, c)
 
 Base.time(c::AbstractBenchmarkCollection) = map(time, c)
 gctime(c::AbstractBenchmarkCollection) = map(gctime, c)
