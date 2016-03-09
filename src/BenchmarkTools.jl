@@ -8,6 +8,7 @@ export execute,
        @tagged,
        @benchmark,
        @benchmarkable,
+       ideal,
        time,
        gctime,
        memory,
@@ -23,6 +24,5 @@ typealias Tag UTF8String
 include("trials.jl")
 include("collections.jl")
 include("execution.jl")
-include("analysis.jl")
 
 end # module BenchmarkTools

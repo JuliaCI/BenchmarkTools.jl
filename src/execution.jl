@@ -33,7 +33,7 @@ end
 # @benchmark/@benchmarkable #
 #############################
 
-const DEFAULT_TIME_LIMIT = 5.0
+const DEFAULT_TIME_LIMIT = 10.0
 
 macro benchmark(args...)
     tmp = gensym()
@@ -57,40 +57,41 @@ macro benchmarkable(args...)
     else
         error("wrong number of arguments for @benchmark")
     end
-    # println(gcbool)
     return esc(quote
         let
             _wrapfn = gensym("wrap")
             _trialfn = gensym("trial")
+            _samplefn = gensym("sample!")
             eval(current_module(), quote
                 @noinline $(_wrapfn)() = $($(Expr(:quote, core)))
-                @noinline function $(_trialfn)(seconds::Float64 = Float64($($(Expr(:quote, default_seconds)))),
-                                               gcbool::Bool = $($(Expr(:quote, default_gcbool))))
-                    @assert seconds > 0.0 "time limit must be greater than 0.0"
-                    gcbool && gc()
-                    time_limit_ns = seconds * 1e9
-                    total_evals = zero(Int128)
+                @noinline function $(_samplefn)(trial::BenchmarkTools.Trial, evals)
                     gc_start = Base.gc_num()
                     start_time = time_ns()
-                    growth_rate = 1.01
-                    iter_evals = 2.0
-                    while (time_ns() - start_time) < time_limit_ns
-                        # this inner loop allows time spent in the core function to diverge
-                        # from the "noise floor" of the while loop, so that we're not
-                        # contaminating fast running benchmarks with the while loop overhead
-                        floor_iter_evals = floor(Int128, iter_evals)
-                        for _ in 1:floor_iter_evals
-                            $(_wrapfn)()
-                        end
-                        total_evals += floor_iter_evals
-                        iter_evals *= growth_rate
+                    for _ in 1:evals
+                        $(_wrapfn)()
                     end
-                    elapsed_time = time_ns() - start_time
+                    sample_time = time_ns() - start_time
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
                     bytes = gcdiff.allocd
                     allocs = gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc
                     gctime = gcdiff.total_time
-                    return BenchmarkTools.Trial(total_evals, elapsed_time, gctime, bytes, allocs)
+                    push!(trial, evals, sample_time, gctime, bytes, allocs)
+                    return trial
+                end
+                @noinline function $(_trialfn)(time_limit::Float64 = Float64($($(Expr(:quote, default_seconds)))),
+                                               gcbool::Bool = $($(Expr(:quote, default_gcbool))))
+                    @assert time_limit > 0.0 "time limit must be greater than 0.0"
+                    gcbool && gc()
+                    growth_rate = 1.1
+                    sample_evals = 1.0
+                    start_time = time()
+                    trial = BenchmarkTools.Trial()
+                    while (time() - start_time) < time_limit
+                        $(_samplefn)(trial, floor(sample_evals))
+                        sample_evals = 1.0 + (sample_evals * growth_rate)
+                        sample_evals > 1e6 && break
+                    end
+                    return trial
                 end
             end)
         end
