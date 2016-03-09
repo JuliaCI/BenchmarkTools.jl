@@ -160,16 +160,14 @@ function prettydiff(p)
 end
 
 function prettytime(t)
-    if t < 1e4
+    if t < 1e3
         value, units = t, "ns"
     elseif t < 1e6
-        value, units = t / 1e4, "μs"
+        value, units = t / 1e3, "μs"
     elseif t < 1e9
         value, units = t / 1e6, "ms"
-    elseif t < 1e12
-        value, units = t / 1e9, "s"
     else
-        error("invalid time value $t")
+        value, units = t / 1e9, "s"
     end
     return string(round(value, 2), " ", units)
 end
@@ -181,10 +179,8 @@ function prettymemory(b)
         value, units = b / 1024, "kb"
     elseif b < 1024^3
         value, units = b / 1024^2, "mb"
-    elseif b < 1024^4
-        value, units = b / 1024^3, "gb"
     else
-        error("invalid memory value $b")
+        value, units = b / 1024^3, "gb"
     end
     return string(round(value, 2), " ", units)
 end
