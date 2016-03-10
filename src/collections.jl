@@ -57,7 +57,8 @@ data(group::BenchmarkGroup) = group.data
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(data(group)))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), similar(data(group)))
 
-changes(group::BenchmarkGroup) = filter(x -> hasregression(x) || hasimprovement(x), group)
+regressions(group::BenchmarkGroup) = filter(hasregression, group)
+improvements(group::BenchmarkGroup) = filter(hasimprovement, group)
 
 ###########
 # tagging #
@@ -99,7 +100,8 @@ Base.copy(groups::GroupCollection) = GroupCollection(copy(data(groups)))
 Base.similar(groups::GroupCollection) = GroupCollection(similar(data(groups)))
 Base.getindex(groups::GroupCollection, filt::TagFilter) = filter(filt.pred, groups)
 
-changes(groups::GroupCollection) = filter!(g -> !(isempty(g)), map(changes, groups))
+regressions(groups::GroupCollection) = filter!(g -> !(isempty(g)), map(regressions, groups))
+improvements(groups::GroupCollection) = filter!(g -> !(isempty(g)), map(improvements, groups))
 
 addgroup!(groups::GroupCollection, id, tags::AbstractString...) = addgroup!(groups, id, collect(tags))
 addgroup!(groups::GroupCollection, id, tags::Vector) = addgroup!(groups, BenchmarkGroup(id, tags))

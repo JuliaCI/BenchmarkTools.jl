@@ -8,7 +8,8 @@ export execute,
        @tagged,
        @benchmark,
        @benchmarkable,
-       ideal,
+       minimum,
+       GroupCollection,
        time,
        gctime,
        memory,
@@ -17,7 +18,8 @@ export execute,
        judge,
        hasregression,
        hasimprovement,
-       changes
+       regressions,
+       improvements
 
 typealias Tag UTF8String
 
