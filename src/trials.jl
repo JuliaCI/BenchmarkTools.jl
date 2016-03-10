@@ -45,6 +45,7 @@ immutable TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
+    fitness::Float64
 end
 
 function Base.minimum(trial::Trial)
@@ -54,15 +55,16 @@ function Base.minimum(trial::Trial)
     gct = gctime(trial)[i]
     bs = Int(minimum(memory(trial)))
     as = Int(minimum(allocs(trial)))
-    return TrialEstimate(t, gct, bs, as)
+    return TrialEstimate(t, gct, bs, as, NaN)
 end
 
 function Base.linreg(trial::Trial)
-    _, t = linreg(trial.evals, trial.times)
+    s, t = linreg(trial.evals, trial.times)
+    rsqr = 1 - var(s .+ (t * trial.evals) .- trial.times) / var(trial.times)
     _, gct = linreg(trial.evals, trial.gctimes)
     bs = Int(minimum(memory(trial)))
     as = Int(minimum(allocs(trial)))
-    return TrialEstimate(t, abs(gct), bs, as)
+    return TrialEstimate(t, abs(gct), bs, as, rsqr)
 end
 
 Base.time(t::TrialEstimate) = t.time
@@ -197,6 +199,7 @@ function Base.show(io::IO, t::Trial)
     println(io, "  -------------------------")
     println(io, "  linreg time estimate:    ", prettytime(time(r)))
     println(io, "  linreg gctime estimate:  ", prettytime(gctime(r)), " (", prettypercent(gctime(r) / time(r)),")")
+    println(io, "  linreg R²:               ", round(r.fitness, 4))
     println(io, "  -------------------------")
     println(io, "  memory estimate:         ", prettymemory(memory(i)))
     print(io,   "  allocs estimate:         ", allocs(i))
@@ -208,6 +211,8 @@ function Base.show(io::IO, t::TrialEstimate)
     println(io, "  gctime:  ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
     println(io, "  memory:  ", prettymemory(memory(t)))
     print(io,   "  allocs:  ", allocs(t))
+    print(io,   "  fitness:  ", round(t.fitness, 4))
+
 end
 
 function Base.show(io::IO, t::TrialRatio)
