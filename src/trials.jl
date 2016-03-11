@@ -16,6 +16,14 @@ end
 
 Trial() = Trial(Float64[], Float64[], Float64[], Float64[], Float64[])
 
+function Base.(:(==))(a::Trial, b::Trial)
+    return a.evals == b.evals &&
+           a.times == b.times &&
+           a.gctimes == b.gctimes &&
+           a.memory == b.memory &&
+           a.allocs == b.allocs
+end
+
 function Base.push!(t::Trial, evals, time, gctime, memory, allocs)
     @assert isinteger(evals) && isinteger(memory) && isinteger(allocs)
     push!(t.evals, evals)
@@ -30,7 +38,6 @@ Base.length(t::Trial) = length(t.evals)
 Base.getindex(t::Trial, i) = Trial(t.evals[i], t.times[i], t.gctimes[i], t.memory[i], t.allocs[i])
 Base.endof(t::Trial) = length(t)
 
-evals(t::Trial) = t.evals
 Base.time(t::Trial) = t.times ./ t.evals
 gctime(t::Trial) = t.gctimes ./ t.evals
 memory(t::Trial) = [fld(t.memory[i], t.evals[i]) for i in 1:length(t)]
@@ -46,6 +53,13 @@ immutable TrialEstimate
     memory::Int
     allocs::Int
     fitness::Float64
+end
+
+function Base.(:(==))(a::TrialEstimate, b::TrialEstimate)
+    return a.time == b.times &&
+           a.gctime == b.gctime &&
+           a.memory == b.memory &&
+           a.allocs == b.allocs
 end
 
 function Base.minimum(trial::Trial)
@@ -85,6 +99,13 @@ immutable TrialRatio
     allocs::Float64
 end
 
+function Base.(:(==))(a::TrialRatio, b::TrialRatio)
+    return a.time == b.time &&
+           a.gctime == b.gctime &&
+           a.memory == b.memory &&
+           a.allocs == b.allocs
+end
+
 Base.time(t::TrialRatio) = t.time
 gctime(t::TrialRatio) = t.gctime
 memory(t::TrialRatio) = t.memory
@@ -115,6 +136,13 @@ immutable TrialJudgement
     time::Symbol
     memory::Symbol
     allocs::Symbol
+end
+
+function Base.(:(==))(a::TrialJudgement, b::TrialJudgement)
+    return a.ratio == b.ratio &&
+           a.time == b.time &&
+           a.memory == b.memory &&
+           a.allocs == b.allocs
 end
 
 Base.time(t::TrialJudgement) = t.time
@@ -210,8 +238,8 @@ function Base.show(io::IO, t::TrialEstimate)
     println(io, "  time:    ", prettytime(time(t)))
     println(io, "  gctime:  ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
     println(io, "  memory:  ", prettymemory(memory(t)))
-    print(io,   "  allocs:  ", allocs(t))
-    print(io,   "  fitness:  ", round(t.fitness, 4))
+    println(io, "  allocs:  ", allocs(t))
+    print(io,   "  fitness: ", round(t.fitness, 4))
 
 end
 
