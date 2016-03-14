@@ -56,10 +56,12 @@ immutable TrialEstimate
 end
 
 function Base.(:(==))(a::TrialEstimate, b::TrialEstimate)
-    return a.time == b.times &&
+    eqfit = (isnan(a.fitness) && isnan(b.fitness)) || (a.fitness == b.fitness)
+    return a.time == b.time &&
            a.gctime == b.gctime &&
            a.memory == b.memory &&
-           a.allocs == b.allocs
+           a.allocs == b.allocs &&
+           eqfit
 end
 
 function Base.minimum(trial::Trial)
