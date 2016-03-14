@@ -54,6 +54,7 @@ BenchmarkGroup(id, tags) = BenchmarkGroup(id, tags, Dict())
 
 data(group::BenchmarkGroup) = group.data
 
+Base.(:(==))(a::BenchmarkGroup, b::BenchmarkGroup) = a.id == b.id && a.tags == b.tags && data(a) == data(b)
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(data(group)))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), similar(data(group)))
 
