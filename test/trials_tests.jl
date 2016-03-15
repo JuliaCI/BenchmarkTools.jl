@@ -103,11 +103,20 @@ tj4 = judge(tr, 2.0)
 @test memory(tj3) == memory(tj4) == :invariant
 @test allocs(tj3) == allocs(tj4) == :invariant
 
+@test !(isinvariant(tj1))
+@test !(isinvariant(tj2))
+@test isinvariant(tj3)
+@test isinvariant(tj4)
+
 @test hasregression(tj1)
+@test hasregression(tj2)
 @test !(hasregression(tj3))
+@test !(hasregression(tj4))
 
 @test hasimprovement(tj1)
+@test hasimprovement(tj2)
 @test !(hasimprovement(tj3))
+@test !(hasimprovement(tj4))
 
 ###################
 # pretty printing #

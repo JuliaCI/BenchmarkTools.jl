@@ -180,6 +180,7 @@ end
 hasjudgement(t::TrialJudgement, sym::Symbol) = time(t) == sym || memory(t) == sym || allocs(t) == sym
 hasimprovement(t::TrialJudgement) = hasjudgement(t, :improvement)
 hasregression(t::TrialJudgement) = hasjudgement(t, :regression)
+isinvariant(t::TrialJudgement) = time(t) == :invariant && memory(t) == :invariant && allocs(t) == :invariant
 
 ###################
 # Pretty Printing #

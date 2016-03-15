@@ -29,6 +29,7 @@ Base.filter(f, c::AbstractBenchmarkCollection) = filter!(f, copy(c))
 
 Base.linreg(c::AbstractBenchmarkCollection) = map(linreg, c)
 Base.minimum(c::AbstractBenchmarkCollection) = map(minimum, c)
+Base.min(c::AbstractBenchmarkCollection...) = map(min, c...)
 
 Base.time(c::AbstractBenchmarkCollection) = map(time, c)
 gctime(c::AbstractBenchmarkCollection) = map(gctime, c)
@@ -41,6 +42,7 @@ judge(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection, args...) =
 judge(c::AbstractBenchmarkCollection, args...) = map(x -> judge(x, args...), c)
 hasregression(c::AbstractBenchmarkCollection) = any(hasregression, c)
 hasimprovement(c::AbstractBenchmarkCollection) = any(hasimprovement, c)
+isinvariant(c::AbstractBenchmarkCollection) = all(isinvariant, c)
 
 ##################
 # BenchmarkGroup #
@@ -60,6 +62,7 @@ Base.(:(==))(a::BenchmarkGroup, b::BenchmarkGroup) = a.id == b.id && a.tags == b
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), copy(data(group)))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(group.id, copy(group.tags), similar(data(group)))
 
+invariants(group::BenchmarkGroup) = filter(isinvariant, group)
 regressions(group::BenchmarkGroup) = filter(hasregression, group)
 improvements(group::BenchmarkGroup) = filter(hasimprovement, group)
 
@@ -103,6 +106,7 @@ Base.copy(groups::GroupCollection) = GroupCollection(copy(data(groups)))
 Base.similar(groups::GroupCollection) = GroupCollection(similar(data(groups)))
 Base.getindex(groups::GroupCollection, filt::TagFilter) = filter(filt.pred, groups)
 
+invariants(groups::GroupCollection) = filter!(g -> !(isempty(g)), map(invariants, groups))
 regressions(groups::GroupCollection) = filter!(g -> !(isempty(g)), map(regressions, groups))
 improvements(groups::GroupCollection) = filter!(g -> !(isempty(g)), map(improvements, groups))
 

@@ -17,8 +17,10 @@ export execute,
        fitness,
        ratio,
        judge,
+       isinvariant,
        hasregression,
        hasimprovement,
+       invariants,
        regressions,
        improvements
 
