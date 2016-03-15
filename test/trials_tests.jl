@@ -46,7 +46,7 @@ l = linreg(t)
 @test gctime(l) == 0.295
 @test memory(l) == 3
 @test allocs(l) == 18
-@test l.fitness == 0.8945203036633209
+@test fitness(l) == 0.8945203036633209
 
 m = minimum(t)
 
@@ -54,7 +54,7 @@ m = minimum(t)
 @test gctime(m) == 0.015
 @test memory(m) == 3
 @test allocs(m) == 18
-@test isnan(m.fitness)
+@test isnan(fitness(m))
 
 @test m < l
 

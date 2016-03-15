@@ -73,7 +73,9 @@ gt = BenchmarkTools.BenchmarkGroup("g", [], Dict("t" => t))
 @test data(improvements(judge(g, g2))) == Dict("a" => judge(te1, te3))
 
 @test minimum(gt)["t"] == TrialEstimate(1.015, 0.015, 3, 18, NaN)
+@test isnan(fitness(minimum(gt))["t"])
 @test linreg(gt)["t"] == TrialEstimate(2.295, 0.295, 3, 18, 0.8945203036633209)
+@test fitness(linreg(gt))["t"] == 0.8945203036633209
 
 ###################
 # GroupCollection #
@@ -137,7 +139,9 @@ addgroup!(groupst, gt)
 @test data(improvements(judge(groups, groups2))) == Dict("g3" => improvements(judge(g31, g32)))
 
 @test minimum(groupst)["g"]["t"] == minimum(groupst["g"]["t"])
+@test isnan(fitness(minimum(groupst))["g"]["t"])
 @test linreg(groupst)["g"]["t"] == linreg(groupst["g"]["t"])
+@test fitness(linreg(groupst))["g"]["t"] == fitness(linreg(groupst["g"]["t"]))
 
 #################
 # Tag Filtering #

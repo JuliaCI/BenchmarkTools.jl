@@ -87,6 +87,7 @@ Base.time(t::TrialEstimate) = t.time
 gctime(t::TrialEstimate) = t.gctime
 memory(t::TrialEstimate) = t.memory
 allocs(t::TrialEstimate) = t.allocs
+fitness(t::TrialEstimate) = t.fitness
 
 Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 
