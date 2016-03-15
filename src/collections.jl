@@ -37,6 +37,7 @@ allocs(c::AbstractBenchmarkCollection) = map(allocs, c)
 ratio(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection) = map(ratio, a, b)
 ratio(c::AbstractBenchmarkCollection) = map(ratio, c)
 judge(a::AbstractBenchmarkCollection, b::AbstractBenchmarkCollection, args...) = map((x, y) -> judge(x, y, args...), a, b)
+judge(c::AbstractBenchmarkCollection, args...) = map(x -> judge(x, args...), c)
 hasregression(c::AbstractBenchmarkCollection) = any(hasregression, c)
 hasimprovement(c::AbstractBenchmarkCollection) = any(hasimprovement, c)
 
@@ -91,12 +92,12 @@ end
 
 immutable GroupCollection <: AbstractBenchmarkCollection
     data::Dict{Tag,BenchmarkGroup}
+    GroupCollection(args...) = new(Dict{Tag,BenchmarkGroup}(args...))
 end
-
-GroupCollection() = GroupCollection(Dict{Tag,BenchmarkGroup}())
 
 data(groups::GroupCollection) = groups.data
 
+Base.(:(==))(a::GroupCollection, b::GroupCollection) = data(a) == data(b)
 Base.copy(groups::GroupCollection) = GroupCollection(copy(data(groups)))
 Base.similar(groups::GroupCollection) = GroupCollection(similar(data(groups)))
 Base.getindex(groups::GroupCollection, filt::TagFilter) = filter(filt.pred, groups)
