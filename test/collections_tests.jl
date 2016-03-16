@@ -84,10 +84,10 @@ gt = BenchmarkTools.BenchmarkGroup("g", [], Dict("t" => t))
 @test data(regressions(judge(g, g2))) == Dict("b" => judge(te2, te4))
 @test data(improvements(judge(g, g2))) == Dict("a" => judge(te1, te3))
 
-@test minimum(gt)["t"] == TrialEstimate(1.015, 0.015, 3, 18, NaN)
+@test minimum(gt)["t"] == minimum(gt["t"])
 @test isnan(fitness(minimum(gt))["t"])
-@test linreg(gt)["t"] == TrialEstimate(2.295, 0.295, 3, 18, 0.8945203036633209)
-@test fitness(linreg(gt))["t"] == 0.8945203036633209
+@test linreg(gt)["t"] == linreg(gt["t"])
+@test fitness(linreg(gt))["t"] == fitness(linreg(gt["t"]))
 
 ###################
 # GroupCollection #

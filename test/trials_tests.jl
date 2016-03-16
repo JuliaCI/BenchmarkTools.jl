@@ -42,18 +42,18 @@ t = BenchmarkTools.Trial([1, 2, 3],
 
 l = linreg(t)
 
-@test time(l) == 2.295
-@test gctime(l) == 0.295
-@test memory(l) == 3
-@test allocs(l) == 18
-@test fitness(l) == 0.8945203036633209
+@test_approx_eq time(l) 2.295
+@test_approx_eq gctime(l) 0.295
+@test_approx_eq memory(l) 3
+@test_approx_eq allocs(l) 18
+@test_approx_eq fitness(l) 0.8945203036633209
 
 m = minimum(t)
 
-@test time(m) == 1.015
-@test gctime(m) == 0.015
-@test memory(m) == 3
-@test allocs(m) == 18
+@test_approx_eq time(m) 1.015
+@test_approx_eq gctime(m) 0.015
+@test_approx_eq memory(m) 3
+@test_approx_eq allocs(m) 18
 @test isnan(fitness(m))
 
 @test m < l

@@ -4,6 +4,10 @@ using BenchmarkTools: BenchmarkGroup
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
+#########
+# setup #
+#########
+
 groups = BenchmarkTools.GroupCollection()
 
 addgroup!(groups, "sum", ["arithmetic"])
@@ -21,6 +25,7 @@ end
 groups["special"]["macro"] = @benchmarkable @test(1 == 1) 1
 groups["special"]["kwargs"] = @benchmarkable svds(rand(2, 2), nsv = 1) 2
 groups["special"]["nothing"] = @benchmarkable nothing
+groups["special"]["block"] = @benchmarkable begin rand(3) end
 groups["special"]["comprehension"] = @benchmarkable [n^2 for n in ns] 0.5
 
 ###########
