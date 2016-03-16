@@ -25,7 +25,7 @@ end
 groups["special"]["macro"] = @benchmarkable @test(1 == 1) 1
 groups["special"]["kwargs"] = @benchmarkable svds(rand(2, 2), nsv = 1) 2
 groups["special"]["nothing"] = @benchmarkable nothing
-groups["special"]["block"] = @benchmarkable begin rand(3) end
+groups["special"]["block"] = @benchmarkable begin rand(3) end 2
 groups["special"]["comprehension"] = @benchmarkable [n^2 for n in ns] 0.5
 
 ###########
@@ -60,7 +60,7 @@ end
 
 function is_expected_output(out::BenchmarkTools.Trial)
     @test length(out) > 1
-    @test time(judge(linreg(out), minimum(out), 0.3)) == :invariant
+    @test time(judge(linreg(out), minimum(out), 1.0)) == :invariant
     @test all([(out.evals[i] - out.evals[i-1]) > 0 for i in 2:length(out.evals)])
     return true
 end
@@ -86,9 +86,9 @@ execute(groups, 1e-3, false; verbose = true) # warmup
 t = execute(groups["sin"][first(ns)], 0.5, true)
 t2 = @benchmark sin($(first(ns))) 0.5
 
-jmin = judge(minimum(t), minimum(t2), 0.1)
-jlr = judge(linreg(t), linreg(t2), 0.1)
+jmin = judge(minimum(t), minimum(t2), 0.5)
+jlr = judge(linreg(t), linreg(t2), 0.5)
 
-@test all(rsqr -> rsqr >= 0.85, fitness(linreg(t)))
+@test all(rsqr -> rsqr >= 0.80, fitness(linreg(t)))
 @test isinvariant(jmin)
 @test isinvariant(jlr)
