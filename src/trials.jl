@@ -1,32 +1,59 @@
+abstract Benchmark
+
+##############
+# Parameters #
+##############
+
+type Parameters
+    seconds::Float64
+    samples::Int
+    evals::Int
+    gcbool::Bool
+end
+
+Parameters(; seconds = 5.0, samples = 100, evals = 1, gcbool = true) = Parameters(seconds, samples, evals, gcbool)
+
+function Parameters(default::Parameters; seconds = nothing, samples = nothing, evals = nothing, gcbool = nothing)
+    params = Parameters()
+    params.seconds = seconds != nothing ? seconds : default.seconds
+    params.gcbool = gcbool != nothing ? gcbool : default.gcbool
+    params.samples = samples != nothing ? samples : default.samples
+    params.evals = evals != nothing ? evals : default.evals
+    return params::BenchmarkTools.Parameters
+end
+
 #########
 # Trial #
 #########
 
 type Trial
-    evals::Vector{Float64}
+    params::Parameters
     times::Vector{Float64}
     gctimes::Vector{Float64}
-    memory::Vector{Float64}
-    allocs::Vector{Float64}
+    memory::Vector{Int}
+    allocs::Vector{Int}
 end
 
-function Trial(evals::Number, time::Number, gctime::Number, memory::Number, allocs::Number)
-    return Trial(Float64[evals], Float64[time], Float64[gctime], Float64[memory], Float64[allocs])
-end
-
-Trial() = Trial(Float64[], Float64[], Float64[], Float64[], Float64[])
+Trial(params::Parameters, args...) = push!(Trial(params), args...)
+Trial(params::Parameters) = Trial(params, Float64[], Float64[], Int[], Int[])
 
 function Base.(:(==))(a::Trial, b::Trial)
-    return a.evals == b.evals &&
+    return a.params == b.params &&
            a.times == b.times &&
            a.gctimes == b.gctimes &&
            a.memory == b.memory &&
            a.allocs == b.allocs
 end
 
-function Base.push!(t::Trial, evals, time, gctime, memory, allocs)
-    @assert isinteger(evals) && isinteger(memory) && isinteger(allocs)
-    push!(t.evals, evals)
+function Base.push!(t::Trial, sample_time, gcdiff::Base.GC_Diff)
+    time = sample_time / t.params.evals
+    gctime = gcdiff.total_time / t.params.evals
+    bytes = fld(gcdiff.allocd, t.params.evals)
+    allocs = fld(gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc, t.params.evals)
+    return push!(t, sample_time / t.params.evals, gctime, bytes, allocs)
+end
+
+function Base.push!(t::Trial, time, gctime, memory, allocs)
     push!(t.times, time)
     push!(t.gctimes, gctime)
     push!(t.memory, memory)
@@ -34,14 +61,14 @@ function Base.push!(t::Trial, evals, time, gctime, memory, allocs)
     return t
 end
 
-Base.length(t::Trial) = length(t.evals)
-Base.getindex(t::Trial, i) = Trial(t.evals[i], t.times[i], t.gctimes[i], t.memory[i], t.allocs[i])
+Base.length(t::Trial) = length(t.times)
+Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory[i], t.allocs[i])
 Base.endof(t::Trial) = length(t)
 
-Base.time(t::Trial) = t.times ./ t.evals
-gctime(t::Trial) = t.gctimes ./ t.evals
-memory(t::Trial) = [fld(t.memory[i], t.evals[i]) for i in 1:length(t)]
-allocs(t::Trial) = [fld(t.allocs[i], t.evals[i]) for i in 1:length(t)]
+Base.time(t::Trial) = t.times
+gctime(t::Trial) = t.gctimes
+memory(t::Trial) = t.memory
+allocs(t::Trial) = t.allocs
 
 #################
 # TrialEstimate #
@@ -73,15 +100,15 @@ function Base.minimum(trial::Trial)
     as = Int(minimum(allocs(trial)))
     return TrialEstimate(t, gct, bs, as, NaN)
 end
-
-function Base.linreg(trial::Trial)
-    s, t = linreg(trial.evals, trial.times)
-    rsqr = 1 - var(s .+ (t * trial.evals) .- trial.times) / var(trial.times)
-    _, gct = linreg(trial.evals, trial.gctimes)
-    bs = Int(minimum(memory(trial)))
-    as = Int(minimum(allocs(trial)))
-    return TrialEstimate(t, abs(gct), bs, as, rsqr)
-end
+#
+# function Base.linreg(trial::Trial)
+#     s, t = linreg(trial.params.evals, trial.times)
+#     rsqr = 1 - var(s .+ (t * trial.evals) .- trial.times) / var(trial.times)
+#     _, gct = linreg(trial.evals, trial.gctimes)
+#     bs = Int(minimum(memory(trial)))
+#     as = Int(minimum(allocs(trial)))
+#     return TrialEstimate(t, abs(gct), bs, as, rsqr)
+# end
 
 Base.time(t::TrialEstimate) = t.time
 gctime(t::TrialEstimate) = t.gctime
@@ -221,17 +248,17 @@ end
 
 function Base.show(io::IO, t::Trial)
     i = minimum(t)
-    r = linreg(t)
+    # r = linreg(t)
     println(io, "BenchmarkTools.Trial: ")
     println(io, "  # of samples:            ", length(t))
-    println(io, "  max evals/sample:        ", Int(last(t.evals)))
+    println(io, "  evals/sample:            ", t.params.evals)
     println(io, "  -------------------------")
     println(io, "  minimum time estimate:   ", prettytime(time(i)))
     println(io, "  minimum gctime estimate: ", prettytime(gctime(i)), " (", prettypercent(gctime(i) / time(i)),")")
-    println(io, "  -------------------------")
-    println(io, "  linreg time estimate:    ", prettytime(time(r)))
-    println(io, "  linreg gctime estimate:  ", prettytime(gctime(r)), " (", prettypercent(gctime(r) / time(r)),")")
-    println(io, "  linreg R²:               ", round(r.fitness, 4))
+    # println(io, "  -------------------------")
+    # println(io, "  linreg time estimate:    ", prettytime(time(r)))
+    # println(io, "  linreg gctime estimate:  ", prettytime(gctime(r)), " (", prettypercent(gctime(r) / time(r)),")")
+    # println(io, "  linreg R²:               ", round(r.fitness, 4))
     println(io, "  -------------------------")
     println(io, "  memory estimate:         ", prettymemory(memory(i)))
     print(io,   "  allocs estimate:         ", allocs(i))

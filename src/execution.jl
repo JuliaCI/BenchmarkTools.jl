@@ -1,10 +1,10 @@
+
 ###########
 # execute #
 ###########
 
-execute(benchmark::Function) = benchmark()
-execute(benchmark::Function, seconds::Number) = benchmark(Float64(seconds))
-execute(benchmark::Function, seconds::Number, gcbool::Bool) = benchmark(Float64(seconds), gcbool)
+sample(b::Benchmark, args...) = error("`sample` not defined for $b")
+execute(b::Benchmark; kwargs...) = error("`execute` not defined for $b")
 
 function execute(group::BenchmarkGroup, args...; verbose::Bool = false)
     result = similar(group)
@@ -29,70 +29,95 @@ function execute(groups::GroupCollection, args...; verbose::Bool = false)
     return result
 end
 
+####################
+# Parameter Tuning #
+####################
+
+function tune!(b::Benchmark, seconds = b.params.seconds)
+    times = Vector{Float64}()
+    evals = Vector{Int}()
+    rate = 1.1
+    i = 1.0
+    ifloor = floor(Int, i)
+    local gcdiff::Base.GC_Diff
+    start_time = time()
+    while (time() - start_time) < seconds
+        ifloor = floor(Int, i)
+        t, gcdiff = sample(b, ifloor)
+        push!(times, t)
+        push!(evals, ifloor)
+        i = 1.0 + rate*i
+        i > 1e5 && break
+    end
+    revmeans = reverse(round(times ./ evals, 2))
+    i = findfirst(x -> revmeans[x] > revmeans[x-1], 2:length(revmeans)) - 1
+    j = length(times) - min(i, 0)
+    b.params.evals = evals[j]
+    b.params.samples = min(50, floor(Int, b.params.seconds / (times[j]*1e-9)))
+    return times, evals
+end
+
 #############################
 # @benchmark/@benchmarkable #
 #############################
-
-const DEFAULT_TIME_LIMIT = 10.0
 
 macro benchmark(args...)
     tmp = gensym()
     return esc(quote
         $(tmp) = BenchmarkTools.@benchmarkable $(args...)
-        BenchmarkTools.execute($(tmp), 1e-3) # precompile
+        BenchmarkTools.tune!($(tmp))
         BenchmarkTools.execute($(tmp))
     end)
 end
 
 macro benchmarkable(args...)
     if length(args) == 1
-        core = first(args)
-        default_seconds = DEFAULT_TIME_LIMIT
-        default_gcbool = true
+        core = args[1]
+        paramsdef = :(BenchmarkTools.Parameters())
     elseif length(args) == 2
-        core, default_seconds = args
-        default_gcbool = true
-    elseif length(args) == 3
-        core, default_seconds, default_gcbool = args
+        core = args[1]
+        paramsdef = args[2]
     else
-        error("wrong number of arguments for @benchmark")
+        error("wrong number of arguments for @benchmarkable")
     end
     return esc(quote
         let
-            _wrapfn = gensym("wrap")
-            _trialfn = gensym("trial")
-            _samplefn = gensym("sample!")
+            wrapfn = gensym("wrap")
+            samplefn = gensym("sample")
+            benchmark = gensym("benchmark")
             eval(current_module(), quote
-                @noinline $(_wrapfn)() = $($(Expr(:quote, core)))
-                @noinline function $(_samplefn)(trial::BenchmarkTools.Trial, evals)
+                immutable $(benchmark) <: BenchmarkTools.Benchmark
+                    params::BenchmarkTools.Parameters
+                end
+                @noinline $(wrapfn)() = $($(Expr(:quote, core)))
+                @noinline function $(samplefn)(evals::Int)
                     gc_start = Base.gc_num()
                     start_time = time_ns()
                     for _ in 1:evals
-                        $(_wrapfn)()
+                        $(wrapfn)()
                     end
                     sample_time = time_ns() - start_time
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
-                    bytes = gcdiff.allocd
-                    allocs = gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc
-                    gctime = gcdiff.total_time
-                    push!(trial, evals, sample_time, gctime, bytes, allocs)
-                    return trial
+                    return sample_time, gcdiff
                 end
-                @noinline function $(_trialfn)(time_limit::Float64 = Float64($($(Expr(:quote, default_seconds)))),
-                                               gcbool::Bool = $($(Expr(:quote, default_gcbool))))
-                    @assert time_limit > 0.0 "time limit must be greater than 0.0"
-                    gcbool && gc()
-                    growth_rate = 1.1
-                    sample_evals = 1.0
+                @noinline function BenchmarkTools.sample(b::$(benchmark), evals = b.params.evals)
+                    return $(samplefn)(floor(Int, evals))
+                end
+                @noinline function BenchmarkTools.execute(b::$(benchmark), p::BenchmarkTools.Parameters = b.params; kwargs...)
+                    params = BenchmarkTools.Parameters(p; kwargs...)
+                    @assert params.seconds > 0.0 "time limit must be greater than 0.0"
+                    params.gcbool && gc()
                     start_time = time()
-                    trial = BenchmarkTools.Trial()
-                    while (time() - start_time) < time_limit
-                        $(_samplefn)(trial, floor(sample_evals))
-                        sample_evals = 1.0 + (sample_evals * growth_rate)
-                        sample_evals > 1e6 && break
+                    trial = BenchmarkTools.Trial(params)
+                    iters = 1
+                    while (time() - start_time) < params.seconds
+                        push!(trial, $(samplefn)(params.evals)...)
+                        iters += 1
+                        iters > params.samples && break
                     end
                     return trial
                 end
+                $(benchmark)($($(Expr(:quote, paramsdef))))
             end)
         end
     end)
