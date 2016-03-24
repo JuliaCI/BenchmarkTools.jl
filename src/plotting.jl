@@ -1,11 +1,6 @@
 using KernelDensity
 using PyPlot
 
-function PyPlot.plot(t::BenchmarkTools.Trial)
-    a, b = linreg(t.evals, t.times)
-    plt[:scatter](t.evals, t.times)
-    plot(t.evals, t.times)
-    return plot(t.evals, [a + b*i for i in t.evals])
-end
-
+KernelDensity.kde(t::BenchmarkTools.Trial) = kde(time(t))
+PyPlot.plot(t::BenchmarkTools.Trial) = plt[:scatter](0:length(t)-1, time(t))
 PyPlot.plot(k::KernelDensity.UnivariateKDE) = PyPlot.plot(k.x, k.density)

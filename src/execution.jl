@@ -1,4 +1,3 @@
-
 ###########
 # execute #
 ###########
@@ -33,28 +32,43 @@ end
 # Parameter Tuning #
 ####################
 
+# How many evals do we need of a function that takes
+# time `t` to raise the overall sample time above the
+# clock resolution time `r`?
+evals_given_resolution(t, r) = max(floor(Int, r / t), 1)
+
+function samples_given_evals(e)
+    if e > 10000
+        return 50
+    elseif e > 300
+        return 150
+    elseif e > 100
+        return 300
+    else
+        return 50
+    end
+end
+
 function tune!(b::Benchmark, seconds = b.params.seconds)
-    times = Vector{Float64}()
+    times = Vector{Int}()
     evals = Vector{Int}()
     rate = 1.1
-    i = 1.0
-    ifloor = floor(Int, i)
-    local gcdiff::Base.GC_Diff
+    current_evals = 1.0
+    local unused_gcdiff::Base.GC_Diff
     start_time = time()
     while (time() - start_time) < seconds
-        ifloor = floor(Int, i)
-        t, gcdiff = sample(b, ifloor)
+        current_evals_floor = floor(Int, current_evals)
+        t, unused_gcdiff = sample(b, current_evals_floor)
         push!(times, t)
-        push!(evals, ifloor)
-        i = 1.0 + rate*i
-        i > 1e5 && break
+        push!(evals, current_evals_floor)
+        current_evals = 1.0 + rate*current_evals
+        current_evals > 1e5 && break
     end
-    revmeans = reverse(round(times ./ evals, 2))
-    i = findfirst(x -> revmeans[x] > revmeans[x-1], 2:length(revmeans)) - 1
-    j = length(times) - min(i, 0)
-    b.params.evals = evals[j]
-    b.params.samples = min(50, floor(Int, b.params.seconds / (times[j]*1e-9)))
-    return times, evals
+    best = minimum(ceil(times ./ evals))
+    # assume 1_000_000ns == 1ms resolution to be safe
+    b.params.evals = evals_given_resolution(best, 1000000)
+    b.params.samples = samples_given_evals(b.params.evals)
+    return b
 end
 
 #############################
@@ -84,11 +98,8 @@ macro benchmarkable(args...)
         let
             wrapfn = gensym("wrap")
             samplefn = gensym("sample")
-            benchmark = gensym("benchmark")
+            id = Expr(:quote, gensym("benchmark"))
             eval(current_module(), quote
-                immutable $(benchmark) <: BenchmarkTools.Benchmark
-                    params::BenchmarkTools.Parameters
-                end
                 @noinline $(wrapfn)() = $($(Expr(:quote, core)))
                 @noinline function $(samplefn)(evals::Int)
                     gc_start = Base.gc_num()
@@ -100,24 +111,25 @@ macro benchmarkable(args...)
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
                     return sample_time, gcdiff
                 end
-                @noinline function BenchmarkTools.sample(b::$(benchmark), evals = b.params.evals)
+                function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)}, evals = b.params.evals)
                     return $(samplefn)(floor(Int, evals))
                 end
-                @noinline function BenchmarkTools.execute(b::$(benchmark), p::BenchmarkTools.Parameters = b.params; kwargs...)
+                function BenchmarkTools.execute(b::BenchmarkTools.Benchmark{$(id)}, p::BenchmarkTools.Parameters = b.params; kwargs...)
                     params = BenchmarkTools.Parameters(p; kwargs...)
                     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-                    params.gcbool && gc()
+                    params.gctrial && gc()
                     start_time = time()
                     trial = BenchmarkTools.Trial(params)
                     iters = 1
                     while (time() - start_time) < params.seconds
+                        params.gcsample && gc()
                         push!(trial, $(samplefn)(params.evals)...)
                         iters += 1
                         iters > params.samples && break
                     end
-                    return trial
+                    return sort!(trial)
                 end
-                $(benchmark)($($(Expr(:quote, paramsdef))))
+                BenchmarkTools.Benchmark{$(id)}($($(Expr(:quote, paramsdef))))
             end)
         end
     end)

@@ -2,9 +2,11 @@ module BenchmarkTools
 
 using Compat
 
-export execute,
+export tune!,
+       execute,
+       sample,
+       spread,
        addgroup!,
-       rmgroup!,
        @tagged,
        @benchmark,
        @benchmarkable,

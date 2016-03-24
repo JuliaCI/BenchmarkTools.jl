@@ -1,5 +1,3 @@
-abstract Benchmark
-
 ##############
 # Parameters #
 ##############
@@ -8,18 +6,30 @@ type Parameters
     seconds::Float64
     samples::Int
     evals::Int
-    gcbool::Bool
+    gctrial::Bool
+    gcsample::Bool
 end
 
-Parameters(; seconds = 5.0, samples = 100, evals = 1, gcbool = true) = Parameters(seconds, samples, evals, gcbool)
-
-function Parameters(default::Parameters; seconds = nothing, samples = nothing, evals = nothing, gcbool = nothing)
+function Parameters(; seconds = 5.0, samples = 100, evals = 1, gctrial = true, gcsample = false)
+    return Parameters(seconds, samples, evals, gctrial, gcsample)
+end
+function Parameters(default::Parameters; seconds = nothing, samples = nothing,
+                    evals = nothing, gctrial =nothing, gcsample = nothing)
     params = Parameters()
     params.seconds = seconds != nothing ? seconds : default.seconds
-    params.gcbool = gcbool != nothing ? gcbool : default.gcbool
     params.samples = samples != nothing ? samples : default.samples
     params.evals = evals != nothing ? evals : default.evals
+    params.gctrial = gctrial != nothing ? gctrial : default.gctrial
+    params.gcsample = gcsample != nothing ? gcsample : default.gcsample
     return params::BenchmarkTools.Parameters
+end
+
+#############
+# Benchmark #
+#############
+
+immutable Benchmark{id}
+    params::Parameters
 end
 
 #########
@@ -28,14 +38,14 @@ end
 
 type Trial
     params::Parameters
-    times::Vector{Float64}
-    gctimes::Vector{Float64}
-    memory::Vector{Int}
-    allocs::Vector{Int}
+    times::Vector{Int}
+    gctimes::Vector{Int}
+    memory::Int
+    allocs::Int
 end
 
 Trial(params::Parameters, args...) = push!(Trial(params), args...)
-Trial(params::Parameters) = Trial(params, Float64[], Float64[], Int[], Int[])
+Trial(params::Parameters) = Trial(params, Int[], Int[], typemax(Int), typemax(Int))
 
 function Base.(:(==))(a::Trial, b::Trial)
     return a.params == b.params &&
@@ -46,29 +56,51 @@ function Base.(:(==))(a::Trial, b::Trial)
 end
 
 function Base.push!(t::Trial, sample_time, gcdiff::Base.GC_Diff)
-    time = sample_time / t.params.evals
-    gctime = gcdiff.total_time / t.params.evals
-    bytes = fld(gcdiff.allocd, t.params.evals)
+    time = ceil(sample_time / t.params.evals)
+    gctime = ceil(gcdiff.total_time / t.params.evals)
+    memory = fld(gcdiff.allocd, t.params.evals)
     allocs = fld(gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc, t.params.evals)
-    return push!(t, sample_time / t.params.evals, gctime, bytes, allocs)
+    return push!(t, time, gctime, memory, allocs)
 end
 
 function Base.push!(t::Trial, time, gctime, memory, allocs)
     push!(t.times, time)
     push!(t.gctimes, gctime)
-    push!(t.memory, memory)
-    push!(t.allocs, allocs)
+    memory < t.memory && (t.memory = memory)
+    allocs < t.allocs && (t.allocs = allocs)
     return t
 end
 
 Base.length(t::Trial) = length(t.times)
-Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory[i], t.allocs[i])
+Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.endof(t::Trial) = length(t)
+
+function Base.sort!(t::Trial)
+    inds = sortperm(t.times)
+    t.times = t.times[inds]
+    t.gctimes = t.gctimes[inds]
+    return t
+end
 
 Base.time(t::Trial) = t.times
 gctime(t::Trial) = t.gctimes
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
+
+function trim!(t::Trial, threshold = 1.2)
+    if length(t) > 3
+        times = time(t)
+        cut = length(times)
+        for i in length(times):-1:2
+            cut = ratio(times[i], times[i-1]) > threshold ? i : cut
+        end
+        return t[1:cut]
+    else
+        return t
+    end
+end
+
+trim(t::Trial, args...) = trim!(deepcopy(t), args...)
 
 #################
 # TrialEstimate #
@@ -79,44 +111,36 @@ immutable TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
-    fitness::Float64
 end
 
+TrialEstimate(trial::Trial, t, gct) = TrialEstimate(t, gct, memory(trial), allocs(trial))
+
 function Base.(:(==))(a::TrialEstimate, b::TrialEstimate)
-    eqfit = (isnan(a.fitness) && isnan(b.fitness)) || (a.fitness == b.fitness)
     return a.time == b.time &&
            a.gctime == b.gctime &&
            a.memory == b.memory &&
-           a.allocs == b.allocs &&
-           eqfit
+           a.allocs == b.allocs
 end
 
 function Base.minimum(trial::Trial)
-    ts = time(trial)
-    i = indmin(ts)
-    t = ts[i]
-    gct = gctime(trial)[i]
-    bs = Int(minimum(memory(trial)))
-    as = Int(minimum(allocs(trial)))
-    return TrialEstimate(t, gct, bs, as, NaN)
+    i = indmin(time(trial))
+    return TrialEstimate(trial, time(trial)[i], gctime(trial)[i])
 end
-#
-# function Base.linreg(trial::Trial)
-#     s, t = linreg(trial.params.evals, trial.times)
-#     rsqr = 1 - var(s .+ (t * trial.evals) .- trial.times) / var(trial.times)
-#     _, gct = linreg(trial.evals, trial.gctimes)
-#     bs = Int(minimum(memory(trial)))
-#     as = Int(minimum(allocs(trial)))
-#     return TrialEstimate(t, abs(gct), bs, as, rsqr)
-# end
+
+function Base.maximum(trial::Trial)
+    i = indmax(time(trial))
+    return TrialEstimate(trial, time(trial)[i], gctime(trial)[i])
+end
+
+Base.median(trial::Trial) = TrialEstimate(trial, median(time(trial)), median(gctime(trial)))
+Base.mean(trial::Trial) = TrialEstimate(trial, mean(time(trial)), mean(gctime(trial)))
+
+Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 
 Base.time(t::TrialEstimate) = t.time
 gctime(t::TrialEstimate) = t.gctime
 memory(t::TrialEstimate) = t.memory
 allocs(t::TrialEstimate) = t.allocs
-fitness(t::TrialEstimate) = t.fitness
-
-Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 
 ##############
 # TrialRatio #
@@ -154,6 +178,10 @@ function ratio(a::TrialEstimate, b::TrialEstimate)
                       ratio(memory(a), memory(b)),
                       ratio(allocs(a), allocs(b)))
 end
+
+spread(t::Trial, est = mean) = ratio(est(t), minimum(t))
+
+gcratio(t::TrialEstimate) =  gctime(t) / time(t)
 
 ##################
 # TrialJudgement #
@@ -247,21 +275,21 @@ function prettymemory(b)
 end
 
 function Base.show(io::IO, t::Trial)
-    i = minimum(t)
-    # r = linreg(t)
+    min = minimum(t)
+    max = maximum(t)
+    med = median(t)
+    avg = mean(t)
     println(io, "BenchmarkTools.Trial: ")
-    println(io, "  # of samples:            ", length(t))
-    println(io, "  evals/sample:            ", t.params.evals)
-    println(io, "  -------------------------")
-    println(io, "  minimum time estimate:   ", prettytime(time(i)))
-    println(io, "  minimum gctime estimate: ", prettytime(gctime(i)), " (", prettypercent(gctime(i) / time(i)),")")
-    # println(io, "  -------------------------")
-    # println(io, "  linreg time estimate:    ", prettytime(time(r)))
-    # println(io, "  linreg gctime estimate:  ", prettytime(gctime(r)), " (", prettypercent(gctime(r) / time(r)),")")
-    # println(io, "  linreg R²:               ", round(r.fitness, 4))
-    println(io, "  -------------------------")
-    println(io, "  memory estimate:         ", prettymemory(memory(i)))
-    print(io,   "  allocs estimate:         ", allocs(i))
+    println(io, "  # of samples: ", length(t))
+    println(io, "  evals/sample: ", t.params.evals)
+    println(io, "  --------------")
+    println(io, "  minimum time: ", prettytime(time(min)), " (", prettypercent(gcratio(min))," GC)")
+    println(io, "  mean time:    ", prettytime(time(avg)), " (", prettypercent(gcratio(avg))," GC)")
+    println(io, "  median time:  ", prettytime(time(med)), " (", prettypercent(gcratio(med))," GC)")
+    println(io, "  maximum time: ", prettytime(time(max)), " (", prettypercent(gcratio(max))," GC)")
+    println(io, "  --------------")
+    println(io, "  memory:       ", prettymemory(memory(min)))
+    print(io,   "  allocs:       ", allocs(min))
 end
 
 function Base.show(io::IO, t::TrialEstimate)
@@ -269,9 +297,7 @@ function Base.show(io::IO, t::TrialEstimate)
     println(io, "  time:    ", prettytime(time(t)))
     println(io, "  gctime:  ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
     println(io, "  memory:  ", prettymemory(memory(t)))
-    println(io, "  allocs:  ", allocs(t))
-    print(io,   "  fitness: ", round(t.fitness, 4))
-
+    print(io,   "  allocs:  ", allocs(t))
 end
 
 function Base.show(io::IO, t::TrialRatio)
