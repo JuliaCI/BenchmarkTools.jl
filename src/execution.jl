@@ -35,7 +35,7 @@ end
 # How many evals do we need of a function that takes
 # time `t` to raise the overall sample time above the
 # clock resolution time `r`?
-evals_given_resolution(t, r) = max(floor(Int, r / t), 1)
+evals_given_resolution(t, r) = max(ceil(Int, r / t), 1)
 
 function samples_given_evals(e)
     if e > 10000
@@ -127,7 +127,10 @@ macro benchmarkable(args...)
                         iters += 1
                         iters > params.samples && break
                     end
-                    return sort!(trial)
+                    old_length = length(trial)
+                    BenchmarkTools.trim!(sort!(trial))
+                    trial.outliers = old_length - length(trial)
+                    return trial
                 end
                 BenchmarkTools.Benchmark{$(id)}($($(Expr(:quote, paramsdef))))
             end)

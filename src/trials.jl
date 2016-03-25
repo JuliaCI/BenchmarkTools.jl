@@ -8,19 +8,23 @@ type Parameters
     evals::Int
     gctrial::Bool
     gcsample::Bool
+    tolerance::Float64
 end
 
-function Parameters(; seconds = 5.0, samples = 100, evals = 1, gctrial = true, gcsample = false)
-    return Parameters(seconds, samples, evals, gctrial, gcsample)
+function Parameters(; seconds = 5.0, samples = 100, evals = 1, gctrial = true,
+                    gcsample = false, tolerance = 0.05)
+    return Parameters(seconds, samples, evals, gctrial, gcsample, tolerance)
 end
 function Parameters(default::Parameters; seconds = nothing, samples = nothing,
-                    evals = nothing, gctrial =nothing, gcsample = nothing)
+                    evals = nothing, gctrial =nothing, gcsample = nothing,
+                    tolerance = nothing)
     params = Parameters()
     params.seconds = seconds != nothing ? seconds : default.seconds
     params.samples = samples != nothing ? samples : default.samples
     params.evals = evals != nothing ? evals : default.evals
     params.gctrial = gctrial != nothing ? gctrial : default.gctrial
     params.gcsample = gcsample != nothing ? gcsample : default.gcsample
+    params.tolerance = tolerance != nothing ? tolerance : default.tolerance
     return params::BenchmarkTools.Parameters
 end
 
@@ -38,6 +42,7 @@ end
 
 type Trial
     params::Parameters
+    outliers::Int
     times::Vector{Int}
     gctimes::Vector{Int}
     memory::Int
@@ -45,7 +50,7 @@ type Trial
 end
 
 Trial(params::Parameters, args...) = push!(Trial(params), args...)
-Trial(params::Parameters) = Trial(params, Int[], Int[], typemax(Int), typemax(Int))
+Trial(params::Parameters) = Trial(params, 0, Int[], Int[], typemax(Int), typemax(Int))
 
 function Base.(:(==))(a::Trial, b::Trial)
     return a.params == b.params &&
@@ -71,6 +76,12 @@ function Base.push!(t::Trial, time, gctime, memory, allocs)
     return t
 end
 
+function Base.deleteat!(t::Trial, i)
+    deleteat!(t.times, i)
+    deleteat!(t.gctimes, i)
+    return t
+end
+
 Base.length(t::Trial) = length(t.times)
 Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.endof(t::Trial) = length(t)
@@ -82,25 +93,22 @@ function Base.sort!(t::Trial)
     return t
 end
 
-Base.time(t::Trial) = t.times
-gctime(t::Trial) = t.gctimes
+Base.time(t::Trial) = time(minimum(t))
+gctime(t::Trial) = gctime(minimum(t))
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 
-function trim!(t::Trial, threshold = 1.2)
-    if length(t) > 3
-        times = time(t)
-        cut = length(times)
-        for i in length(times):-1:2
-            cut = ratio(times[i], times[i-1]) > threshold ? i : cut
-        end
-        return t[1:cut]
-    else
-        return t
+function outliers(t::Trial, tolerance = t.params.tolerance)
+    cutoff = length(t)
+    threshold = 1.0 + tolerance
+    for i in length(t):-1:2
+        cutoff = ratio(t.times[i], t.times[i-1]) > threshold ? i : cutoff
     end
+    return cutoff:length(t)
 end
 
-trim(t::Trial, args...) = trim!(deepcopy(t), args...)
+trim!(t::Trial, args...) = deleteat!(t, outliers(t, args...))
+trim(t::Trial, args...) = t[1:first(outliers(t, args...))]
 
 #################
 # TrialEstimate #
@@ -111,9 +119,12 @@ immutable TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
+    tolerance::Float64
 end
 
-TrialEstimate(trial::Trial, t, gct) = TrialEstimate(t, gct, memory(trial), allocs(trial))
+function TrialEstimate(trial::Trial, t, gct)
+    return TrialEstimate(t, gct, memory(trial), allocs(trial), trial.params.tolerance)
+end
 
 function Base.(:(==))(a::TrialEstimate, b::TrialEstimate)
     return a.time == b.time &&
@@ -123,17 +134,17 @@ function Base.(:(==))(a::TrialEstimate, b::TrialEstimate)
 end
 
 function Base.minimum(trial::Trial)
-    i = indmin(time(trial))
-    return TrialEstimate(trial, time(trial)[i], gctime(trial)[i])
+    i = indmin(trial.times)
+    return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
 end
 
 function Base.maximum(trial::Trial)
-    i = indmax(time(trial))
-    return TrialEstimate(trial, time(trial)[i], gctime(trial)[i])
+    i = indmax(trial.times)
+    return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
 end
 
-Base.median(trial::Trial) = TrialEstimate(trial, median(time(trial)), median(gctime(trial)))
-Base.mean(trial::Trial) = TrialEstimate(trial, mean(time(trial)), mean(gctime(trial)))
+Base.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
+Base.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
 
 Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 
@@ -151,6 +162,7 @@ immutable TrialRatio
     gctime::Float64
     memory::Float64
     allocs::Float64
+    tolerance::Float64
 end
 
 function Base.(:(==))(a::TrialRatio, b::TrialRatio)
@@ -176,7 +188,8 @@ function ratio(a::TrialEstimate, b::TrialEstimate)
     return TrialRatio(ratio(time(a),   time(b)),
                       ratio(gctime(a), gctime(b)),
                       ratio(memory(a), memory(b)),
-                      ratio(allocs(a), allocs(b)))
+                      ratio(allocs(a), allocs(b)),
+                      max(a.tolerance, b.tolerance))
 end
 
 spread(t::Trial, est = mean) = ratio(est(t), minimum(t))
@@ -186,8 +199,6 @@ gcratio(t::TrialEstimate) =  gctime(t) / time(t)
 ##################
 # TrialJudgement #
 ##################
-
-const DEFAULT_TOLERANCE = 0.05
 
 immutable TrialJudgement
     ratio::TrialRatio
@@ -208,21 +219,21 @@ memory(t::TrialJudgement) = t.memory
 allocs(t::TrialJudgement) = t.allocs
 ratio(t::TrialJudgement) = t.ratio
 
-function TrialJudgement(ratio::TrialRatio, tolerance = DEFAULT_TOLERANCE)
+function TrialJudgement(ratio::TrialRatio, tolerance::Float64)
     return TrialJudgement(ratio,
                           judge(time(ratio),   tolerance),
                           judge(memory(ratio), tolerance),
                           judge(allocs(ratio), tolerance))
 end
 
-function TrialJudgement(a::TrialEstimate, b::TrialEstimate, tolerance = DEFAULT_TOLERANCE)
+function TrialJudgement(a::TrialEstimate, b::TrialEstimate, tolerance::Float64)
     return TrialJudgement(ratio(a, b), tolerance)
 end
 
-judge(a::TrialEstimate, b::TrialEstimate, tolerance = DEFAULT_TOLERANCE) = TrialJudgement(a, b, tolerance)
-judge(ratio::TrialRatio, tolerance = DEFAULT_TOLERANCE) = TrialJudgement(ratio, tolerance)
+judge(a::TrialEstimate, b::TrialEstimate, tolerance = max(a.tolerance, b.tolerance)) = TrialJudgement(a, b, tolerance)
+judge(ratio::TrialRatio, tolerance = ratio.tolerance) = TrialJudgement(ratio, tolerance)
 
-function judge(ratio::Real, tolerance = DEFAULT_TOLERANCE)
+function judge(ratio::Real, tolerance::Float64)
     if isnan(ratio) || (ratio - tolerance) > 1.0
         return :regression
     elseif (ratio + tolerance) < 1.0
@@ -280,16 +291,16 @@ function Base.show(io::IO, t::Trial)
     med = median(t)
     avg = mean(t)
     println(io, "BenchmarkTools.Trial: ")
-    println(io, "  # of samples: ", length(t))
-    println(io, "  evals/sample: ", t.params.evals)
-    println(io, "  --------------")
-    println(io, "  minimum time: ", prettytime(time(min)), " (", prettypercent(gcratio(min))," GC)")
-    println(io, "  mean time:    ", prettytime(time(avg)), " (", prettypercent(gcratio(avg))," GC)")
-    println(io, "  median time:  ", prettytime(time(med)), " (", prettypercent(gcratio(med))," GC)")
-    println(io, "  maximum time: ", prettytime(time(max)), " (", prettypercent(gcratio(max))," GC)")
-    println(io, "  --------------")
-    println(io, "  memory:       ", prettymemory(memory(min)))
-    print(io,   "  allocs:       ", allocs(min))
+    println(io, "  noise tolerance: ", prettypercent(t.params.tolerance))
+    println(io, "  # of samples:    ", length(t), " (", t.outliers, " outliers removed)")
+    println(io, "  evals/sample:    ", t.params.evals)
+    println(io, "  memory:          ", prettymemory(memory(min)))
+    println(io, "  allocs:          ", allocs(min))
+    println(io, "  minimum time:    ", prettytime(time(min)), " (", prettypercent(gcratio(min))," GC)")
+    println(io, "  median time:     ", prettytime(time(med)), " (", prettypercent(gcratio(med))," GC)")
+    println(io, "  mean time:       ", prettytime(time(avg)), " (", prettypercent(gcratio(avg))," GC)")
+    print(io,   "  maximum time:    ", prettytime(time(max)), " (", prettypercent(gcratio(max))," GC)")
+
 end
 
 function Base.show(io::IO, t::TrialEstimate)
