@@ -2,35 +2,52 @@ module BenchmarkTools
 
 using Compat
 
-export tune!,
-       execute,
-       sample,
-       spread,
-       addgroup!,
-       @tagged,
-       @benchmark,
-       @benchmarkable,
-       minimum,
-       GroupCollection,
-       time,
-       gctime,
+typealias Tag UTF8String
+
+##############
+# Trial Data #
+##############
+
+include("trials.jl")
+
+export gctime,
        memory,
        allocs,
-       fitness,
+       tolerance,
        ratio,
        judge,
        isinvariant,
-       hasregression,
-       hasimprovement,
+       isregression,
+       isimprovement,
+       rmoutliers!,
+       rmoutliers
+
+##################
+# Benchmark Data #
+##################
+
+include("collections.jl")
+
+export addgroup!,
+       @tagged,
+       GroupCollection,
        invariants,
        regressions,
        improvements
 
-typealias Tag UTF8String
+######################
+# Execution Strategy #
+######################
 
-include("trials.jl")
-include("collections.jl")
 include("execution.jl")
+
+export tune!,
+       @benchmark,
+       @benchmarkable
+
+##########################################
+# Plotting Facilities (loaded on demand) #
+##########################################
 
 loadplotting() = include(joinpath(Pkg.dir("BenchmarkTools"), "src", "plotting.jl"))
 

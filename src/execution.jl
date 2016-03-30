@@ -3,26 +3,26 @@
 ###########
 
 sample(b::Benchmark, args...) = error("`sample` not defined for $b")
-execute(b::Benchmark; kwargs...) = error("`execute` not defined for $b")
+Base.run(b::Benchmark; kwargs...) = error("`execute` not defined for $b")
 
-function execute(group::BenchmarkGroup, args...; verbose::Bool = false)
+function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false)
     result = similar(group)
     gc() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
     for id in keys(group)
         verbose && (print(" ($(i)/$(length(group))) benchmarking ", id, "..."); tic())
-        result[id] = execute(group[id], args...)
+        result[id] = run(group[id], args...)
         verbose && (println("done (took ", toq(), " seconds)"); i += 1)
     end
     return result
 end
 
-function execute(groups::GroupCollection, args...; verbose::Bool = false)
+function Base.run(groups::GroupCollection, args...; verbose::Bool = false)
     result = similar(groups)
     i = 1
     for group in groups
         verbose && (println("($(i)/$(length(groups))) Running BenchmarkGroup \"", group.id, "\"..."); tic())
-        result[group.id] = execute(group, args...; verbose = verbose)
+        result[group.id] = run(group, args...; verbose = verbose)
         verbose && (println("  Completed BenchmarkGroup \"", group.id, "\" (took ", toq(), " seconds)"); i += 1)
     end
     return result
@@ -36,18 +36,6 @@ end
 # time `t` to raise the overall sample time above the
 # clock resolution time `r`?
 evals_given_resolution(t, r) = max(ceil(Int, r / t), 1)
-
-function samples_given_evals(e)
-    if e > 10000
-        return 50
-    elseif e > 300
-        return 150
-    elseif e > 100
-        return 300
-    else
-        return 50
-    end
-end
 
 function tune!(b::Benchmark, seconds = b.params.seconds)
     times = Vector{Int}()
@@ -64,10 +52,8 @@ function tune!(b::Benchmark, seconds = b.params.seconds)
         current_evals = 1.0 + rate*current_evals
         current_evals > 1e5 && break
     end
-    best = minimum(ceil(times ./ evals))
     # assume 1_000_000ns == 1ms resolution to be safe
-    b.params.evals = evals_given_resolution(best, 1000000)
-    b.params.samples = samples_given_evals(b.params.evals)
+    b.params.evals = evals_given_resolution(minimum(ceil(times ./ evals)), 1000000)
     return b
 end
 
@@ -80,25 +66,24 @@ macro benchmark(args...)
     return esc(quote
         $(tmp) = BenchmarkTools.@benchmarkable $(args...)
         BenchmarkTools.tune!($(tmp))
-        BenchmarkTools.execute($(tmp))
+        BenchmarkTools.Base.run($(tmp))
     end)
 end
 
 macro benchmarkable(args...)
-    if length(args) == 1
-        core = args[1]
-        paramsdef = :(BenchmarkTools.Parameters())
-    elseif length(args) == 2
-        core = args[1]
-        paramsdef = args[2]
-    else
-        error("wrong number of arguments for @benchmarkable")
+    core = first(args)
+    params = collect(drop(args, 1))
+    for ex in params
+        if isa(ex, Expr) && ex.head == :(=)
+            ex.head = :kw
+        end
     end
     return esc(quote
         let
             wrapfn = gensym("wrap")
             samplefn = gensym("sample")
             id = Expr(:quote, gensym("benchmark"))
+            params = BenchmarkTools.Parameters($(params...))
             eval(current_module(), quote
                 @noinline $(wrapfn)() = $($(Expr(:quote, core)))
                 @noinline function $(samplefn)(evals::Int)
@@ -114,7 +99,7 @@ macro benchmarkable(args...)
                 function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)}, evals = b.params.evals)
                     return $(samplefn)(floor(Int, evals))
                 end
-                function BenchmarkTools.execute(b::BenchmarkTools.Benchmark{$(id)}, p::BenchmarkTools.Parameters = b.params; kwargs...)
+                function Base.run(b::BenchmarkTools.Benchmark{$(id)}, p::BenchmarkTools.Parameters = b.params; kwargs...)
                     params = BenchmarkTools.Parameters(p; kwargs...)
                     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
                     params.gctrial && gc()
@@ -127,12 +112,9 @@ macro benchmarkable(args...)
                         iters += 1
                         iters > params.samples && break
                     end
-                    old_length = length(trial)
-                    BenchmarkTools.trim!(sort!(trial))
-                    trial.outliers = old_length - length(trial)
-                    return trial
+                    return sort!(trial)
                 end
-                BenchmarkTools.Benchmark{$(id)}($($(Expr(:quote, paramsdef))))
+                BenchmarkTools.Benchmark{$(id)}($(params))
             end)
         end
     end)
