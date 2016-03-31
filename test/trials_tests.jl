@@ -5,58 +5,83 @@ using BenchmarkTools
 # Trial #
 #########
 
-trial1 = BenchmarkTools.Trial(1, 2, 3, 4, 5)
-push!(trial1, 11, 21, 31, 41, 51)
+trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(evals = 2))
+push!(trial1, 2, 1, 4, 5)
+push!(trial1, 21, 0, 41, 51)
 
-trial2 = BenchmarkTools.Trial()
-push!(trial2, 1, 2, 3, 4, 5)
-push!(trial2, 11, 21, 31, 41, 51)
+trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(tolerance = 0.15))
+push!(trial2, 21, 0, 41, 51)
+push!(trial2, 2, 1, 4, 5)
 
-@test trial1.evals == trial2.evals == [1.0, 11.0]
+# test push! using GC_Diff, and deleteat!
+init = Base.gc_num(); sleep(0.5);
+push!(trial2, 0.5, Base.GC_Diff(Base.gc_num(), init))
+@test length(trial2) == 3
+deleteat!(trial2, 3)
+@test length(trial1) == length(trial2) == 2
+sort!(trial2)
+
+@test trial1.params == BenchmarkTools.Parameters(evals = trial1.params.evals)
+@test trial2.params == BenchmarkTools.Parameters(tolerance = trial2.params.tolerance)
 @test trial1.times == trial2.times == [2.0, 21.0]
-@test trial1.gctimes == trial2.gctimes == [3.0, 31.0]
-@test trial1.memory == trial2.memory == [4.0, 41.0]
-@test trial1.allocs == trial2.allocs == [5.0, 51.0]
+@test trial1.gctimes == trial2.gctimes == [1.0, 0.0]
+@test trial1.memory == trial2.memory ==  4
+@test trial1.allocs == trial2.allocs == 5
+
+trial2.params = trial1.params
 
 @test trial1 == trial2
 
-@test length(trial1) == 2
-
-@test trial1[2] == BenchmarkTools.Trial(11, 21, 31, 41, 51)
+@test trial1[2] == push!(BenchmarkTools.Trial(BenchmarkTools.Parameters(evals = 2)), 21, 0, 4, 5)
 @test trial1[1:end] == trial1
 
-@test_approx_eq time(trial1) [2.0, 1.9090909090909092]
-@test_approx_eq gctime(trial1) [3.0, 2.8181818181818183]
-@test_approx_eq memory(trial1) [4.0, 3.0]
-@test_approx_eq allocs(trial1) [5.0, 4.0]
+@test time(trial1) == time(trial2) == 2.0
+@test gctime(trial1) == gctime(trial2) == 1.0
+@test memory(trial1) == memory(trial2) == trial1.memory
+@test allocs(trial1) == allocs(trial2) == trial1.allocs
+@test tolerance(trial1) == trial1.params.tolerance
+@test tolerance(trial2) == trial2.params.tolerance
+
+# outlier trimming
+trial3 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1, 2, 3, 10, 11],
+                              [1, 1, 1, 1, 1], 1, 1)
+
+trimtrial3 = rmoutliers(trial3)
+rmoutliers!(trial3)
+
+@test mean(trimtrial3) <= median(trimtrial3)
+@test trimtrial3 == trial3
 
 #################
 # TrialEstimate #
 #################
 
-t = BenchmarkTools.Trial([1, 2, 3],
-                         [1.10, 2.03, 5.69],
-                         [0.10, 0.03, 0.69],
-                         [3, 12, 32],
-                         [87, 76, 56])
+randtrial = BenchmarkTools.Trial(BenchmarkTools.Parameters())
 
-l = linreg(t)
+for _ in 1:40
+    push!(randtrial, rand(1:20), 1, 1, 1)
+end
 
-@test_approx_eq time(l) 2.295
-@test_approx_eq gctime(l) 0.295
-@test_approx_eq memory(l) 3
-@test_approx_eq allocs(l) 18
-@test_approx_eq fitness(l) 0.8945203036633209
+while mean(randtrial) <= median(randtrial)
+    push!(randtrial, rand(10:20), 1, 1, 1)
+end
 
-m = minimum(t)
+rmoutliers!(randtrial)
 
-@test_approx_eq time(m) 1.015
-@test_approx_eq gctime(m) 0.015
-@test_approx_eq memory(m) 3
-@test_approx_eq allocs(m) 18
-@test isnan(fitness(m))
+tmin = minimum(randtrial)
+tmed = median(randtrial)
+tmean = mean(randtrial)
+tmax = maximum(randtrial)
 
-@test m < l
+@test time(tmin) == time(randtrial)
+@test gctime(tmin) == gctime(randtrial)
+@test memory(tmin) == memory(tmed) == memory(tmean) == memory(tmax) == memory(randtrial)
+@test allocs(tmin) == allocs(tmed) == allocs(tmean) == allocs(tmax) == allocs(randtrial)
+@test tolerance(tmin) == tolerance(tmed) == tolerance(tmean) == tolerance(tmax) == tolerance(randtrial)
+
+@test tmin <= tmed
+@test tmean <= tmed # this should be true since we called rmoutliers!(randtrial) earlier
+@test tmed <= tmax
 
 ##############
 # TrialRatio #
@@ -69,54 +94,58 @@ x, y = rand(randrange), rand(randrange)
 @test (ratio(x, x) == 1.0) && (ratio(y, y) == 1.0)
 @test ratio(0.0, 0.0) == 1.0
 
-t1 = BenchmarkTools.TrialEstimate(rand(), rand(), rand(Int), rand(Int), NaN)
-t2 = BenchmarkTools.TrialEstimate(rand(), rand(), rand(Int), rand(Int), NaN)
-tr = ratio(t1, t2)
+ta = BenchmarkTools.TrialEstimate(rand(), rand(), rand(Int), rand(Int), rand())
+tb = BenchmarkTools.TrialEstimate(rand(), rand(), rand(Int), rand(Int), rand())
+tr = ratio(ta, tb)
 
-@test time(tr) == ratio(time(t1), time(t2))
-@test gctime(tr) == ratio(gctime(t1), gctime(t2))
-@test memory(tr) == ratio(memory(t1), memory(t2))
-@test allocs(tr) == ratio(allocs(t1), allocs(t2))
+@test time(tr) == ratio(time(ta), time(tb))
+@test gctime(tr) == ratio(gctime(ta), gctime(tb))
+@test memory(tr) == ratio(memory(ta), memory(tb))
+@test allocs(tr) == ratio(allocs(ta), allocs(tb))
+@test tolerance(tr) == max(tolerance(ta), tolerance(tb))
+
+@test BenchmarkTools.gcratio(ta) == ratio(gctime(ta), time(ta))
+@test BenchmarkTools.gcratio(tb) == ratio(gctime(tb), time(tb))
 
 ##################
 # TrialJudgement #
 ##################
 
-t1 = BenchmarkTools.TrialEstimate(1.0, 0.0, 2, 1, NaN)
-t2 = BenchmarkTools.TrialEstimate(1.0 + BenchmarkTools.DEFAULT_TOLERANCE*2, 0.0, 1, 1, NaN)
-tr = ratio(t1, t2)
-tj1 = judge(t1, t2)
-tj2 = judge(tr)
+ta = BenchmarkTools.TrialEstimate(0.49, 0.0, 2, 1, 0.50)
+tb = BenchmarkTools.TrialEstimate(1.00, 0.0, 1, 1, 0.05)
+tr = ratio(ta, tb)
+tj_ab = judge(ta, tb)
+tj_r = judge(tr)
 
-@test tj1 == tj2
-@test ratio(tj1) == ratio(tj2) == tr
-@test time(tj1) == time(tj2) == :improvement
-@test memory(tj1) == memory(tj2) == :regression
-@test allocs(tj1) == allocs(tj2) == :invariant
+@test ratio(tj_ab) == ratio(tj_r) == tr
+@test time(tj_ab) == time(tj_r) == :improvement
+@test memory(tj_ab) == memory(tj_r) == :regression
+@test allocs(tj_ab) == allocs(tj_r) == :invariant
+@test tj_ab == tj_r
 
-tj3 = judge(t1, t2, 2.0)
-tj4 = judge(tr, 2.0)
+tj_ab_2 = judge(ta, tb, 2.0)
+tj_r_2 = judge(tr, 2.0)
 
-@test tj3 == tj4
-@test ratio(tj3) == ratio(tj4) == tr
-@test time(tj3) == time(tj4) == :invariant
-@test memory(tj3) == memory(tj4) == :invariant
-@test allocs(tj3) == allocs(tj4) == :invariant
+@test tj_ab_2 == tj_r_2
+@test ratio(tj_ab_2) == ratio(tj_r_2) == tr
+@test time(tj_ab_2) == time(tj_r_2) == :invariant
+@test memory(tj_ab_2) == memory(tj_r_2) == :invariant
+@test allocs(tj_ab_2) == allocs(tj_r_2) == :invariant
 
-@test !(isinvariant(tj1))
-@test !(isinvariant(tj2))
-@test isinvariant(tj3)
-@test isinvariant(tj4)
+@test !(isinvariant(tj_ab))
+@test !(isinvariant(tj_r))
+@test isinvariant(tj_ab_2)
+@test isinvariant(tj_r_2)
 
-@test hasregression(tj1)
-@test hasregression(tj2)
-@test !(hasregression(tj3))
-@test !(hasregression(tj4))
+@test isregression(tj_ab)
+@test isregression(tj_r)
+@test !(isregression(tj_ab_2))
+@test !(isregression(tj_r_2))
 
-@test hasimprovement(tj1)
-@test hasimprovement(tj2)
-@test !(hasimprovement(tj3))
-@test !(hasimprovement(tj4))
+@test isimprovement(tj_ab)
+@test isimprovement(tj_r)
+@test !(isimprovement(tj_ab_2))
+@test !(isimprovement(tj_r_2))
 
 ###################
 # pretty printing #

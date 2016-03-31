@@ -1,41 +1,3 @@
-##############
-# Parameters #
-##############
-
-type Parameters
-    seconds::Float64
-    samples::Int
-    evals::Int
-    gctrial::Bool
-    gcsample::Bool
-    tolerance::Float64
-end
-
-function Parameters(; seconds = 5.0, samples = 300, evals = 1, gctrial = true,
-                    gcsample = false, tolerance = 0.05)
-    return Parameters(seconds, samples, evals, gctrial, gcsample, tolerance)
-end
-function Parameters(default::Parameters; seconds = nothing, samples = nothing,
-                    evals = nothing, gctrial =nothing, gcsample = nothing,
-                    tolerance = nothing)
-    params = Parameters()
-    params.seconds = seconds != nothing ? seconds : default.seconds
-    params.samples = samples != nothing ? samples : default.samples
-    params.evals = evals != nothing ? evals : default.evals
-    params.gctrial = gctrial != nothing ? gctrial : default.gctrial
-    params.gcsample = gcsample != nothing ? gcsample : default.gcsample
-    params.tolerance = tolerance != nothing ? tolerance : default.tolerance
-    return params::BenchmarkTools.Parameters
-end
-
-#############
-# Benchmark #
-#############
-
-immutable Benchmark{id}
-    params::Parameters
-end
-
 #########
 # Trial #
 #########
@@ -48,7 +10,6 @@ type Trial
     allocs::Int
 end
 
-Trial(params::Parameters, args...) = push!(Trial(params), args...)
 Trial(params::Parameters) = Trial(params, Int[], Int[], typemax(Int), typemax(Int))
 
 function Base.(:(==))(a::Trial, b::Trial)
@@ -58,6 +19,8 @@ function Base.(:(==))(a::Trial, b::Trial)
            a.memory == b.memory &&
            a.allocs == b.allocs
 end
+
+Base.copy(t::Trial) = deepcopy(t)
 
 function Base.push!(t::Trial, sample_time, gcdiff::Base.GC_Diff)
     time = ceil(sample_time / t.params.evals)
@@ -82,6 +45,7 @@ function Base.deleteat!(t::Trial, i)
 end
 
 Base.length(t::Trial) = length(t.times)
+Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.endof(t::Trial) = length(t)
 
@@ -92,7 +56,7 @@ function Base.sort!(t::Trial)
     return t
 end
 
-Base.sort(t::Trial) = sort!(deepcopy(t))
+Base.sort(t::Trial) = sort!(copy(t))
 
 Base.time(t::Trial) = time(minimum(t))
 gctime(t::Trial) = gctime(minimum(t))
@@ -100,18 +64,29 @@ memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 tolerance(t::Trial) = t.params.tolerance
 
-function outlier_cutoff(values)
-    # assumes values are sorted from least to greatest
-    med = median(values)
-    for i in length(values):-1:2
-        mean(values[1:i]) <= med && return i
+# returns the index of the first outlier in `values`, if any outliers are detected.
+# `values` is assumed to be sorted from least to greatest, and assumed to be right-skewed.
+function firstoutlier(values)
+    current_values = copy(values)
+    while mean(current_values) > median(current_values)
+        deleteat!(current_values, length(current_values))
     end
+    return length(current_values) + 1
 end
 
-outlier_cutoff(t::Trial) = outlier_cutoff(t.times)
+firstoutlier(t::Trial) = firstoutlier(t.times)
 
-rmoutliers!(t::Trial) = (sort!(t); deleteat!(t, outlier_cutoff(t):length(t)))
-rmoutliers(t::Trial) = (st = sort(t); st[1:outlier_cutoff(st)])
+function rmoutliers!(t::Trial)
+    sort!(t)
+    i = firstoutlier(t)
+    i <= length(t) && deleteat!(t, i:length(t))
+    return t
+end
+
+function rmoutliers(t::Trial)
+    st = sort(t)
+    return st[1:(firstoutlier(st) - 1)]
+end
 
 #################
 # TrialEstimate #
@@ -135,6 +110,8 @@ function Base.(:(==))(a::TrialEstimate, b::TrialEstimate)
            a.memory == b.memory &&
            a.allocs == b.allocs
 end
+
+Base.copy(t::TrialEstimate) = deepcopy(t)
 
 function Base.minimum(trial::Trial)
     i = indmin(trial.times)
@@ -176,6 +153,8 @@ function Base.(:(==))(a::TrialRatio, b::TrialRatio)
            a.allocs == b.allocs
 end
 
+Base.copy(t::TrialRatio) = deepcopy(t)
+
 Base.time(t::TrialRatio) = t.time
 gctime(t::TrialRatio) = t.gctime
 memory(t::TrialRatio) = t.memory
@@ -197,7 +176,7 @@ function ratio(a::TrialEstimate, b::TrialEstimate)
                       max(a.tolerance, b.tolerance))
 end
 
-gcratio(t::TrialEstimate) =  gctime(t) / time(t)
+gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
 
 ##################
 # TrialJudgement #
@@ -225,6 +204,8 @@ function Base.(:(==))(a::TrialJudgement, b::TrialJudgement)
            a.memory == b.memory &&
            a.allocs == b.allocs
 end
+
+Base.copy(t::TrialJudgement) = deepcopy(t)
 
 Base.time(t::TrialJudgement) = t.time
 memory(t::TrialJudgement) = t.memory
@@ -289,21 +270,35 @@ function prettymemory(b)
 end
 
 function Base.show(io::IO, t::Trial)
-    min = minimum(t)
-    max = maximum(t)
-    med = median(t)
-    avg = mean(t)
+    if length(t) > 0
+        min = minimum(t)
+        max = maximum(t)
+        med = median(t)
+        avg = mean(t)
+        memorystr = string(prettymemory(memory(min)))
+        allocsstr = string(allocs(min))
+        minstr = string(prettytime(time(min)), " (", prettypercent(gcratio(min)), " GC)")
+        maxstr = string(prettytime(time(med)), " (", prettypercent(gcratio(med)), " GC)")
+        medstr = string(prettytime(time(avg)), " (", prettypercent(gcratio(avg)), " GC)")
+        meanstr = string(prettytime(time(max)), " (", prettypercent(gcratio(max)), " GC)")
+    else
+        memorystr = "N/A"
+        allocsstr = "N/A"
+        minstr = "N/A"
+        maxstr = "N/A"
+        medstr = "N/A"
+        meanstr = "N/A"
+    end
     println(io, "BenchmarkTools.Trial: ")
     println(io, "  # of samples:    ", length(t))
     println(io, "  evals/sample:    ", t.params.evals)
     println(io, "  noise tolerance: ", prettypercent(tolerance(t)))
-    println(io, "  memory:          ", prettymemory(memory(min)))
-    println(io, "  allocs:          ", allocs(min))
-    println(io, "  minimum time:    ", prettytime(time(min)), " (", prettypercent(gcratio(min))," GC)")
-    println(io, "  median time:     ", prettytime(time(med)), " (", prettypercent(gcratio(med))," GC)")
-    println(io, "  mean time:       ", prettytime(time(avg)), " (", prettypercent(gcratio(avg))," GC)")
-    print(io,   "  maximum time:    ", prettytime(time(max)), " (", prettypercent(gcratio(max))," GC)")
-
+    println(io, "  memory:          ", memorystr)
+    println(io, "  allocs:          ", allocsstr)
+    println(io, "  minimum time:    ", minstr)
+    println(io, "  median time:     ", maxstr)
+    println(io, "  mean time:       ", medstr)
+    print(io,   "  maximum time:    ", meanstr)
 end
 
 function Base.show(io::IO, t::TrialEstimate)
@@ -333,6 +328,7 @@ function Base.show(io::IO, t::TrialJudgement)
     print(io,   "  noise tolerance: ", prettypercent(tolerance(t)))
 end
 
+Base.showcompact(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
 Base.showcompact(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(time(t)), ")")
 Base.showcompact(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(time(t)), ")")
 Base.showcompact(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")

@@ -5,6 +5,12 @@ using Compat
 typealias Tag UTF8String
 
 ##############
+# Parameters #
+##############
+
+include("parameters.jl")
+
+##############
 # Trial Data #
 ##############
 
@@ -26,14 +32,13 @@ export gctime,
 # Benchmark Data #
 ##################
 
-include("collections.jl")
+include("groups.jl")
 
-export addgroup!,
-       @tagged,
-       GroupCollection,
+export BenchmarkGroup,
        invariants,
        regressions,
-       improvements
+       improvements,
+       @tagged
 
 ######################
 # Execution Strategy #

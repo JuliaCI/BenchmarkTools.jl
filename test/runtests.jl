@@ -1,11 +1,13 @@
-# test whether two set-like collections have the same elements
+print("Testing Parameters..."); tic()
+include("parameters_tests.jl")
+println("done (took ", toq(), " seconds)")
 
-print("Testing trial types..."); tic()
+print("Testing Trial/TrialEstimate/TrialRatio/TrialJudgement..."); tic()
 include("trials_tests.jl")
 println("done (took ", toq(), " seconds)")
 
-print("Testing collection types..."); tic()
-include("collections_tests.jl")
+print("Testing BenchmarkGroup..."); tic()
+include("groups_tests.jl")
 println("done (took ", toq(), " seconds)")
 
 print("Testing execution..."); tic()
