@@ -26,24 +26,21 @@ groups["special"]["nothing"] = @benchmarkable nothing
 groups["special"]["block"] = @benchmarkable begin rand(3) end
 groups["special"]["comprehension"] = @benchmarkable [s^2 for s in sizes]
 
-function isexpected(received::BenchmarkGroup, expected::BenchmarkGroup)
+function testexpected(received::BenchmarkGroup, expected::BenchmarkGroup)
     @test length(received) == length(expected)
     @test seteq(received.tags, expected.tags)
     @test seteq(keys(received), keys(expected))
     for (k, v) in received
-        isexpected(v, expected[k])
+        testexpected(v, expected[k])
     end
-    return true
 end
 
-function isexpected(trial::BenchmarkTools.Trial, args...)
+function testexpected(trial::BenchmarkTools.Trial, args...)
     @test length(trial) > 1
-    return true
 end
 
-function isexpected(b::BenchmarkTools.Benchmark, args...)
+function testexpected(b::BenchmarkTools.Benchmark, args...)
     @test b.params != BenchmarkTools.Parameters()
-    return true
 end
 
 #########
@@ -53,11 +50,11 @@ end
 oldgroups = copy(groups)
 
 for id in keys(groups["special"])
-    @test isexpected(tune!(groups["special"][id]))
+    testexpected(tune!(groups["special"][id]))
 end
 
-@test isexpected(tune!(groups["sin"], verbose = true), groups["sin"])
-@test isexpected(tune!(groups, verbose = true), groups)
+testexpected(tune!(groups["sin"], verbose = true), groups["sin"])
+testexpected(tune!(groups, verbose = true), groups)
 
 loadparams!(oldgroups, parameters(groups))
 
@@ -67,14 +64,14 @@ loadparams!(oldgroups, parameters(groups))
 # run #
 #######
 
-@test isexpected(run(groups; verbose = true), groups)
-@test isexpected(run(groups; seconds = 1, verbose = true, gctrial = false), groups)
-@test isexpected(run(groups; verbose = true, seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups)
+testexpected(run(groups; verbose = true), groups)
+testexpected(run(groups; seconds = 1, verbose = true, gctrial = false), groups)
+testexpected(run(groups; verbose = true, seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups)
 
-@test isexpected(run(groups["sin"]; verbose = true), groups["sin"])
-@test isexpected(run(groups["sin"]; seconds = 1, verbose = true, gctrial = false), groups["sin"])
-@test isexpected(run(groups["sin"]; verbose = true, seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups["sin"])
+testexpected(run(groups["sin"]; verbose = true), groups["sin"])
+testexpected(run(groups["sin"]; seconds = 1, verbose = true, gctrial = false), groups["sin"])
+testexpected(run(groups["sin"]; verbose = true, seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups["sin"])
 
-@test isexpected(run(groups["sin"][first(sizes)]))
-@test isexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false))
-@test isexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false))
+testexpected(run(groups["sin"][first(sizes)]))
+testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false))
+testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false))
