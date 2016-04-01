@@ -91,6 +91,14 @@ invariants(group::BenchmarkGroup) = mapvals!(invariants, filtervals(isinvariant,
 regressions(group::BenchmarkGroup) = mapvals!(regressions, filtervals(isregression, group))
 improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprovement, group))
 
+function loadparams!(group::BenchmarkGroup, paramgroup::BenchmarkGroup)
+    for (k, v) in paramgroup
+        loadparams!(group[k], v)
+    end
+    return group
+end
+
+
 # tagging #
 #---------#
 

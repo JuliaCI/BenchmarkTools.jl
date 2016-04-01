@@ -2,11 +2,12 @@
 # Benchmark #
 #############
 
-immutable Benchmark{id}
+type Benchmark{id}
     params::Parameters
 end
 
 parameters(b::Benchmark) = b.params
+loadparams!(b::Benchmark, params::Parameters) = (b.params = params; return b)
 
 #############
 # execution #

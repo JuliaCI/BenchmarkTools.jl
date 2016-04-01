@@ -39,7 +39,8 @@ export BenchmarkGroup,
        invariants,
        regressions,
        improvements,
-       @tagged
+       @tagged,
+       loadparams!
 
 ######################
 # Execution Strategy #

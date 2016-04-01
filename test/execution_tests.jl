@@ -50,12 +50,18 @@ end
 # tune! #
 #########
 
+oldgroups = copy(groups)
+
 for id in keys(groups["special"])
     @test isexpected(tune!(groups["special"][id]))
 end
 
 @test isexpected(tune!(groups["sin"], verbose = true), groups["sin"])
 @test isexpected(tune!(groups, verbose = true), groups)
+
+loadparams!(oldgroups, parameters(groups))
+
+@test oldgroups == groups
 
 #######
 # run #
