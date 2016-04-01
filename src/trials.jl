@@ -63,6 +63,7 @@ gctime(t::Trial) = gctime(minimum(t))
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 tolerance(t::Trial) = t.params.tolerance
+parameters(t::Trial) = t.params
 
 # returns the index of the first outlier in `values`, if any outliers are detected.
 # `values` is assumed to be sorted from least to greatest, and assumed to be right-skewed.

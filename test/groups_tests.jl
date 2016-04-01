@@ -87,6 +87,7 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 @test median(gtrial)["t"] == median(gtrial["t"])
 @test mean(gtrial)["t"] == mean(gtrial["t"])
 @test maximum(gtrial)["t"] == maximum(gtrial["t"])
+@test parameters(gtrial)["t"] == parameters(gtrial["t"])
 
 ######################################
 # BenchmarkGroups of BenchmarkGroups #
@@ -147,6 +148,7 @@ groupstrial["g"] = gtrial
 @test maximum(groupstrial)["g"]["t"] == maximum(groupstrial["g"]["t"])
 @test median(groupstrial)["g"]["t"] == median(groupstrial["g"]["t"])
 @test mean(groupstrial)["g"]["t"] == mean(groupstrial["g"]["t"])
+@test parameters(groupstrial)["g"]["t"] == parameters(groupstrial["g"]["t"])
 
 # tagging #
 #---------#

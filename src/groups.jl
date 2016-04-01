@@ -70,6 +70,7 @@ gctime(group::BenchmarkGroup) = mapvals(gctime, group)
 memory(group::BenchmarkGroup) = mapvals(memory, group)
 allocs(group::BenchmarkGroup) = mapvals(allocs, group)
 tolerance(group::BenchmarkGroup) = mapvals(tolerance, group)
+parameters(group::BenchmarkGroup) = mapvals(parameters, group)
 
 ratio(groups::BenchmarkGroup...) = mapvals(ratio, groups...)
 

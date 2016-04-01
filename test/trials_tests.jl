@@ -41,6 +41,8 @@ trial2.params = trial1.params
 @test allocs(trial1) == allocs(trial2) == trial1.allocs
 @test tolerance(trial1) == trial1.params.tolerance
 @test tolerance(trial2) == trial2.params.tolerance
+@test parameters(trial1) == trial2.params
+@test parameters(trial2) == trial2.params
 
 # outlier trimming
 trial3 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1, 2, 3, 10, 11],

@@ -6,6 +6,8 @@ immutable Benchmark{id}
     params::Parameters
 end
 
+parameters(b::Benchmark) = b.params
+
 #############
 # execution #
 #############
