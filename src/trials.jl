@@ -67,7 +67,7 @@ parameters(t::Trial) = t.params
 
 # returns the index of the first outlier in `values`, if any outliers are detected.
 # `values` is assumed to be sorted from least to greatest, and assumed to be right-skewed.
-function firstoutlier(values)
+function skewcutoff(values)
     current_values = copy(values)
     while mean(current_values) > median(current_values)
         deleteat!(current_values, length(current_values))
@@ -75,18 +75,18 @@ function firstoutlier(values)
     return length(current_values) + 1
 end
 
-firstoutlier(t::Trial) = firstoutlier(t.times)
+skewcutoff(t::Trial) = skewcutoff(t.times)
 
-function rmoutliers!(t::Trial)
+function rmskew!(t::Trial)
     sort!(t)
-    i = firstoutlier(t)
+    i = skewcutoff(t)
     i <= length(t) && deleteat!(t, i:length(t))
     return t
 end
 
-function rmoutliers(t::Trial)
+function rmskew(t::Trial)
     st = sort(t)
-    return st[1:(firstoutlier(st) - 1)]
+    return st[1:(skewcutoff(st) - 1)]
 end
 
 #################

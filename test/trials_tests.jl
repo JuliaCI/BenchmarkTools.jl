@@ -48,8 +48,8 @@ trial2.params = trial1.params
 trial3 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1, 2, 3, 10, 11],
                               [1, 1, 1, 1, 1], 1, 1)
 
-trimtrial3 = rmoutliers(trial3)
-rmoutliers!(trial3)
+trimtrial3 = rmskew(trial3)
+rmskew!(trial3)
 
 @test mean(trimtrial3) <= median(trimtrial3)
 @test trimtrial3 == trial3
@@ -68,7 +68,7 @@ while mean(randtrial) <= median(randtrial)
     push!(randtrial, rand(10:20), 1, 1, 1)
 end
 
-rmoutliers!(randtrial)
+rmskew!(randtrial)
 
 tmin = minimum(randtrial)
 tmed = median(randtrial)

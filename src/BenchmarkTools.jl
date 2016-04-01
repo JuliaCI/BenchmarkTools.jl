@@ -26,8 +26,8 @@ export gctime,
        isinvariant,
        isregression,
        isimprovement,
-       rmoutliers!,
-       rmoutliers
+       rmskew!,
+       rmskew
 
 ##################
 # Benchmark Data #
