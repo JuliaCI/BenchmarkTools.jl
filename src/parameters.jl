@@ -11,13 +11,19 @@ type Parameters
     tolerance::Float64
 end
 
-function Parameters(; seconds = 5.0, samples = 300, evals = 1, gctrial = true,
-                    gcsample = false, tolerance = 0.05)
+const DEFAULT_PARAMETERS = Parameters(5.0, 300, 1, true, false, 0.05)
+
+function Parameters(; seconds = DEFAULT_PARAMETERS.seconds,
+                    samples = DEFAULT_PARAMETERS.samples,
+                    evals = DEFAULT_PARAMETERS.evals,
+                    gctrial = DEFAULT_PARAMETERS.gctrial,
+                    gcsample = DEFAULT_PARAMETERS.gcsample,
+                    tolerance = DEFAULT_PARAMETERS.tolerance)
     return Parameters(seconds, samples, evals, gctrial, gcsample, tolerance)
 end
 
 function Parameters(default::Parameters; seconds = nothing, samples = nothing,
-                    evals = nothing, gctrial =nothing, gcsample = nothing,
+                    evals = nothing, gctrial = nothing, gcsample = nothing,
                     tolerance = nothing)
     params = Parameters()
     params.seconds = seconds != nothing ? seconds : default.seconds
