@@ -2,8 +2,6 @@ module BenchmarkTools
 
 using Compat
 
-typealias Tag UTF8String
-
 ##############
 # Parameters #
 ##############

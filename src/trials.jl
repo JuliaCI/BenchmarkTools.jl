@@ -291,7 +291,7 @@ function Base.show(io::IO, t::Trial)
         meanstr = "N/A"
     end
     println(io, "BenchmarkTools.Trial: ")
-    println(io, "  # of samples:    ", length(t))
+    println(io, "  samples:         ", length(t))
     println(io, "  evals/sample:    ", t.params.evals)
     println(io, "  noise tolerance: ", prettypercent(tolerance(t)))
     println(io, "  memory:          ", memorystr)

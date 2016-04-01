@@ -3,11 +3,11 @@
 ##################
 
 immutable BenchmarkGroup
-    tags::Vector{Tag}
+    tags::Vector{UTF8String}
     data::Dict{Any,Any}
 end
 
-BenchmarkGroup(tags::AbstractString...) = BenchmarkGroup(collect(Tag, tags), Dict())
+BenchmarkGroup(tags::AbstractString...) = BenchmarkGroup(collect(UTF8String, tags), Dict())
 
 # Dict-like methods #
 #-------------------#
