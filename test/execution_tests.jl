@@ -17,7 +17,7 @@ sizes = (5, 10, 20)
 for s in sizes
     A = rand(s, s)
     groups["sum"][s] = @benchmarkable sum($A) seconds=3
-    groups["sin"][s] = @benchmarkable sin($s) seconds=1 gctrial=false
+    groups["sin"][s] = @benchmarkable(sin($s); seconds=1, gctrial=false)
 end
 
 groups["special"]["macro"] = @benchmarkable @test(1 == 1)
@@ -40,7 +40,7 @@ function testexpected(trial::BenchmarkTools.Trial, args...)
 end
 
 function testexpected(b::BenchmarkTools.Benchmark, args...)
-    @test b.params != BenchmarkTools.Parameters()
+    @test b.params != BenchmarkTools.DEFAULT_PARAMETERS
 end
 
 #########

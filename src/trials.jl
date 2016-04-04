@@ -214,7 +214,6 @@ allocs(t::TrialJudgement) = t.allocs
 ratio(t::TrialJudgement) = t.ratio
 tolerance(t::TrialJudgement) = t.tolerance
 
-judge(a::Trial, b::Trial, args...) = judge(minimum(a), minimum(b), args...)
 judge(a::TrialEstimate, b::TrialEstimate, tolerance = max(a.tolerance, b.tolerance)) = TrialJudgement(ratio(a, b), tolerance)
 judge(ratio::TrialRatio, tolerance = ratio.tolerance) = TrialJudgement(ratio, tolerance)
 

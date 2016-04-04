@@ -85,11 +85,18 @@ macro benchmark(args...)
 end
 
 macro benchmarkable(args...)
-    core = first(args)
-    params = collect(drop(args, 1))
-    for ex in params
-        if isa(ex, Expr) && ex.head == :(=)
-            ex.head = :kw
+    arg1 = first(args)
+    if isa(arg1, Expr) && arg1.head == :parameters
+        @assert length(args) == 2 "wrong number of arguments supplied to @benchmarkable: $(args)"
+        core = args[2]
+        params = arg1.args
+    else
+        core = arg1
+        params = collect(drop(args, 1))
+        for ex in params
+            if isa(ex, Expr) && ex.head == :(=)
+                ex.head = :kw
+            end
         end
     end
     return esc(quote

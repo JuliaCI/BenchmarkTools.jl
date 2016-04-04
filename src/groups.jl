@@ -77,8 +77,8 @@ ratio(groups::BenchmarkGroup...) = mapvals(ratio, groups...)
 judge(a::BenchmarkGroup, b::BenchmarkGroup, args...) = mapvals((x, y) -> judge(x, y, args...), a, b)
 judge(group::BenchmarkGroup, args...) = mapvals(x -> judge(x, args...), group)
 
-rmoutliers!(group::BenchmarkGroup) = mapvals!(rmoutliers!, group)
-rmoutliers(group::BenchmarkGroup) = mapvals(rmoutliers, group)
+rmskew!(group::BenchmarkGroup) = mapvals!(rmskew!, group)
+rmskew(group::BenchmarkGroup) = mapvals(rmskew, group)
 
 isregression(group::BenchmarkGroup) = any(isregression, values(group))
 isimprovement(group::BenchmarkGroup) = any(isimprovement, values(group))
