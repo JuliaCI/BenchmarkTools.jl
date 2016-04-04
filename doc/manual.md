@@ -1,6 +1,8 @@
 This document provides in-depth on the design and use of BenchmarkTools. If you're looking for a quick reference, try reading [this](reference.md) instead.
 
-# Terminology
+# Introduction
+
+### Terminology
 
 In this document, "evaluation" generally refers to a single execution of a function.
 
@@ -10,7 +12,7 @@ A "trial" refers to an experiment in which multiple samples are gathered, or ref
 
 The obvious question here is: why should individual samples ever require multiple evaluations? The simple reason is that fast-running benchmarks need to be executed and measured differently than slow-running ones. Specifically, if the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. Thus, BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure out a reasonable number of evaluations per sample required for a given benchmark.
 
-# The BenchmarkTools workflow
+### The BenchmarkTools workflow
 
 BenchmarkTools was created with the following workflow in mind:
 
@@ -21,7 +23,9 @@ BenchmarkTools was created with the following workflow in mind:
 
 The intent of BenchmarkTools is to make it easy to do these 4 things, either separately or in order.
 
-# `@benchmark`, `@benchmarkable`, and `tune!`
+# Defining and executing benchmarks
+
+### `@benchmark`, `@benchmarkable`, and `run`
 
 To quickly benchmark a Julia expression, use `@benchmark`:
 
@@ -70,7 +74,7 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `gcsample`: If `true`, run `gc()` before each sample. Defaults to `false`.
 - `tolerance`: The noise tolerance of the benchmark, as a percentage. Defaults to `0.05` (5%).
 
-# Interpolating values into benchmark expressions
+### Interpolating values into benchmark expressions
 
 You can interpolate values into `@benchmark` and `@benchmarkable` expressions:
 
@@ -162,7 +166,9 @@ julia> A
 
 You should generally make sure your benchmarks are [idempotent](https://en.wikipedia.org/wiki/Idempotence) so that evaluation times are not order-dependent.
 
-# Examining results: Trials and TrialEstimates
+# Dealing with benchmark results
+
+### Summarizing execution results: Trials and TrialEstimates
 
 Running a benchmark produces an instance of the `Trial` type:
 
@@ -230,14 +236,14 @@ BenchmarkTools.TrialEstimate:
   noise tolerance: 5.0%
 ```
 
-We've found that, for most benchmarks that we've tested, the time distribution is almost always right-skewed. This phenomena can be justified by considering the machine noise that affects the benchmarking process to be inherently positive. To put it another way, there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. From this characterization of benchmark noise, we can characterize our estimators:
+We've found that, for most benchmarks that we've tested, the time distribution is almost always right-skewed. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some ways, inherently positive. In other words, there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. From this characterization of benchmark noise, we can characterize our estimators:
 
 - The minimum is a robust estimator for the location parameter of the time distribution, and should generally not be considered an outlier
 - The median, as a robust measure of central tendency, should be relatively unaffected by outliers
 - The mean, as a non-robust measure of central tendency, will usually be skewed positively by outliers
 - The maximum should be considered a noise-driven outlier, and can change drastically between benchmark trials.
 
-# Comparing results: TrialRatios
+### Comparing benchmark results: TrialRatios
 
 BenchmarkTools supplies a `ratio` function for comparing two values:
 
@@ -290,7 +296,7 @@ julia> ratio(m1, m2)
     noise tolerance: 5.0%
 ```
 
-# Classifying regressions/improvements: TrialJudgements
+### Classifying regressions/improvements: TrialJudgements
 
 Use the `judge` function to decide if one estimate represents a regression versus another
 estimate:
@@ -346,11 +352,13 @@ true
 
 Note that GC isn't considered when determining regression status.
 
-# Handling multiple benchmarks: BenchmarkGroups
+# BenchmarkGroups
 
-Normally, you want to deal with groups of benchmarks, not just individual benchmarks. The `BenchmarkGroup` type exists to facilitate this.
+### Defining and organizing benchmark suites
 
-A `BenchmarkGroup` stores "tags" that describe the group, and a `Dict` that maps benchmark IDs to values. The IDs and values can be of any type, so a `BenchmarkGroup` can store benchmark definitions, benchmark results, or even other `BenchmarkGroup` instances.
+Normally, you need to work with whole suites of benchmarks, not just individual ones. The `BenchmarkGroup` type exists to facilitate this.
+
+A `BenchmarkGroup` stores a `Dict` that maps benchmark IDs to values, as well as "tags" that describe the group. The IDs and values can be of any type, so a `BenchmarkGroup` can store benchmark definitions, benchmark results, or even other `BenchmarkGroup` instances.
 
 Here's an example where we organize multiple benchmarks using the `BenchmarkGroup` type:
 
@@ -359,7 +367,7 @@ julia> groups = BenchmarkGroup()
 BenchmarkTools.BenchmarkGroup:
   tags: []
 
-# These tags are useful for filtering BenchmarkGroups, which is described in a later section
+# These tags are useful for filtering BenchmarkGroups, which we'll cover in a later section
 julia> groups["eig"] = BenchmarkGroup("linalg", "factorization", "math")
 BenchmarkTools.BenchmarkGroup:
   tags: ["linalg", "factorization", "math"]
@@ -404,9 +412,13 @@ BenchmarkTools.BenchmarkGroup:
 
 Now, we have a benchmark suite that can be tuned, run, and analyzed in aggregate.
 
-# Filtering BenchmarkGroups by tag
+### Tuning/Running BenchmarkGroups
 
-# Speeding up the benchmark process by caching parameters
+### Working with results stored in BenchmarkGroups
+
+### Filtering BenchmarkGroups by tag
+
+# Caching benchmark parameters
 
 # Miscellaneous tips and info
 
