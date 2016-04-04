@@ -19,9 +19,9 @@ Pkg.clone("https://github.com/JuliaCI/BenchmarkTools.jl")
 
 ## Documentation
 
-If you're just getting started, check out the [manual](doc/manual) for a thorough explanation of BenchmarkTools.
+If you're just getting started, check out the [manual](doc/manual.md) for a thorough explanation of BenchmarkTools.
 
-If you just want a quick overview of the BenchmarkTools API, see the [reference document](doc/reference).
+If you just want a quick overview of the BenchmarkTools API, see the [reference document](doc/reference.md).
 
 ## Why does this package exist?
 
