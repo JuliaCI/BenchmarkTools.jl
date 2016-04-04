@@ -75,3 +75,19 @@ testexpected(run(groups["sin"]; verbose = true, seconds = 1, gctrial = false, to
 testexpected(run(groups["sin"][first(sizes)]))
 testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false))
 testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false))
+
+testexpected(run(groups["sum"][first(sizes)], BenchmarkTools.DEFAULT_PARAMETERS))
+
+##############
+# @benchmark #
+##############
+
+t = @benchmark sin(1) evals=3 samples=10
+
+@test parameters(t).evals == 3
+@test parameters(t).samples == 10
+
+t = @benchmark sin(1)
+
+@test parameters(t).evals > 10000
+@test parameters(t).samples == BenchmarkTools.DEFAULT_PARAMETERS.samples

@@ -75,16 +75,7 @@ end
 # @benchmark/@benchmarkable #
 #############################
 
-macro benchmark(args...)
-    tmp = gensym()
-    return esc(quote
-        $(tmp) = BenchmarkTools.@benchmarkable $(args...)
-        BenchmarkTools.tune!($(tmp))
-        BenchmarkTools.Base.run($(tmp))
-    end)
-end
-
-macro benchmarkable(args...)
+function prunekwargs(args)
     arg1 = first(args)
     if isa(arg1, Expr) && arg1.head == :parameters
         @assert length(args) == 2 "wrong number of arguments supplied to @benchmarkable: $(args)"
@@ -99,6 +90,31 @@ macro benchmarkable(args...)
             end
         end
     end
+    return core, params
+end
+
+function hasevals(params)
+    for p in params
+        if isa(p, Expr) && p.head == :kw && first(p.args) == :evals
+            return true
+        end
+    end
+    return false
+end
+
+macro benchmark(args...)
+    tmp = gensym()
+    _, params = prunekwargs(args)
+    tune_expr = hasevals(params) ? :() : :(BenchmarkTools.tune!($(tmp)))
+    return esc(quote
+        $(tmp) = BenchmarkTools.@benchmarkable $(args...)
+        $(tune_expr)
+        BenchmarkTools.Base.run($(tmp))
+    end)
+end
+
+macro benchmarkable(args...)
+    core, params = prunekwargs(args)
     return esc(quote
         let
             wrapfn = gensym("wrap")
