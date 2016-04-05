@@ -2,47 +2,41 @@ This document provides in-depth on the design and use of BenchmarkTools. If you'
 
 # Table of Contents
 
+Bold links indicate sections that should be read carefully in order to avoid common benchmarking pitfalls.
+
 - [Introduction](#introduction)
-    * [Terminology](#terminology)
-    * [Workflow](#workflow)
 - [Benchmarking basics](#defining-and-executing-benchmarks)
     * [Defining and executing benchmarks](#defining-and-executing-benchmarks)
     * [Tunable benchmark parameters](#tunable-benchmark-parameters)
-    * [Interpolating values into benchmark expressions](#interpolating-values-into-benchmark-expressions)
+    * **[Interpolating values into benchmark expressions](#interpolating-values-into-benchmark-expressions)**
 - [Handling benchmark results](#handling-benchmark-results)
     * [`Trial` and `TrialEstimate`](#trial-and-trialestimate)
-    * [Which estimator should I use?](#which-estimator-should-i-use?)
+    * **[Which estimator should I use?](#which-estimator-should-i-use)**
     * [`TrialRatio` and `TrialJudgement`](#trialratio-and-trialjudgement)
 - [Using `BenchmarkGroup`s](#using-benchmarkgroups)
     * [Defining benchmark suites](#defining-benchmark-suites)
     * [Tuning and running a `BenchmarkGroup`](#tuning-and-running-a-benchmarkgroup)
     * [Working with `BenchmarkGroup` results](#working-with-benchmarkgroup-results)
     * [Filtering a `BenchmarkGroup` by tag](#filtering-a-benchmarkgroup-by-tag)
-- [Increase consistency and decrease execution time by caching benchmark parameters]("#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters)
+- **[Increase consistency and decrease execution time by caching benchmark parameters](#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters)**
 - [Miscellaneous tips and info](#miscellaneous-tips-and-info)
 
 # Introduction
 
-### Terminology
+BenchmarkTools was created to facilitate the following tasks:
 
-In this document, "evaluation" generally refers to a single execution of a function.
-
-A "sample" is a single time/memory measurement obtained by running multiple evaluations. For example, a sample might have a time value of 3 seconds for 6 evaluations (i.e., 0.5 seconds per evaluation).
-
-A "trial" refers to an experiment in which multiple samples are gathered, or refers to the result of such an experiment.
-
-The obvious question here is: why should individual samples ever require multiple evaluations? The simple reason is that fast-running benchmarks need to be executed and measured differently than slow-running ones. Specifically, if the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. Thus, BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure out a reasonable number of evaluations per sample required for a given benchmark.
-
-### Workflow
-
-BenchmarkTools was created with the following workflow in mind:
-
-1. Define a benchmark suite
-2. Tune your benchmarks' configuration parameters (e.g. how many seconds to spend benchmarking, number of samples to take, etc.)
-3. Execute trials to gather data that characterizes your benchmarks' performance
+1. Organize collections of benchmarks into manageable benchmark suites
+2. Tune benchmark configuration parameters for accuracy and consistency across trials
+3. Execute trials to gather data that characterizes benchmark performance
 4. Analyze and compare results to determine whether a code change caused regressions or improvements
 
-The intent of BenchmarkTools is to make it easy to do these 4 things, either separately or in order.
+Before we get too far, let's define some of the terminology used in this document:
+
+- "evaluation": a single execution of a benchmark expression.
+- "sample": a single time/memory measurement obtained by running multiple evaluations.
+- "trial": an experiment in which multiple samples are gathered (or the result of such an experiment).
+
+The reasoning behind our definition of "sample" may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must "approximate" a valid sample by evaluating the benchmark multiple times, and dividing the total time by the number of evaluations performed. For example, if a sample takes 1 second for 1 million evaluations, the approximate time value for that sample is 1 microsecond per evaluation. It's not obvious what the right number of evaluations per sample should be for any given benchmark, so BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure it out for you.
 
 # Benchmarking basics
 
@@ -64,7 +58,7 @@ BenchmarkTools.Trial:
   maximum time:    14.0 ns (0.0% GC)
 ```
 
-The `@benchmark` macro is essentially shorthand for defining a benchmark, tuning the benchmark's configuration parameters, and running the benchmark. These three steps can be done explicitly using `@benchmarkable`, `tune!` and `run`:
+The `@benchmark` macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark's configuration parameters, and running the benchmark. These three steps can be done explicitly using `@benchmarkable`, `tune!` and `run`:
 
 ```julia
 julia> b = @benchmarkable sin(1) # define the benchmark with default parameters
@@ -194,18 +188,18 @@ julia> A
  0.647885
 ```
 
-You should generally make sure your benchmarks are [idempotent](https://en.wikipedia.org/wiki/Idempotence) so that evaluation times are not order-dependent.
+You should generally make sure your benchmarks are [idempotent](https://en.wikipedia.org/wiki/Idempotence) so that evaluations are not order-dependent.
 
 # Handling benchmark results
 
-Data regarding benchmark results usually takes the form of one of these types:
+BenchmarkTools provides four types related to benchmark results:
 
 - `Trial`: stores all samples collected during a benchmark trial, as well as the trial's parameters
 - `TrialEstimate`: a single estimate used to summarize a `Trial`
 - `TrialRatio`: a comparison between two `TrialEstimate`
 - `TrialJudgement`: a classification of the fields of a `TrialRatio` as `invariant`, `regression`, or `improvement`
 
-This section provides limited examples demonstrating how one might work with these types in the REPL. For a more thorough list of supported functions on these types, see [the reference document](reference.md#handling-results).
+This section provides a limited number of examples demonstrating these types. For a thorough list of supported functionality, see [the reference document](reference.md#handling-results).
 
 ### `Trial` and `TrialEstimate`
 
