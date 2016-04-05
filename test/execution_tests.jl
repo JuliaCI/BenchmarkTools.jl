@@ -78,6 +78,17 @@ testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, tole
 
 testexpected(run(groups["sum"][first(sizes)], BenchmarkTools.DEFAULT_PARAMETERS))
 
+###########
+# @warmup #
+###########
+
+p = parameters(@warmup @benchmarkable sin(1))
+
+@test p.samples == 1
+@test p.evals == 1
+@test p.gctrial == false
+@test p.gcsample == false
+
 ##############
 # @benchmark #
 ##############

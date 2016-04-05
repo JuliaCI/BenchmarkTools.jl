@@ -71,9 +71,9 @@ function tune!(b::Benchmark; kwargs...)
     return b
 end
 
-#############################
-# @benchmark/@benchmarkable #
-#############################
+#####################################
+# @warmup/@benchmark/@benchmarkable #
+#####################################
 
 function prunekwargs(args)
     arg1 = first(args)
@@ -102,12 +102,17 @@ function hasevals(params)
     return false
 end
 
+macro warmup(item)
+    return esc(:(run($item, samples = 1, evals = 1, gctrial = false, gcsample = false)))
+end
+
 macro benchmark(args...)
     tmp = gensym()
     _, params = prunekwargs(args)
     tune_expr = hasevals(params) ? :() : :(BenchmarkTools.tune!($(tmp)))
     return esc(quote
         $(tmp) = BenchmarkTools.@benchmarkable $(args...)
+        BenchmarkTools.@warmup $(tmp)
         $(tune_expr)
         BenchmarkTools.Base.run($(tmp))
     end)
