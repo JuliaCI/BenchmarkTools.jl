@@ -188,8 +188,6 @@ julia> A
  0.647885
 ```
 
-You should generally make sure your benchmarks are [idempotent](https://en.wikipedia.org/wiki/Idempotence) so that evaluations are not order-dependent.
-
 # Handling benchmark results
 
 BenchmarkTools provides four types related to benchmark results:
