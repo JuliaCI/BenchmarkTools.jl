@@ -1,4 +1,4 @@
-This document provides in-depth on the design and use of BenchmarkTools. If you're looking for a quick reference, try reading [this](reference.md) instead.
+This document provides in-depth on the design and use of BenchmarkTools. If you're looking for a quick reference, try [reading this instead](reference.md).
 
 # Table of Contents
 
@@ -26,8 +26,8 @@ Bold links indicate sections that should be read carefully in order to avoid com
 BenchmarkTools was created to facilitate the following tasks:
 
 1. Organize collections of benchmarks into manageable benchmark suites
-2. Tune benchmark configuration parameters for accuracy and consistency across trials
-3. Execute trials to gather data that characterizes benchmark performance
+2. Configure, save, and reload benchmark parameters for convenience, accuracy, and consistency
+3. Execute benchmarks in a manner that yields reasonable and consistent performance predictions
 4. Analyze and compare results to determine whether a code change caused regressions or improvements
 
 Before we get too far, let's define some of the terminology used in this document:
@@ -35,8 +35,10 @@ Before we get too far, let's define some of the terminology used in this documen
 - "evaluation": a single execution of a benchmark expression.
 - "sample": a single time/memory measurement obtained by running multiple evaluations.
 - "trial": an experiment in which multiple samples are gathered (or the result of such an experiment).
+- "benchmark parameters": the configuration settings that determine how a benchmark trial is performed
 
-The reasoning behind our definition of "sample" may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must "approximate" a valid sample by evaluating the benchmark multiple times, and dividing the total time by the number of evaluations performed. For example, if a sample takes 1 second for 1 million evaluations, the approximate time value for that sample is 1 microsecond per evaluation. It's not obvious what the right number of evaluations per sample should be for any given benchmark, so BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure it out for you.
+The reasoning behind our definition of "sample" may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must approximate a valid sample by
+recording the total time `t` it takes to record `n` evaluations, and estimating the sample's time per evaluation as `t/n`. For example, if a sample takes 1 second for 1 million evaluations, the approximate time per evaluation for that sample is 1 microsecond. It's not obvious what the right number of evaluations per sample should be for any given benchmark, so BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure it out for you.
 
 # Benchmarking basics
 
@@ -136,7 +138,7 @@ A good rule of thumb is that **external variables should be explicitly interpola
 ```julia
 julia> A = rand(1000);
 
-# A is a global variable in the benchmarking context
+# BAD: A is a global variable in the benchmarking context
 julia> @benchmark [i*i for i in A]
 BenchmarkTools.Trial:
   samples:         300
@@ -149,7 +151,7 @@ BenchmarkTools.Trial:
   mean time:       930.63 μs (3.47% GC)
   maximum time:    2.61 ms (64.13% GC)
 
-# A is a constant value in the benchmarking context
+# GOOD: A is a constant value in the benchmarking context
 julia> @benchmark [i*i for i in $A]
 BenchmarkTools.Trial:
   samples:         300
@@ -570,12 +572,52 @@ As you can see, the allowable syntax for the `@tagged` predicate expressions inc
 mygroup[@tagged ("linalg" && "sparse") && !("parallel" || "simd")]
 ```
 
-# Increase consistency and decrease execution time by caching benchmark parameters
+# Save benchmark parameters to increase consistency and decrease execution time
+
+A common workflow used in BenchmarkTools is the following:
+
+1. Start a Julia session
+2. Execute a benchmark suite using an old version of your package
+3. Save the results somehow (e.g. in a JLD file)
+4. Start a new Julia session
+5. Execute a benchmark suite using a new version of your package
+6. Compare the new results with the old results (saved in step 3) to determine a regression
+
+There are a couple of problems with this workflow, and all of which revolve around parameter tuning:
+
+- Consistency: Given enough time, successive calls to `tune!` will usually yield reasonably consistent parameters, even in spite of noise. However, some benchmarks are highly sensitive to slight changes in these parameters. Thus, it would be best to have some guarantee that all experiments are configured equally (i.e., step 2 will use the exact same parameters as step 5).
+- Turnaround time: For most benchmarks, `tune!` needs to perform many evaluations to determine the proper parameters for any given benchmark - often more evaluations than are performed when running a trial. In fact, the majority of total benchmarking time is usually spent tuning parameters, rather than actually running trials.
+
+BenchmarkTools solves these problems by allowing you to pre-tune your benchmark suite, save the parameters, and load them on demand:
+
+```julia
+# untuned example suite
+julia> suite
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "utf8" => BenchmarkGroup(["string", "unicode"])
+  "trigonometry" => BenchmarkGroup(["math", "triangles"])
+
+# tune the suite to configure benchmark parameters
+julia> tune!(suite);
+
+julia> using JLD
+
+# save the suite's parameters using JLD
+julia> JLD.save("parameters.jld", "suite", parameters(suite));
+```
+
+Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadparams!` function:
+
+```julia
+julia> loadparams!(suite, JLD.load("parameters.jld", "suite"));
+```
+
+Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.
 
 # Miscellaneous tips and info
 
-- seed random values
-- Actual time samples are limited to nanosecond resolution, though estimates might report fractions of nanoseconds
-- Mention how this package can't solve low-frequency noise (sources of noise that change between trials rather than between samples), but you can configure your machine to help with this.
-- Use cset
-- BLAS.set_num_threads
+- Times reported by BenchmarkTools are limited to nanosecond resolution, though derived estimates might report fractions of nanoseconds.
+- If you use `rand` or something similar to generate the values that are used in your benchmarks, you should seed the RNG (or provide a seeded RNG) so that the values are consistent between trials/samples/evaluations.
+- BenchmarkTools attempts to be robust against machine noise occurring between *samples*, but BenchmarkTools can't do very much about machine that occurs between *trials*. To cut down on the latter kind of noise, it is advised that you dedicate CPUs and memory to the benchmarking Julia process by using a shielding tool such as [cset](http://manpages.ubuntu.com/manpages/precise/man1/cset.1.html).
+- On some machines, for some versions of BLAS and Julia, the number of BLAS worker threads can exceed the number of available cores. This can occasionally result in scheduling issues and inconsistent performance for BLAS-heavy benchmarks. To fix this issue, you can use `BLAS.set_num_threads(i::Int)` in the Julia REPL to ensure that the number of BLAS threads is equal to or less than the number of available cores.
