@@ -1,5 +1,26 @@
 This document provides in-depth on the design and use of BenchmarkTools. If you're looking for a quick reference, try reading [this](reference.md) instead.
 
+# Table of Contents
+
+- [Introduction](#introduction)
+    * [Terminology](#terminology)
+    * [Workflow](#workflow)
+- [Benchmarking basics](#defining-and-executing-benchmarks)
+    * [Defining and executing benchmarks](#defining-and-executing-benchmarks)
+    * [Tunable benchmark parameters](#tunable-benchmark-parameters)
+    * [Interpolating values into benchmark expressions](#interpolating-values-into-benchmark-expressions)
+- [Handling benchmark results](#handling-benchmark-results)
+    * [`Trial` and `TrialEstimate`](#trial-and-trialestimate)
+    * [Which estimator should I use?](#which-estimator-should-i-use?)
+    * [`TrialRatio` and `TrialJudgement`](#trialratio-and-trialjudgement)
+- [Using `BenchmarkGroup`s](#using-benchmarkgroups)
+    * [Defining benchmark suites](#defining-benchmark-suites)
+    * [Tuning and running a `BenchmarkGroup`](#tuning-and-running-a-benchmarkgroup)
+    * [Working with `BenchmarkGroup` results](#working-with-benchmarkgroup-results)
+    * [Filtering a `BenchmarkGroup` by tag](#filtering-a-benchmarkgroup-by-tag)
+- [Increase consistency and decrease execution time by caching benchmark parameters]("#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters)
+- [Miscellaneous tips and info](#miscellaneous-tips-and-info)
+
 # Introduction
 
 ### Terminology
@@ -12,7 +33,7 @@ A "trial" refers to an experiment in which multiple samples are gathered, or ref
 
 The obvious question here is: why should individual samples ever require multiple evaluations? The simple reason is that fast-running benchmarks need to be executed and measured differently than slow-running ones. Specifically, if the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. Thus, BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure out a reasonable number of evaluations per sample required for a given benchmark.
 
-### The BenchmarkTools workflow
+### Workflow
 
 BenchmarkTools was created with the following workflow in mind:
 
@@ -23,9 +44,9 @@ BenchmarkTools was created with the following workflow in mind:
 
 The intent of BenchmarkTools is to make it easy to do these 4 things, either separately or in order.
 
-# Defining and executing benchmarks
+# Benchmarking basics
 
-### `@benchmark`, `@benchmarkable`, and `run`
+### Defining and executing benchmarks
 
 To quickly benchmark a Julia expression, use `@benchmark`:
 
@@ -175,18 +196,18 @@ julia> A
 
 You should generally make sure your benchmarks are [idempotent](https://en.wikipedia.org/wiki/Idempotence) so that evaluation times are not order-dependent.
 
-# Dealing with benchmark results
+# Handling benchmark results
 
 Data regarding benchmark results usually takes the form of one of these types:
 
 - `Trial`: stores all samples collected during a benchmark trial, as well as the trial's parameters
-- `TrialEstimate`: a single estimated value that can be used to summarize a `Trial`
+- `TrialEstimate`: a single estimate used to summarize a `Trial`
 - `TrialRatio`: a comparison between two `TrialEstimate`
 - `TrialJudgement`: a classification of the fields of a `TrialRatio` as `invariant`, `regression`, or `improvement`
 
 This section provides limited examples demonstrating how one might work with these types in the REPL. For a more thorough list of supported functions on these types, see [the reference document](reference.md#handling-results).
 
-### Trials and TrialEstimates
+### `Trial` and `TrialEstimate`
 
 Running a benchmark produces an instance of the `Trial` type:
 
@@ -203,7 +224,7 @@ BenchmarkTools.Trial:
   mean time:       203.16 μs (0.7% GC)
   maximum time:    776.57 μs (54.66% GC)
 
-julia> dump(t) # let's look at fields of t
+julia> dump(t) # here's what's actually stored in a Trial
 BenchmarkTools.Trial
 params: BenchmarkTools.Parameters # Trials store the parameters of their parent process
   seconds: Float64 5.0
@@ -254,16 +275,16 @@ BenchmarkTools.TrialEstimate:
   noise tolerance: 5.0%
 ```
 
-### Understanding estimators
+### Which estimator should I use?
 
-We've found that, for most benchmarks that we've tested, the time distribution is almost always right-skewed. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some ways, inherently positive. In other words, there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. From this characterization of benchmark noise, we can characterize our estimators:
+We've found that, for most benchmarks that we've tested, the time distribution is almost always right-skewed. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some sense, inherently positive. In other words, there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. Following this characterization of benchmark noise, we can describe the behavior of our estimators:
 
 - The minimum is a robust estimator for the location parameter of the time distribution, and should generally not be considered an outlier
 - The median, as a robust measure of central tendency, should be relatively unaffected by outliers
 - The mean, as a non-robust measure of central tendency, will usually be skewed positively by outliers
 - The maximum should be considered a noise-driven outlier, and can change drastically between benchmark trials.
 
-### TrialRatios and TrialJudgements
+### `TrialRatio` and `TrialJudgement`
 
 BenchmarkTools supplies a `ratio` function for comparing two values:
 
@@ -369,11 +390,11 @@ true
 
 Note that GC isn't considered when determining regression status.
 
-# BenchmarkGroups
+# Using `BenchmarkGroup`s
 
-### Defining and organizing benchmark suites
+### Defining benchmark suites
 
-Normally, you need to work with whole suites of benchmarks, not just individual ones. The `BenchmarkGroup` type exists to facilitate this.
+In the real world, one often deals with whole suites of benchmarks rather than just individual benchmarks. BenchmarkTools provides the `BenchmarkGroup` type for this purpose.
 
 A `BenchmarkGroup` stores a `Dict` that maps benchmark IDs to values, as well as "tags" that describe the group. The IDs and values can be of any type, so a `BenchmarkGroup` can store benchmark definitions, benchmark results, or even other `BenchmarkGroup` instances.
 
@@ -383,9 +404,9 @@ Here's an example where we organize multiple benchmarks using the `BenchmarkGrou
 # Define a parent BenchmarkGroup to contain our suite
 suite = BenchmarkGroup()
 
-# Next, let's add some child groups to our benchmark suite. Note that the constructor is
-# BenchmarkGroup(tags::AbstractString...). These tags are useful for filtering benchmarks
-# by topic, which we'll cover in a later section
+# Add some child groups to our benchmark suite. The most relevant BenchmarkGroup constructor
+# for this case is BenchmarkGroup(tags::AbstractString...). These tags are useful for
+# filtering benchmarks by topic, which we'll cover in a later section.
 suite["utf8"] = BenchmarkGroup("string", "unicode")
 suite["trigonometry"] = BenchmarkGroup("math", "triangles")
 
@@ -430,7 +451,7 @@ BenchmarkTools.BenchmarkGroup:
 
 Now, we have a benchmark suite that can be tuned, run, and analyzed in aggregate!
 
-### Tuning/Running BenchmarkGroups
+### Tuning and running a `BenchmarkGroup`
 
 Similarly to individual benchmarks, you can `tune!` and `run` whole `BenchmarkGroup` instances (following from the previous section):
 
@@ -465,7 +486,7 @@ BenchmarkTools.BenchmarkGroup:
   "trigonometry" => BenchmarkGroup(["math", "triangles"])
 ```
 
-### Working with results stored in BenchmarkGroups
+### Working with `BenchmarkGroup` results
 
 Following from the previous section:
 
@@ -473,7 +494,7 @@ Following from the previous section:
 julia> results["utf8"]
 BenchmarkTools.BenchmarkGroup:
   tags: ["string", "unicode"]
-  "join" => Trial(133.84 ms) # the compact show for Trial displays the minimum value
+  "join" => Trial(133.84 ms) # showcompact for Trial displays the minimum time estimate
   "replace" => Trial(202.3 μs)
 
 julia> results["trigonometry"]
@@ -487,7 +508,7 @@ BenchmarkTools.BenchmarkGroup:
   ("tan",0.0) => Trial(6.0 ns)
 ```
 
-Most of the functions that work on result-related types (`Trial`, `TrialEstimate`, `TrialRatio`, and `TrialJudgement`), work on `BenchmarkGroup`s as well by mapping to the group's values:
+Most of the functions on result-related types (`Trial`, `TrialEstimate`, `TrialRatio`, and `TrialJudgement`) work on `BenchmarkGroup`s as well by mapping the functions to the group's values:
 
 ```julia
 julia> m1 = median(results["utf8"]) # == median(results["utf8"])
@@ -511,11 +532,11 @@ BenchmarkTools.BenchmarkGroup:
 
 `BenchmarkGroup` also supports a subset of Julia's `Associative` interface (e.g. `filter`, `keys`, `values`, etc.). A full list of supported functions can be found [in the reference document](reference.md#BenchmarkGroup).
 
-### Filtering BenchmarkGroups by tag
+### Filtering a `BenchmarkGroup` by tag
 
-Sometimes, especially in large benchmark suites, you'd like to run benchmarks by topic (e.g. string benchmarks, linear algebra benchmarks) without necessarily worrying about how the suite is actually organized. BenchmarkTools supports a tagging system for this purpose.
+Sometimes, especially in large benchmark suites, you'd like to filter benchmarks by topic (e.g. string benchmarks, linear algebra benchmarks) without necessarily worrying about how the suite is actually organized. BenchmarkTools supports a tagging system for this purpose.
 
-A `BenchmarkGroup` that contain child `BenchmarkGroups` can be filtered by the children's tags using the `@tagged` macro. Consider the following `BenchmarkGroup`:
+A `BenchmarkGroup` that contain child `BenchmarkGroups` can be filtered by the child groups' tags using the `@tagged` macro. Consider the following `BenchmarkGroup`:
 
 ```julia
 julia> g
@@ -549,7 +570,7 @@ BenchmarkTools.BenchmarkGroup:
   "a" => BenchmarkGroup(["1", "2", "3"])
 ```
 
-As you can see, the allowable syntax for the `@tagged` predicate expressions includes `!`, `()`, `||`, `&&`, in addition to the tags themselves. The above examples only use simple expressions, but you can use the allowed syntax to build more complicated expressions if you want. For example:
+As you can see, the allowable syntax for the `@tagged` predicate expressions includes `!`, `()`, `||`, `&&`, in addition to the tags themselves. The above examples only use simple expressions, but the syntax supports more complicated expressions, for example:
 
 ```julia
 # select all groups tagged both "linalg" and "sparse",
@@ -557,7 +578,7 @@ As you can see, the allowable syntax for the `@tagged` predicate expressions inc
 mygroup[@tagged ("linalg" && "sparse") && !("parallel" || "simd")]
 ```
 
-# Caching benchmark parameters
+# Increase consistency and decrease execution time by caching benchmark parameters
 
 # Miscellaneous tips and info
 
