@@ -38,18 +38,18 @@ end
 # clock resolution time `r`?
 evals_given_resolution(t, r) = max(ceil(Int, r / t), 1)
 
-function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "")
+function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
     gc() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
     for id in keys(group)
         verbose && (println(pad, "($(i)/$(length(group))) tuning ", repr(id), "..."); tic())
-        tune!(group[id]; verbose = verbose, pad = pad*"  ")
+        tune!(group[id]; verbose = verbose, pad = pad*"  ", kwargs...)
         verbose && (println(pad, "done (took ", toq(), " seconds)"); i += 1)
     end
     return group
 end
 
-function tune!(b::Benchmark; kwargs...)
+function tune!(b::Benchmark; seconds = b.params.seconds, kwargs...)
     b.params.gctrial && gc()
     times = Vector{Int}()
     evals = Vector{Int}()
@@ -57,7 +57,7 @@ function tune!(b::Benchmark; kwargs...)
     current_evals = 1.0
     local unused::Base.GC_Diff
     start_time = time()
-    while (time() - start_time) < b.params.seconds
+    while (time() - start_time) < seconds
         b.params.gcsample && gc()
         current_evals_floor = floor(Int, current_evals)
         t, unused = sample(b, current_evals_floor)
