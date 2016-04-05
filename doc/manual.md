@@ -16,9 +16,9 @@ The obvious question here is: why should individual samples ever require multipl
 
 BenchmarkTools was created with the following workflow in mind:
 
-1. Define your benchmarks
+1. Define a benchmark suite
 2. Tune your benchmarks' configuration parameters (e.g. how many seconds to spend benchmarking, number of samples to take, etc.)
-3. Execute trials to gather data for characterizing the benchmarks' performance
+3. Execute trials to gather data that characterizes your benchmarks' performance
 4. Analyze and compare results to determine whether a code change caused regressions or improvements
 
 The intent of BenchmarkTools is to make it easy to do these 4 things, either separately or in order.
@@ -65,14 +65,23 @@ BenchmarkTools.Trial:
   maximum time:    14.0 ns (0.0% GC)
 ```
 
+### Tunable benchmark parameters
+
 You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, and `run` to configure the execution process:
 
 - `samples`: The number of samples to take. Execution will end if this many samples have been collected. Defaults to `300`.
-- `seconds`: The number of seconds budgeted for the benchmarking process. The trial will terminate if this time is exceeded (regardless of `samples`), but at least one sample will always be taken. Defaults to `5.0`.
+- `seconds`: The number of seconds budgeted for the benchmarking process. The trial will terminate if this time is exceeded (regardless of `samples`), but at least one sample will always be taken. In practice, actual runtime can overshoot the budget by the duration of a sample. Defaults to `5.0`.
 - `evals`: The number of evaluations per sample. For best results, this should be kept consistent between trials. A good guess for this value can be automatically set on a benchmark via `tune!`, but using `tune!` can be less consistent than setting `evals` manually. Defaults to `1`.
-- `gctrial`: If `true`, run `gc()` before executing the trial. Defaults to `true`.
+- `gctrial`: If `true`, run `gc()` before executing this benchmark's trial. Defaults to `true`.
 - `gcsample`: If `true`, run `gc()` before each sample. Defaults to `false`.
-- `tolerance`: The noise tolerance of the benchmark, as a percentage. Defaults to `0.05` (5%).
+- `tolerance`: The noise tolerance of the benchmark, as a percentage. Some BenchmarkTools functions automatically propagate/use this tolerance in their calculations (e.g. regression detection). Defaults to `0.05` (5%).
+
+For example:
+
+```julia
+b = @benchmarkable sin(1) seconds=1 tolerance=0.01
+run(b) # equivalent to run(b, seconds = 1, tolerance = 0.01)
+```
 
 ### Interpolating values into benchmark expressions
 
@@ -107,7 +116,7 @@ BenchmarkTools.Trial:
   maximum time:    196.0 ns (0.0% GC)
 ```
 
-A good rule of thumb is that **external variables should always be explicitly interpolated into the benchmark expression**:
+A good rule of thumb is that **external variables should be explicitly interpolated into the benchmark expression**:
 
 ```julia
 julia> A = rand(1000);
@@ -168,7 +177,16 @@ You should generally make sure your benchmarks are [idempotent](https://en.wikip
 
 # Dealing with benchmark results
 
-### Summarizing execution results: Trials and TrialEstimates
+Data regarding benchmark results usually takes the form of one of these types:
+
+- `Trial`: stores all samples collected during a benchmark trial, as well as the trial's parameters
+- `TrialEstimate`: a single estimated value that can be used to summarize a `Trial`
+- `TrialRatio`: a comparison between two `TrialEstimate`
+- `TrialJudgement`: a classification of the fields of a `TrialRatio` as `invariant`, `regression`, or `improvement`
+
+This section provides limited examples demonstrating how one might work with these types in the REPL. For a more thorough list of supported functions on these types, see [the reference document](reference.md#handling-results).
+
+### Trials and TrialEstimates
 
 Running a benchmark produces an instance of the `Trial` type:
 
@@ -236,6 +254,8 @@ BenchmarkTools.TrialEstimate:
   noise tolerance: 5.0%
 ```
 
+### Understanding estimators
+
 We've found that, for most benchmarks that we've tested, the time distribution is almost always right-skewed. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some ways, inherently positive. In other words, there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. From this characterization of benchmark noise, we can characterize our estimators:
 
 - The minimum is a robust estimator for the location parameter of the time distribution, and should generally not be considered an outlier
@@ -243,7 +263,7 @@ We've found that, for most benchmarks that we've tested, the time distribution i
 - The mean, as a non-robust measure of central tendency, will usually be skewed positively by outliers
 - The maximum should be considered a noise-driven outlier, and can change drastically between benchmark trials.
 
-### Comparing benchmark results: TrialRatios
+### TrialRatios and TrialJudgements
 
 BenchmarkTools supplies a `ratio` function for comparing two values:
 
@@ -296,10 +316,7 @@ julia> ratio(m1, m2)
     noise tolerance: 5.0%
 ```
 
-### Classifying regressions/improvements: TrialJudgements
-
-Use the `judge` function to decide if one estimate represents a regression versus another
-estimate:
+Use the `judge` function to decide if one estimate represents a regression versus another estimate:
 
 ```julia
 julia> m1 = median(@benchmark eig(rand(10, 10)))
@@ -363,65 +380,188 @@ A `BenchmarkGroup` stores a `Dict` that maps benchmark IDs to values, as well as
 Here's an example where we organize multiple benchmarks using the `BenchmarkGroup` type:
 
 ```julia
-julia> groups = BenchmarkGroup()
-BenchmarkTools.BenchmarkGroup:
-  tags: []
+# Define a parent BenchmarkGroup to contain our suite
+suite = BenchmarkGroup()
 
-# These tags are useful for filtering BenchmarkGroups, which we'll cover in a later section
-julia> groups["eig"] = BenchmarkGroup("linalg", "factorization", "math")
-BenchmarkTools.BenchmarkGroup:
-  tags: ["linalg", "factorization", "math"]
+# Next, let's add some child groups to our benchmark suite. Note that the constructor is
+# BenchmarkGroup(tags::AbstractString...). These tags are useful for filtering benchmarks
+# by topic, which we'll cover in a later section
+suite["utf8"] = BenchmarkGroup("string", "unicode")
+suite["trigonometry"] = BenchmarkGroup("math", "triangles")
 
-julia> for i in (10, 100, 1000)
-           groups["eig"][i] = @benchmarkable eig(rand($i, $i))
-       end
+# Add some benchmarks to the "utf8" group
+teststr = UTF8String(join(rand(MersenneTwister(1), 'a':'d', 10^4)))
+suite["utf8"]["replace"] = @benchmarkable replace($teststr, "a", "b")
+suite["utf8"]["join"] = @benchmarkable join($teststr, $teststr)
 
-julia> groups["eig"]
-BenchmarkTools.BenchmarkGroup:
-  tags: ["linalg", "factorization", "math"]
-  100 => BenchmarkTools.Benchmark{symbol("##benchmark#7153")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  10 => BenchmarkTools.Benchmark{symbol("##benchmark#7148")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  1000 => BenchmarkTools.Benchmark{symbol("##benchmark#7157")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-
-julia> groups["trig"] = BenchmarkGroup("math", "sin", "cos", "tan")
-BenchmarkTools.BenchmarkGroup:
-  tags: ["math", "sin", "cos", "tan"]
-
-julia> for f in (sin, cos, tan)
-           for x in (0.0, pi)
-               groups["trig"][string(f), x] = @benchmarkable $(f)($x)
-           end
-       end
-
-julia> groups["trig"]
-BenchmarkTools.BenchmarkGroup:
-  tags: ["math", "sin", "cos", "tan"]
-  ("tan",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7211")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("cos",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7196")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("cos",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7201")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("sin",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7187")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("sin",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7179")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("tan",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7206")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-
-julia> groups
-BenchmarkTools.BenchmarkGroup:
-  tags: []
-  "eig" => BenchmarkGroup(["linalg", "factorization", "math"])
-  "trig" => BenchmarkGroup(["math", "sin", "cos", "tan"])
+# Add some benchmarks to the "trigonometry" group
+for f in (sin, cos, tan)
+    for x in (0.0, pi)
+        suite["trigonometry"][string(f), x] = @benchmarkable $(f)($x)
+    end
+end
 ```
 
-Now, we have a benchmark suite that can be tuned, run, and analyzed in aggregate.
+Let's look at our newly defined suite in the REPL:
+
+```julia
+julia> suite
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "utf8" => BenchmarkGroup(["string", "unicode"])
+  "trigonometry" => BenchmarkGroup(["math", "triangles"])
+
+julia> suite["utf8"]
+BenchmarkTools.BenchmarkGroup:
+  tags: ["string", "unicode"]
+  "join" => BenchmarkTools.Benchmark{symbol("##benchmark#7184")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  "replace" => BenchmarkTools.Benchmark{symbol("##benchmark#7165")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+
+julia> suite["trigonometry"]
+BenchmarkTools.BenchmarkGroup:
+  tags: ["math", "triangles"]
+  ("tan",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7233")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  ("cos",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7218")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  ("cos",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7223")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  ("sin",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7209")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  ("sin",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7201")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  ("tan",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7228")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+```
+
+Now, we have a benchmark suite that can be tuned, run, and analyzed in aggregate!
 
 ### Tuning/Running BenchmarkGroups
 
+Similarly to individual benchmarks, you can `tune!` and `run` whole `BenchmarkGroup` instances (following from the previous section):
+
+```julia
+julia> tune!(suite);
+
+# run with a time limit of ~1 second per benchmark
+julia> results = run(suite, verbose = true, seconds = 1)
+(1/2) benchmarking "utf8"...
+  (1/2) benchmarking "join"...
+  done (took 1.15406904 seconds)
+  (2/2) benchmarking "replace"...
+  done (took 0.47660775 seconds)
+done (took 1.697970114 seconds)
+(2/2) benchmarking "trigonometry"...
+  (1/6) benchmarking ("tan",π = 3.1415926535897...)...
+  done (took 0.371586549 seconds)
+  (2/6) benchmarking ("cos",0.0)...
+  done (took 0.284178292 seconds)
+  (3/6) benchmarking ("cos",π = 3.1415926535897...)...
+  done (took 0.338527685 seconds)
+  (4/6) benchmarking ("sin",π = 3.1415926535897...)...
+  done (took 0.345329397 seconds)
+  (5/6) benchmarking ("sin",0.0)...
+  done (took 0.309887335 seconds)
+  (6/6) benchmarking ("tan",0.0)...
+  done (took 0.320894744 seconds)
+done (took 2.022673065 seconds)
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "utf8" => BenchmarkGroup(["string", "unicode"])
+  "trigonometry" => BenchmarkGroup(["math", "triangles"])
+```
+
 ### Working with results stored in BenchmarkGroups
 
+Following from the previous section:
+
+```julia
+julia> results["utf8"]
+BenchmarkTools.BenchmarkGroup:
+  tags: ["string", "unicode"]
+  "join" => Trial(133.84 ms) # the compact show for Trial displays the minimum value
+  "replace" => Trial(202.3 μs)
+
+julia> results["trigonometry"]
+BenchmarkTools.BenchmarkGroup:
+  tags: ["math", "triangles"]
+  ("tan",π = 3.1415926535897...) => Trial(28.0 ns)
+  ("cos",0.0) => Trial(6.0 ns)
+  ("cos",π = 3.1415926535897...) => Trial(22.0 ns)
+  ("sin",π = 3.1415926535897...) => Trial(21.0 ns)
+  ("sin",0.0) => Trial(6.0 ns)
+  ("tan",0.0) => Trial(6.0 ns)
+```
+
+Most of the functions that work on result-related types (`Trial`, `TrialEstimate`, `TrialRatio`, and `TrialJudgement`), work on `BenchmarkGroup`s as well by mapping to the group's values:
+
+```julia
+julia> m1 = median(results["utf8"]) # == median(results["utf8"])
+BenchmarkTools.BenchmarkGroup:
+  tags: ["string", "unicode"]
+  "join" => TrialEstimate(143.68 ms)
+  "replace" => TrialEstimate(203.24 μs)
+
+julia> m2 = median(run(suite["utf8"]))
+BenchmarkTools.BenchmarkGroup:
+  tags: ["string", "unicode"]
+  "join" => TrialEstimate(144.79 ms)
+  "replace" => TrialEstimate(202.49 μs)
+
+julia> judge(m1, m2, 0.001) # use 0.1 % tolerance
+BenchmarkTools.BenchmarkGroup:
+  tags: ["string", "unicode"]
+  "join" => TrialJudgement(-0.76% => improvement)
+  "replace" => TrialJudgement(+0.37% => regression)
+```
+
+`BenchmarkGroup` also supports a subset of Julia's `Associative` interface (e.g. `filter`, `keys`, `values`, etc.). A full list of supported functions can be found [in the reference document](reference.md#BenchmarkGroup).
+
 ### Filtering BenchmarkGroups by tag
+
+Sometimes, especially in large benchmark suites, you'd like to run benchmarks by topic (e.g. string benchmarks, linear algebra benchmarks) without necessarily worrying about how the suite is actually organized. BenchmarkTools supports a tagging system for this purpose.
+
+A `BenchmarkGroup` that contain child `BenchmarkGroups` can be filtered by the children's tags using the `@tagged` macro. Consider the following `BenchmarkGroup`:
+
+```julia
+julia> g
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "c" => BenchmarkGroup(["5", "6", "7"])
+  "b" => BenchmarkGroup(["3", "4", "5"])
+  "a" => BenchmarkGroup(["1", "2", "3"])
+
+julia> g[@tagged "3"] # selects groups tagged "3"
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "b" => BenchmarkGroup(["3", "4", "5"])
+  "a" => BenchmarkGroup(["1", "2", "3"])
+
+julia> g[@tagged "1" || "7"] # selects groups tagged "1" or "7"
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "c" => BenchmarkGroup(["5", "6", "7"])
+  "a" => BenchmarkGroup(["1", "2", "3"])
+
+julia> g[@tagged "3" && "4"] # selects groups tagged "3" and "4"
+  BenchmarkTools.BenchmarkGroup:
+    tags: []
+    "b" => BenchmarkGroup(["3", "4", "5"])
+
+julia> g[@tagged !("4")] # selects groups without the tag "4"
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "c" => BenchmarkGroup(["5", "6", "7"])
+  "a" => BenchmarkGroup(["1", "2", "3"])
+```
+
+As you can see, the allowable syntax for the `@tagged` predicate expressions includes `!`, `()`, `||`, `&&`, in addition to the tags themselves. The above examples only use simple expressions, but you can use the allowed syntax to build more complicated expressions if you want. For example:
+
+```julia
+# select all groups tagged both "linalg" and "sparse",
+# except for groups also tagged "parallel" or "simd"
+mygroup[@tagged ("linalg" && "sparse") && !("parallel" || "simd")]
+```
 
 # Caching benchmark parameters
 
 # Miscellaneous tips and info
 
+- seed random values
 - Actual time samples are limited to nanosecond resolution, though estimates might report fractions of nanoseconds
 - Mention how this package can't solve low-frequency noise (sources of noise that change between trials rather than between samples), but you can configure your machine to help with this.
 - Use cset
