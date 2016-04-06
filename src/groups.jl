@@ -121,6 +121,17 @@ end
 
 Base.getindex(group::BenchmarkGroup, f::TagFilter) = filter(f.pred, group)
 
+# indexing by BenchmarkGroup #
+#----------------------------#
+
+function Base.getindex(group::BenchmarkGroup, x::BenchmarkGroup)
+    result = BenchmarkGroup()
+    for (k, v) in x
+        result[k] = isa(v, BenchmarkGroup) ? group[k][v] : group[k]
+    end
+    return result
+end
+
 # pretty printing #
 #-----------------#
 

@@ -175,4 +175,25 @@ groupstrial["g"] = gtrial
 @test groupsa[@tagged ALL] == groupsa
 @test groupsa[@tagged !("1" || "3") && !("4")] == similar(groupsa)
 
+# indexing by BenchmarkGroup #
+#----------------------------#
+
+g = BenchmarkGroup()
+g["a"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
+g["b"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
+g["c"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
+g["d"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
+
+x = BenchmarkGroup()
+x["a"] = BenchmarkGroup([], Dict("1" => '1', "3" => '3'))
+x["c"] = BenchmarkGroup([], Dict("2" => '2'))
+x["d"] = BenchmarkGroup([], Dict("1" => '1', "2" => '2', "3" => '3'))
+
+gx = BenchmarkGroup()
+gx["a"] = BenchmarkGroup([], Dict("1" => 1, "3" => 3))
+gx["c"] = BenchmarkGroup([], Dict("2" => 2))
+gx["d"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
+
+@test g[x] == gx
+
 end # module

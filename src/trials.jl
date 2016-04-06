@@ -324,10 +324,8 @@ end
 
 function Base.show(io::IO, t::TrialJudgement)
     println(io, "BenchmarkTools.TrialJudgement: ")
-    println(io, "  time:             ", prettydiff(time(ratio(t))), " => ", time(t))
-    println(io, "  memory:           ", prettydiff(memory(ratio(t))), " => ", memory(t))
-    println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-    print(io,   "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
+    println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
+    print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
 end
 
 Base.showcompact(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
