@@ -1,6 +1,8 @@
+module GroupsTests
+
 using Base.Test
 using BenchmarkTools
-using BenchmarkTools: TrialEstimate
+using BenchmarkTools: TrialEstimate, Parameters
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
@@ -13,9 +15,9 @@ seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
 g1 = BenchmarkGroup("1", "2")
 
-t1a = TrialEstimate(32, 1, 2, 3, .05)
-t1b = TrialEstimate(4123, 123, 43, 9, .4)
-tc = TrialEstimate(1, 1, 1, 1, 1)
+t1a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 32, 1, 2, 3)
+t1b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 4123, 123, 43, 9)
+tc = TrialEstimate(Parameters(time_tolerance = 1.0, memory_tolerance = 1.0), 1, 1, 1, 1)
 
 g1["a"] = t1a
 g1["b"] = t1b
@@ -26,14 +28,14 @@ g1similar = similar(g1)
 
 g2 = BenchmarkGroup("2", "3")
 
-t2a = TrialEstimate(323, 1, 2, 3, .05)
-t2b = TrialEstimate(1002, 123, 43, 9, .4)
+t2a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 323, 1, 2, 3)
+t2b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 1002, 123, 43, 9)
 
 g2["a"] = t2a
 g2["b"] = t2b
 g2["c"] = tc
 
-trial = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1, 2, 5], [0, 1, 1], 3, 56)
+trial = BenchmarkTools.Trial(Parameters(), [1, 2, 5], [0, 1, 1], 3, 56)
 
 gtrial = BenchmarkGroup([], Dict("t" => trial))
 
@@ -64,14 +66,18 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 @test gctime(g1).data == Dict("a" => gctime(t1a), "b" => gctime(t1b), "c" => gctime(tc))
 @test memory(g1).data == Dict("a" => memory(t1a), "b" => memory(t1b), "c" => memory(tc))
 @test allocs(g1).data == Dict("a" => allocs(t1a), "b" => allocs(t1b), "c" => allocs(tc))
-@test tolerance(g1).data == Dict("a" => tolerance(t1a), "b" => tolerance(t1b), "c" => tolerance(tc))
+@test params(g1).data == Dict("a" => params(t1a), "b" => params(t1b), "c" => params(tc))
 
 @test max(g1, g2).data == Dict("a" => t2a, "b" => t1b, "c" => tc)
 @test min(g1, g2).data == Dict("a" => t1a, "b" => t2b, "c" => tc)
 @test ratio(g1, g2).data == Dict("a" => ratio(t1a, t2a), "b" => ratio(t1b, t2b), "c" => ratio(tc, tc))
-@test judge(g1, g2, 0.1).data == Dict("a" => judge(t1a, t2a, 0.1), "b" => judge(t1b, t2b, 0.1), "c" => judge(tc, tc, 0.1))
-@test judge(ratio(g1, g2), 0.1) == judge(g1, g2, 0.1)
-@test ratio(g1, g2) == ratio(judge(g1, g2, 0.1))
+@test (judge(g1, g2; time_tolerance = 0.1, memory_tolerance = 0.1).data ==
+       Dict("a" => judge(t1a, t2a; time_tolerance = 0.1, memory_tolerance = 0.1),
+            "b" => judge(t1b, t2b; time_tolerance = 0.1, memory_tolerance = 0.1),
+            "c" => judge(tc, tc; time_tolerance = 0.1, memory_tolerance = 0.1)))
+@test (judge(ratio(g1, g2); time_tolerance = 0.1, memory_tolerance = 0.1) ==
+       judge(g1, g2; time_tolerance = 0.1, memory_tolerance = 0.1))
+@test ratio(g1, g2) == ratio(judge(g1, g2))
 
 @test isinvariant(judge(g1, g1))
 @test !(isinvariant(judge(g1, g2)))
@@ -87,7 +93,7 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 @test median(gtrial)["t"] == median(gtrial["t"])
 @test mean(gtrial)["t"] == mean(gtrial["t"])
 @test maximum(gtrial)["t"] == maximum(gtrial["t"])
-@test parameters(gtrial)["t"] == parameters(gtrial["t"])
+@test params(gtrial)["t"] == params(gtrial["t"])
 
 ######################################
 # BenchmarkGroups of BenchmarkGroups #
@@ -101,8 +107,8 @@ groupsa["g1"] = g1
 groupsa["g2"] = g2
 g3a = BenchmarkGroup("3", "4")
 groupsa["g3"] = g3a
-g3a["c"] = TrialEstimate(6341, 23, 41, 536, .05)
-g3a["d"] = TrialEstimate(12341, 3013, 2, 150, .13)
+g3a["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 6341, 23, 41, 536)
+g3a["d"] = TrialEstimate(Parameters(time_tolerance = .13, memory_tolerance = .13), 12341, 3013, 2, 150)
 
 groups_copy = copy(groupsa)
 groups_similar = similar(groupsa)
@@ -112,8 +118,8 @@ groupsb["g1"] = g1
 groupsb["g2"] = g2
 g3b = BenchmarkGroup("3", "4")
 groupsb["g3"] = g3b
-g3b["c"] = TrialEstimate(1003, 23, 41, 536, .05)
-g3b["d"] = TrialEstimate(25341, 3013, 2, 150, .23)
+g3b["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 1003, 23, 41, 536)
+g3b["d"] = TrialEstimate(Parameters(time_tolerance = .23, memory_tolerance = .23), 25341, 3013, 2, 150)
 
 groupstrial = BenchmarkGroup()
 groupstrial["g"] = gtrial
@@ -125,14 +131,18 @@ groupstrial["g"] = gtrial
 @test gctime(groupsa).data == Dict("g1" => gctime(g1), "g2" => gctime(g2), "g3" => gctime(g3a))
 @test memory(groupsa).data == Dict("g1" => memory(g1), "g2" => memory(g2), "g3" => memory(g3a))
 @test allocs(groupsa).data == Dict("g1" => allocs(g1), "g2" => allocs(g2), "g3" => allocs(g3a))
-@test tolerance(groupsa).data == Dict("g1" => tolerance(g1), "g2" => tolerance(g2), "g3" => tolerance(g3a))
+@test params(groupsa).data == Dict("g1" => params(g1), "g2" => params(g2), "g3" => params(g3a))
 
 @test max(groupsa, groupsb).data == Dict("g1" => max(g1, g1), "g2" => max(g2, g2), "g3" => max(g3a, g3b))
 @test min(groupsa, groupsb).data == Dict("g1" => min(g1, g1), "g2" => min(g2, g2), "g3" => min(g3a, g3b))
 @test ratio(groupsa, groupsb).data == Dict("g1" => ratio(g1, g1), "g2" => ratio(g2, g2), "g3" => ratio(g3a, g3b))
-@test judge(groupsa, groupsb, 0.1).data == Dict("g1" => judge(g1, g1, 0.1), "g2" => judge(g2, g2, 0.1), "g3" => judge(g3a, g3b, 0.1))
-@test judge(ratio(groupsa, groupsb), 0.1) == judge(groupsa, groupsb, 0.1)
-@test ratio(groupsa, groupsb) == ratio(judge(groupsa, groupsb, 0.1))
+@test (judge(groupsa, groupsb; time_tolerance = 0.1, memory_tolerance = 0.1).data ==
+       Dict("g1" => judge(g1, g1; time_tolerance = 0.1, memory_tolerance = 0.1),
+            "g2" => judge(g2, g2; time_tolerance = 0.1, memory_tolerance = 0.1),
+            "g3" => judge(g3a, g3b; time_tolerance = 0.1, memory_tolerance = 0.1)))
+@test (judge(ratio(groupsa, groupsb); time_tolerance = 0.1, memory_tolerance = 0.1) ==
+       judge(groupsa, groupsb; time_tolerance = 0.1, memory_tolerance = 0.1))
+@test ratio(groupsa, groupsb) == ratio(judge(groupsa, groupsb))
 
 @test isinvariant(judge(groupsa, groupsa))
 @test !(isinvariant(judge(groupsa, groupsb)))
@@ -148,7 +158,7 @@ groupstrial["g"] = gtrial
 @test maximum(groupstrial)["g"]["t"] == maximum(groupstrial["g"]["t"])
 @test median(groupstrial)["g"]["t"] == median(groupstrial["g"]["t"])
 @test mean(groupstrial)["g"]["t"] == mean(groupstrial["g"]["t"])
-@test parameters(groupstrial)["g"]["t"] == parameters(groupstrial["g"]["t"])
+@test params(groupstrial)["g"]["t"] == params(groupstrial["g"]["t"])
 
 # tagging #
 #---------#
@@ -164,3 +174,5 @@ groupstrial["g"] = gtrial
 @test groupsa[@tagged !("1" || "4") && "2"] == BenchmarkGroup([], Dict("g2" => g2))
 @test groupsa[@tagged ALL] == groupsa
 @test groupsa[@tagged !("1" || "3") && !("4")] == similar(groupsa)
+
+end # module

@@ -1,15 +1,15 @@
 print("Testing Parameters..."); tic()
-include("parameters_tests.jl")
+include("ParametersTests.jl")
 println("done (took ", toq(), " seconds)")
 
 print("Testing Trial/TrialEstimate/TrialRatio/TrialJudgement..."); tic()
-include("trials_tests.jl")
+include("TrialsTests.jl")
 println("done (took ", toq(), " seconds)")
 
 print("Testing BenchmarkGroup..."); tic()
-include("groups_tests.jl")
+include("GroupsTests.jl")
 println("done (took ", toq(), " seconds)")
 
 print("Testing execution..."); tic()
-include("execution_tests.jl")
+include("ExecutionTests.jl")
 println("done (took ", toq(), " seconds)")

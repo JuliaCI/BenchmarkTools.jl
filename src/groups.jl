@@ -69,13 +69,10 @@ Base.time(group::BenchmarkGroup) = mapvals(time, group)
 gctime(group::BenchmarkGroup) = mapvals(gctime, group)
 memory(group::BenchmarkGroup) = mapvals(memory, group)
 allocs(group::BenchmarkGroup) = mapvals(allocs, group)
-tolerance(group::BenchmarkGroup) = mapvals(tolerance, group)
-parameters(group::BenchmarkGroup) = mapvals(parameters, group)
+params(group::BenchmarkGroup) = mapvals(params, group)
 
 ratio(groups::BenchmarkGroup...) = mapvals(ratio, groups...)
-
-judge(a::BenchmarkGroup, b::BenchmarkGroup, args...) = mapvals((x, y) -> judge(x, y, args...), a, b)
-judge(group::BenchmarkGroup, args...) = mapvals(x -> judge(x, args...), group)
+judge(groups::BenchmarkGroup...; kwargs...) = mapvals((x...) -> judge(x...; kwargs...), groups...)
 
 rmskew!(group::BenchmarkGroup) = mapvals!(rmskew!, group)
 rmskew(group::BenchmarkGroup) = mapvals(rmskew, group)

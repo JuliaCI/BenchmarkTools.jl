@@ -1,3 +1,5 @@
+module ExecutionTests
+
 using Base.Test
 using BenchmarkTools
 
@@ -40,7 +42,7 @@ function testexpected(trial::BenchmarkTools.Trial, args...)
 end
 
 function testexpected(b::BenchmarkTools.Benchmark, args...)
-    @test b.params != BenchmarkTools.DEFAULT_PARAMETERS
+    @test params(b) != BenchmarkTools.DEFAULT_PARAMETERS
 end
 
 #########
@@ -56,7 +58,7 @@ end
 testexpected(tune!(groups["sin"], verbose = true), groups["sin"])
 testexpected(tune!(groups, verbose = true), groups)
 
-loadparams!(oldgroups, parameters(groups))
+loadparams!(oldgroups, params(groups))
 
 @test oldgroups == groups
 
@@ -66,15 +68,15 @@ loadparams!(oldgroups, parameters(groups))
 
 testexpected(run(groups; verbose = true), groups)
 testexpected(run(groups; seconds = 1, verbose = true, gctrial = false), groups)
-testexpected(run(groups; verbose = true, seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups)
+testexpected(run(groups; verbose = true, seconds = 1, gctrial = false, time_tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups)
 
 testexpected(run(groups["sin"]; verbose = true), groups["sin"])
 testexpected(run(groups["sin"]; seconds = 1, verbose = true, gctrial = false), groups["sin"])
-testexpected(run(groups["sin"]; verbose = true, seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups["sin"])
+testexpected(run(groups["sin"]; verbose = true, seconds = 1, gctrial = false, time_tolerance = 0.10, samples = 2, evals = 2, gcsample = false), groups["sin"])
 
 testexpected(run(groups["sin"][first(sizes)]))
 testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false))
-testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, tolerance = 0.10, samples = 2, evals = 2, gcsample = false))
+testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, time_tolerance = 0.10, samples = 2, evals = 2, gcsample = false))
 
 testexpected(run(groups["sum"][first(sizes)], BenchmarkTools.DEFAULT_PARAMETERS))
 
@@ -82,7 +84,7 @@ testexpected(run(groups["sum"][first(sizes)], BenchmarkTools.DEFAULT_PARAMETERS)
 # @warmup #
 ###########
 
-p = parameters(@warmup @benchmarkable sin(1))
+p = params(@warmup @benchmarkable sin(1))
 
 @test p.samples == 1
 @test p.evals == 1
@@ -95,10 +97,12 @@ p = parameters(@warmup @benchmarkable sin(1))
 
 t = @benchmark sin(1) evals=3 samples=10
 
-@test parameters(t).evals == 3
-@test parameters(t).samples == 10
+@test params(t).evals == 3
+@test params(t).samples == 10
 
 t = @benchmark sin(1)
 
-@test parameters(t).evals > 10000
-@test parameters(t).samples == BenchmarkTools.DEFAULT_PARAMETERS.samples
+@test params(t).evals > 10000
+@test params(t).samples == BenchmarkTools.DEFAULT_PARAMETERS.samples
+
+end # module
