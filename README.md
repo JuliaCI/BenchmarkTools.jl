@@ -7,7 +7,7 @@ BenchmarkTools makes **performance tracking of Julia code easy** by supplying a 
 
 This package is used to write and run the benchmarks found in [BaseBenchmarks.jl](https://github.com/JuliaCI/BaseBenchmarks.jl).
 
-The CI infrastructure for automated performance testing of the Julia language is not in this package, but can found in [Nanosoldier.jl](https://github.com/JuliaCI/Nanosoldier.jl).
+The CI infrastructure for automated performance testing of the Julia language is not in this package, but can be found in [Nanosoldier.jl](https://github.com/JuliaCI/Nanosoldier.jl).
 
 ## Installation
 
