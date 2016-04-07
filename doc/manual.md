@@ -9,6 +9,7 @@ Bold links indicate sections that should be read carefully in order to avoid com
     * [Defining and executing benchmarks](#defining-and-executing-benchmarks)
     * [Tunable benchmark parameters](#tunable-benchmark-parameters)
     * **[Interpolating values into benchmark expressions](#interpolating-values-into-benchmark-expressions)**
+    * [Setup and teardown phases](#setup-and-teardown-phases)
 - [Handling benchmark results](#handling-benchmark-results)
     * [`Trial` and `TrialEstimate`](#trial-and-trialestimate)
     * **[Which estimator should I use?](#which-estimator-should-i-use)**
@@ -204,6 +205,35 @@ julia> A
  0.647885
  0.647885
 ```
+### Setup and teardown phases
+
+BenchmarkTools allows you to pass `setup` and `teardown` expressions to `@benchmark` and `@benchmarkable`. The `setup` expression is evaluated just before sample execution, while the `teardown` expression is evaluated just after sample execution. Here's an example where this kind of thing is useful:
+
+```julia
+julia> x = rand(100000);
+
+# For each sample, bind a variable `y` to a fresh copy of `x`. As you
+# can see, `y` is accessible within the scope of the core expression.
+julia> b = @benchmarkable sort!(y) setup=(y = copy($x))
+BenchmarkTools.Benchmark{symbol("##benchmark#7556")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05,0.05))
+
+julia> run(b)
+BenchmarkTools.Trial:
+  samples:          300
+  evals/sample:     1
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory estimate:  0.0 bytes
+  allocs estimate:  0
+  minimum time:     6.76 ms (0.0% GC)
+  median time:      6.81 ms (0.0% GC)
+  mean time:        6.82 ms (0.0% GC)
+  maximum time:     6.96 ms (0.0% GC)
+```
+
+In the above example, we wish to benchmark Julia's in-place sorting method. Without a setup phase, we'd have to either allocate a new input vector for each sample (such that the allocation time would pollute our results) or use the same input vector every sample (such that all samples but the first would benchmark the wrong thing - sorting an already sorted vector). The setup phase solves the problem by allowing us to do some work that can be utilized by the core expression, without that work being erroneously included in our performance results.
+
+Note that the `setup` and `teardown` phases are **executed for each sample, not each evaluation**. Thus, the sorting example above wouldn't produce the intended results if `evals/sample > 1` (it'd suffer from the same problem of benchmarking against an already sorted vector).
 
 # Handling benchmark results
 

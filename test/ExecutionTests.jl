@@ -95,13 +95,21 @@ p = params(@warmup @benchmarkable sin(1))
 # @benchmark #
 ##############
 
-t = @benchmark sin(1) evals=3 samples=10
+type Foo
+    x::Int
+end
 
+const foo = Foo(-1)
+
+t = @benchmark sin(foo.x) evals=3 samples=10 setup=(foo.x = 0)
+
+@test foo.x == 0
 @test params(t).evals == 3
 @test params(t).samples == 10
 
-t = @benchmark sin(1)
+t = @benchmark sin(foo.x) teardown=(foo.x = 1)
 
+@test foo.x == 1
 @test params(t).evals > 10000
 @test params(t).samples == BenchmarkTools.DEFAULT_PARAMETERS.samples
 

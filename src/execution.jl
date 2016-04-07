@@ -120,22 +120,35 @@ end
 
 macro benchmarkable(args...)
     core, params = prunekwargs(args)
+    setup, teardown = :(), :()
+    delinds = Int[]
+    for i in eachindex(params)
+        ex = params[i]
+        if ex.args[1] == :setup
+            setup = ex.args[2]
+            push!(delinds, i)
+        elseif ex.args[1] == :teardown
+            teardown = ex.args[2]
+            push!(delinds, i)
+        end
+    end
+    deleteat!(params, delinds)
     return esc(quote
         let
-            wrapfn = gensym("wrap")
             samplefn = gensym("sample")
             id = Expr(:quote, gensym("benchmark"))
             params = BenchmarkTools.Parameters($(params...))
             eval(current_module(), quote
-                @noinline $(wrapfn)() = $($(Expr(:quote, core)))
                 @noinline function $(samplefn)(evals::Int)
+                    $($(Expr(:quote, setup)))
                     gc_start = Base.gc_num()
                     start_time = time_ns()
                     for _ in 1:evals
-                        $(wrapfn)()
+                        $($(Expr(:quote, core)))
                     end
                     sample_time = time_ns() - start_time
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
+                    $($(Expr(:quote, teardown)))
                     return sample_time, gcdiff
                 end
                 function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)}, evals = b.params.evals)

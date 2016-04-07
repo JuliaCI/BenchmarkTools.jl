@@ -227,8 +227,8 @@ function judge(ratio::Real, tolerance::Float64)
     end
 end
 
-isimprovement(t::TrialJudgement) = time(t) == :improvement && memory(t) == :improvement
-isregression(t::TrialJudgement) = time(t) == :regression && memory(t) == :regression
+isimprovement(t::TrialJudgement) = time(t) == :improvement || memory(t) == :improvement
+isregression(t::TrialJudgement) = time(t) == :regression || memory(t) == :regression
 isinvariant(t::TrialJudgement) = time(t) == :invariant && memory(t) == :invariant
 
 ###################
