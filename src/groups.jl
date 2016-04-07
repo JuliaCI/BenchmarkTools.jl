@@ -7,7 +7,14 @@ immutable BenchmarkGroup
     data::Dict{Any,Any}
 end
 
-BenchmarkGroup(tags::AbstractString...) = BenchmarkGroup(collect(UTF8String, tags), Dict())
+BenchmarkGroup(tags::Vector) = BenchmarkGroup(tags, Dict())
+BenchmarkGroup(tags::AbstractString...) = BenchmarkGroup(collect(UTF8String, tags))
+
+function newgroup!(suite::BenchmarkGroup, id, args...)
+    g = BenchmarkGroup(args...)
+    suite[id] = g
+    return g
+end
 
 # Dict-like methods #
 #-------------------#

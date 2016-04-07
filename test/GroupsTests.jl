@@ -105,8 +105,7 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 groupsa = BenchmarkGroup()
 groupsa["g1"] = g1
 groupsa["g2"] = g2
-g3a = BenchmarkGroup("3", "4")
-groupsa["g3"] = g3a
+g3a = newgroup!(groupsa, "g3", "3", "4")
 g3a["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 6341, 23, 41, 536)
 g3a["d"] = TrialEstimate(Parameters(time_tolerance = .13, memory_tolerance = .13), 12341, 3013, 2, 150)
 
@@ -116,8 +115,7 @@ groups_similar = similar(groupsa)
 groupsb = BenchmarkGroup()
 groupsb["g1"] = g1
 groupsb["g2"] = g2
-g3b = BenchmarkGroup("3", "4")
-groupsb["g3"] = g3b
+g3b = newgroup!(groupsb, "g3", "3", "4")
 g3b["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 1003, 23, 41, 536)
 g3b["d"] = TrialEstimate(Parameters(time_tolerance = .23, memory_tolerance = .23), 25341, 3013, 2, 150)
 

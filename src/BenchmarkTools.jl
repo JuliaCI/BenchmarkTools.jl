@@ -37,7 +37,8 @@ export BenchmarkGroup,
        regressions,
        improvements,
        @tagged,
-       loadparams!
+       loadparams!,
+       newgroup!
 
 ######################
 # Execution Strategy #
