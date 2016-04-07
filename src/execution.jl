@@ -102,8 +102,10 @@ function hasevals(params)
     return false
 end
 
-macro warmup(item)
-    return esc(:(run($item; verbose = true, samples = 1, evals = 1, gctrial = false, gcsample = false)))
+macro warmup(item, args...)
+    @assert length(args) < 2 "too many arguments for @warmup"
+    verbose = isempty(args) ? true : first(args)
+    return esc(:(run($item; verbose = $verbose, samples = 1, evals = 1, gctrial = false, gcsample = false)))
 end
 
 macro benchmark(args...)

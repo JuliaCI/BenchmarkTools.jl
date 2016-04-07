@@ -198,6 +198,6 @@ Define, tune, and run the `Benchmark` generated from `expr`. Relevant manual doc
 
 Construct a tag predicate from `expr` than can be used to index into a `BenchmarkGroup`. Relevant manual documentation can be found  [here](manual.md#filtering-a-benchmarkgroup-by-tag).
 
-##### `@warmup(x::Union{Benchmark, BenchmarkGroup})`
+##### `@warmup(x::Union{Benchmark, BenchmarkGroup}, [, verbose = true])`
 
 Run a single evaluation of `x`. This can be useful if you think JIT overhead is being incorporated into your results (which is rarely the case, unless very few samples are taken).
