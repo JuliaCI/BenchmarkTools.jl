@@ -132,6 +132,8 @@ function Base.getindex(group::BenchmarkGroup, x::BenchmarkGroup)
     return result
 end
 
+Base.setindex!(group::BenchmarkGroup, v, k::BenchmarkGroup) = error("A BenchmarkGroup cannot be a key in a BenchmarkGroup")
+
 # pretty printing #
 #-----------------#
 

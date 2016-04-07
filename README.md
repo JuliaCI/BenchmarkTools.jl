@@ -21,9 +21,9 @@ Pkg.clone("https://github.com/JuliaCI/BenchmarkTools.jl")
 
 If you're just getting started, check out the [manual](doc/manual.md) for a thorough explanation of BenchmarkTools.
 
-If you just want a quick overview of the BenchmarkTools API, see the [reference document](doc/reference.md).
+If you want to explore the BenchmarkTools API, see the [reference document](doc/reference.md).
 
-If you want a quick example of a toy benchmark suite, see the sample file in this repo ([benchmark/benchmarks.jl](benchmark/benchmarks.jl)).
+If you want a short example of a toy benchmark suite, see the sample file in this repo ([benchmark/benchmarks.jl](benchmark/benchmarks.jl)).
 
 If you want an extensive example of a benchmark suite being used in the real world, you can look at the source code of [BaseBenchmarks.jl](https://github.com/JuliaCI/BaseBenchmarks.jl).
 

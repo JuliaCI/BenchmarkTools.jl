@@ -1,4 +1,4 @@
-This document provides in-depth on the design and use of BenchmarkTools. If you're looking for a quick reference, try [reading this instead](reference.md).
+This document provides in-depth on the design and use of BenchmarkTools. If you're looking for an overview of the API, try [reading the API reference document instead](reference.md).
 
 # Table of Contents
 
@@ -18,6 +18,7 @@ Bold links indicate sections that should be read carefully in order to avoid com
     * [Tuning and running a `BenchmarkGroup`](#tuning-and-running-a-benchmarkgroup)
     * [Working with `BenchmarkGroup` results](#working-with-benchmarkgroup-results)
     * [Filtering a `BenchmarkGroup` by tag](#filtering-a-benchmarkgroup-by-tag)
+    * [Indexing into a `BenchmarkGroup` with another `BenchmarkGroup`](#indexing-into-a-benchmarkgroup-with-another-benchmarkgroup)
 - **[Increase consistency and decrease execution time by caching benchmark parameters](#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters)**
 - [Miscellaneous tips and info](#miscellaneous-tips-and-info)
 
@@ -49,37 +50,37 @@ To quickly benchmark a Julia expression, use `@benchmark`:
 ```julia
 julia> @benchmark sin(1)
 BenchmarkTools.Trial:
-  samples:         300
-  evals/sample:    76924
-  noise tolerance: 5.0%
-  memory:          0.0 bytes
-  allocs:          0
-  minimum time:    13.0 ns (0.0% GC)
-  median time:     13.0 ns (0.0% GC)
-  mean time:       13.0 ns (0.0% GC)
-  maximum time:    14.0 ns (0.0% GC)
+  samples:          300
+  evals/sample:     76924
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory estimate:  0.0 bytes
+  allocs estimate:  0
+  minimum time:     13.0 ns (0.0% GC)
+  median time:      13.0 ns (0.0% GC)
+  mean time:        13.0 ns (0.0% GC)
+  maximum time:     14.0 ns (0.0% GC)
 ```
 
 The `@benchmark` macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark's configuration parameters, and running the benchmark. These three steps can be done explicitly using `@benchmarkable`, `tune!` and `run`:
 
 ```julia
-julia> b = @benchmarkable sin(1) # define the benchmark with default parameters
-BenchmarkTools.Benchmark{symbol("##benchmark#7341")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+julia> b = @benchmarkable sin(1); # define the benchmark with default parameters
 
-julia> tune!(b) # find the right evals/sample for this benchmark
-BenchmarkTools.Benchmark{symbol("##benchmark#7341")}(BenchmarkTools.Parameters(5.0,300,76924,true,false,0.05))
+julia> tune!(b); # find the right evals/sample for this benchmark
 
 julia> run(b)
 BenchmarkTools.Trial:
-  samples:         300
-  evals/sample:    76924
-  noise tolerance: 5.0%
-  memory:          0.0 bytes
-  allocs:          0
-  minimum time:    13.0 ns (0.0% GC)
-  median time:     13.0 ns (0.0% GC)
-  mean time:       13.0 ns (0.0% GC)
-  maximum time:    14.0 ns (0.0% GC)
+  samples:          300
+  evals/sample:     76924
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory:           0.0 bytes
+  allocs:           0
+  minimum time:     13.0 ns (0.0% GC)
+  median time:      13.0 ns (0.0% GC)
+  mean time:        13.0 ns (0.0% GC)
+  maximum time:     14.0 ns (0.0% GC)
 ```
 
 ### Tunable benchmark parameters
@@ -91,13 +92,23 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `evals`: The number of evaluations per sample. For best results, this should be kept consistent between trials. A good guess for this value can be automatically set on a benchmark via `tune!`, but using `tune!` can be less consistent than setting `evals` manually. Defaults to `1`.
 - `gctrial`: If `true`, run `gc()` before executing this benchmark's trial. Defaults to `true`.
 - `gcsample`: If `true`, run `gc()` before each sample. Defaults to `false`.
-- `tolerance`: The noise tolerance of the benchmark, as a percentage. Some BenchmarkTools functions automatically propagate/use this tolerance in their calculations (e.g. regression detection). Defaults to `0.05` (5%).
+- `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. Defaults to `0.05` (5%).
+- `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. Defaults to `0.05` (5%).
 
-For example:
+To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 
 ```julia
-b = @benchmarkable sin(1) seconds=1 tolerance=0.01
-run(b) # equivalent to run(b, seconds = 1, tolerance = 0.01)
+# change default for `seconds` to 2.5
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.50
+# change default for `time_tolerance` to 0.20
+BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.20
+```
+
+Here's an example that demonstrates how to pass these parameters to benchmark definitions:
+
+```julia
+b = @benchmarkable sin(1) seconds=1 time_tolerance=0.01
+run(b) # equivalent to run(b, seconds = 1, time_tolerance = 0.01)
 ```
 
 ### Interpolating values into benchmark expressions
@@ -108,29 +119,31 @@ You can interpolate values into `@benchmark` and `@benchmarkable` expressions:
 # rand(1000) is executed for each evaluation
 julia> @benchmark sum(rand(1000))
 BenchmarkTools.Trial:
-  samples:         300
-  evals/sample:    575
-  noise tolerance: 5.0%
-  memory:          7.92 kb
-  allocs:          3
-  minimum time:    1.9 μs (0.0% GC)
-  median time:     2.73 μs (0.0% GC)
-  mean time:       3.61 μs (29.72% GC)
-  maximum time:    8.77 μs (66.07% GC)
+  samples:          300
+  evals/sample:     575
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory:           7.92 kb
+  allocs:           3
+  minimum time:     1.9 μs (0.0% GC)
+  median time:      2.73 μs (0.0% GC)
+  mean time:        3.61 μs (29.72% GC)
+  maximum time:     8.77 μs (66.07% GC)
 
 # rand(1000) is evaluated at definition time, and the resulting
 # value is interpolated into the benchmark expression
 julia> @benchmark sum($(rand(1000)))
 BenchmarkTools.Trial:
-  samples:         300
-  evals/sample:    5209
-  noise tolerance: 5.0%
-  memory:          0.0 bytes
-  allocs:          0
-  minimum time:    192.0 ns (0.0% GC)
-  median time:     192.0 ns (0.0% GC)
-  mean time:       192.84 ns (0.0% GC)
-  maximum time:    196.0 ns (0.0% GC)
+  samples:          300
+  evals/sample:     5209
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory:           0.0 bytes
+  allocs:           0
+  minimum time:     192.0 ns (0.0% GC)
+  median time:      192.0 ns (0.0% GC)
+  mean time:        192.84 ns (0.0% GC)
+  maximum time:     196.0 ns (0.0% GC)
 ```
 
 A good rule of thumb is that **external variables should be explicitly interpolated into the benchmark expression**:
@@ -141,28 +154,30 @@ julia> A = rand(1000);
 # BAD: A is a global variable in the benchmarking context
 julia> @benchmark [i*i for i in A]
 BenchmarkTools.Trial:
-  samples:         300
-  evals/sample:    2
-  noise tolerance: 5.0%
-  memory:          241.62 kb
-  allocs:          9960
-  minimum time:    887.97 μs (0.0% GC)
-  median time:     894.81 μs (0.0% GC)
-  mean time:       930.63 μs (3.47% GC)
-  maximum time:    2.61 ms (64.13% GC)
+  samples:          300
+  evals/sample:     2
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory:           241.62 kb
+  allocs:           9960
+  minimum time:     887.97 μs (0.0% GC)
+  median time:      894.81 μs (0.0% GC)
+  mean time:        930.63 μs (3.47% GC)
+  maximum time:     2.61 ms (64.13% GC)
 
 # GOOD: A is a constant value in the benchmarking context
 julia> @benchmark [i*i for i in $A]
 BenchmarkTools.Trial:
-  samples:         300
-  evals/sample:    807
-  noise tolerance: 5.0%
-  memory:          7.89 kb
-  allocs:          1
-  minimum time:    1.23 μs (0.0% GC)
-  median time:     2.04 μs (0.0% GC)
-  mean time:       2.92 μs (35.49% GC)
-  maximum time:    5.9 μs (67.99% GC)
+  samples:          300
+  evals/sample:     807
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory:           7.89 kb
+  allocs:           1
+  minimum time:     1.23 μs (0.0% GC)
+  median time:      2.04 μs (0.0% GC)
+  mean time:        2.92 μs (35.49% GC)
+  maximum time:     5.9 μs (67.99% GC)
 ```
 
 Keep in mind that you can mutate external state from within a benchmark:
@@ -199,7 +214,7 @@ BenchmarkTools provides four types related to benchmark results:
 - `TrialRatio`: a comparison between two `TrialEstimate`
 - `TrialJudgement`: a classification of the fields of a `TrialRatio` as `invariant`, `regression`, or `improvement`
 
-This section provides a limited number of examples demonstrating these types. For a thorough list of supported functionality, see [the reference document](reference.md#handling-results).
+This section provides a limited number of examples demonstrating these types. For a thorough list of supported functionality, see [the reference document](reference.md).
 
 ### `Trial` and `TrialEstimate`
 
@@ -208,15 +223,16 @@ Running a benchmark produces an instance of the `Trial` type:
 ```julia
 julia> t = @benchmark eig(rand(10, 10))
 BenchmarkTools.Trial:
-  samples:         300
-  evals/sample:    6
-  noise tolerance: 5.0%
-  memory:          20.47 kb
-  allocs:          83
-  minimum time:    181.82 μs (0.0% GC)
-  median time:     187.0 μs (0.0% GC)
-  mean time:       203.16 μs (0.7% GC)
-  maximum time:    776.57 μs (54.66% GC)
+  samples:          300
+  evals/sample:     6
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
+  memory:           20.47 kb
+  allocs:           83
+  minimum time:     181.82 μs (0.0% GC)
+  median time:      187.0 μs (0.0% GC)
+  mean time:        203.16 μs (0.7% GC)
+  maximum time:     776.57 μs (54.66% GC)
 
 julia> dump(t) # here's what's actually stored in a Trial
 BenchmarkTools.Trial
@@ -226,7 +242,8 @@ params: BenchmarkTools.Parameters # Trials store the parameters of their parent 
   evals: Int64 6
   gctrial: Bool true
   gcsample: Bool false
-  tolerance: Float64 0.05
+  time_tolerance: Float64 0.05
+  memory_tolerance: Float64 0.05
 times: Array(Int64,(300,)) [181825,182299,  …  331774,776574] # every sample is stored in the Trial
 gctimes: Array(Int64,(300,)) [0,0,  …  0,0,424460]
 memory: Int64 20960
@@ -238,45 +255,49 @@ As you can see from the above, a couple of different timing estimates are pretty
 ```julia
 julia> minimum(t)
 BenchmarkTools.TrialEstimate:
-  time:    181.82 μs
-  gctime:  0.0 ns (0.0%)
-  memory:  20.47 kb
-  allocs:  83
-  noise tolerance: 5.0%
+  time:             181.82 μs
+  gctime:           0.0 ns (0.0%)
+  memory:           20.47 kb
+  allocs:           83
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 
 julia> median(t)
 BenchmarkTools.TrialEstimate:
-  time:    187.0 μs
-  gctime:  0.0 ns (0.0%)
-  memory:  20.47 kb
-  allocs:  83
-  noise tolerance: 5.0%
+  time:             187.0 μs
+  gctime:           0.0 ns (0.0%)
+  memory:           20.47 kb
+  allocs:           83
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 
 julia> mean(t)
 BenchmarkTools.TrialEstimate:
-  time:    203.16 μs
-  gctime:  1.41 μs (0.7%)
-  memory:  20.47 kb
-  allocs:  83
-  noise tolerance: 5.0%
+  time:             203.16 μs
+  gctime:           1.41 μs (0.7%)
+  memory:           20.47 kb
+  allocs:           83
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 
 julia> maximum(t)
 BenchmarkTools.TrialEstimate:
-  time:    776.57 μs
-  gctime:  424.46 μs (54.66%)
-  memory:  20.47 kb
-  allocs:  83
-  noise tolerance: 5.0%
+  time:             776.57 μs
+  gctime:           424.46 μs (54.66%)
+  memory:           20.47 kb
+  allocs:           83
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 ```
 
 ### Which estimator should I use?
 
 We've found that, for most benchmarks that we've tested, the time distribution is almost always right-skewed. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some sense, inherently positive. In other words, there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. Following this characterization of benchmark noise, we can describe the behavior of our estimators:
 
-- The minimum is a robust estimator for the location parameter of the time distribution, and should generally not be considered an outlier
+- The minimum is a robust estimator for the location parameter of the time distribution, and should not be considered an outlier
 - The median, as a robust measure of central tendency, should be relatively unaffected by outliers
-- The mean, as a non-robust measure of central tendency, will usually be skewed positively by outliers
-- The maximum should be considered a noise-driven outlier, and can change drastically between benchmark trials.
+- The mean, as a non-robust measure of central tendency, will usually be positively skewed by outliers
+- The maximum should be considered a primarily noise-driven outlier, and can change drastically between benchmark trials.
 
 ### `TrialRatio` and `TrialJudgement`
 
@@ -308,27 +329,30 @@ julia> tune!(b);
 
 julia> m1 = median(run(b))
 BenchmarkTools.TrialEstimate:
-  time:    180.61 μs
-  gctime:  0.0 ns (0.0%)
-  memory:  20.47 kb
-  allocs:  83
-  noise tolerance: 5.0%
+  time:             180.61 μs
+  gctime:           0.0 ns (0.0%)
+  memory:           20.47 kb
+  allocs:           83
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 
 julia> m2 = median(run(b))
 BenchmarkTools.TrialEstimate:
-  time:    180.38 μs
-  gctime:  0.0 ns (0.0%)
-  memory:  20.47 kb
-  allocs:  83
-  noise tolerance: 5.0%
+  time:             180.38 μs
+  gctime:           0.0 ns (0.0%)
+  memory:           20.47 kb
+  allocs:           83
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 
 julia> ratio(m1, m2)
   BenchmarkTools.TrialRatio:
-    time:   1.0012751106712903
-    gctime: 1.0
-    memory: 1.0
-    allocs:  1.0
-    noise tolerance: 5.0%
+    time:             1.0012751106712903
+    gctime:           1.0
+    memory:           1.0
+    allocs:           1.0
+    time tolerance:   5.0%
+    memory tolerance: 5.0%
 ```
 
 Use the `judge` function to decide if one estimate represents a regression versus another estimate:
@@ -336,53 +360,46 @@ Use the `judge` function to decide if one estimate represents a regression versu
 ```julia
 julia> m1 = median(@benchmark eig(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
-  time:    182.28 μs
-  gctime:  0.0 ns (0.0%)
-  memory:  20.27 kb
-  allocs:  81
-  noise tolerance: 5.0%
+  time:             182.28 μs
+  gctime:           0.0 ns (0.0%)
+  memory:           20.27 kb
+  allocs:           81
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 
 julia> m2 = median(@benchmark eig(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
-  time:    182.36 μs
-  gctime:  0.0 ns (0.0%)
-  memory:  20.67 kb
-  allocs:  85
-  noise tolerance: 5.0%
+  time:             182.36 μs
+  gctime:           0.0 ns (0.0%)
+  memory:           20.67 kb
+  allocs:           85
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 
 # percent change falls within noise tolerance for all fields
 julia> judge(m1, m2)
 BenchmarkTools.TrialJudgement:
-  time:   -0.04% => invariant
-  gctime: +0.0% => N/A
-  memory: -1.97% => invariant
-  allocs: -4.71% => invariant
-  noise tolerance: 5.0%
+  time:   -0.04% => invariant (5.0% tolerance)
+  memory: -1.97% => invariant (5.0% tolerance)
 
-# use 0.01 for noise tolerance
-julia> judge(m1, m2, 0.01)
+# change our noise tolerances
+julia> judge(m1, m2; time_tolerance = 0.0001, memory_tolerance = 0.01)
 BenchmarkTools.TrialJudgement:
-  time:   -0.04% => invariant
-  gctime: +0.0% => N/A
-  memory: -1.97% => improvement
-  allocs: -4.71% => improvement
-  noise tolerance: 1.0%
+  time:   -0.04% => improvement (0.01% tolerance)
+  memory: -1.97% => improvement (1.0% tolerance)
 
 # switch m1 & m2
-julia> judge(m2, m1, 0.01)
+julia> judge(m2, m1; memory_tolerance = 0.01)
 BenchmarkTools.TrialJudgement:
-  time:   +0.04% => invariant
-  gctime: +0.0% => N/A
-  memory: +2.0% => regression
-  allocs: +4.94% => regression
-  noise tolerance: 1.0%
+  time:   +0.04% => invariant (5.0% tolerance)
+  memory: +2.0% => regression (1.0% tolerance)
 
 # you can pass in TrialRatios as well
-julia> judge(ratio(m1, m2), 0.01) == judge(m1, m2, 0.01)
+julia> judge(ratio(m1, m2)) == judge(m1, m2)
 true
 ```
 
-Note that GC isn't considered when determining regression status.
+Note that changes in GC time and allocation count aren't classified by `judge`. This is because GC time and allocation count, while sometimes useful for answering *why* a regression occurred, are not generally useful for answering *if* a regression occurred. Instead, it's usually only differences in time and memory usage that determine whether or not a code change is an improvement or a regression. For example, in the unlikely event that a code change decreased time and memory usage, but increased GC time and allocation count, most people would consider that code change to be an improvement. The opposite is also true: an increase in time and memory usage would be considered a regression no matter how much GC time or allocation count decreased.
 
 # Using `BenchmarkGroup`s
 
@@ -429,18 +446,18 @@ BenchmarkTools.BenchmarkGroup:
 julia> suite["utf8"]
 BenchmarkTools.BenchmarkGroup:
   tags: ["string", "unicode"]
-  "join" => BenchmarkTools.Benchmark{symbol("##benchmark#7184")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  "replace" => BenchmarkTools.Benchmark{symbol("##benchmark#7165")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  "join" => BenchmarkTools.Benchmark{symbol("##benchmark#7184")}(...)
+  "replace" => BenchmarkTools.Benchmark{symbol("##benchmark#7165")}(...)
 
 julia> suite["trigonometry"]
 BenchmarkTools.BenchmarkGroup:
   tags: ["math", "triangles"]
-  ("tan",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7233")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("cos",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7218")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("cos",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7223")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("sin",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7209")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("sin",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7201")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
-  ("tan",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7228")}(BenchmarkTools.Parameters(5.0,300,1,true,false,0.05))
+  ("tan",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7233")}(...)
+  ("cos",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7218")}(...)
+  ("cos",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7223")}(...)
+  ("sin",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7209")}(...)
+  ("sin",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7201")}(...)
+  ("tan",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7228")}(...)
 ```
 
 Now, we have a benchmark suite that can be tuned, run, and analyzed in aggregate!
@@ -517,14 +534,14 @@ BenchmarkTools.BenchmarkGroup:
   "join" => TrialEstimate(144.79 ms)
   "replace" => TrialEstimate(202.49 μs)
 
-julia> judge(m1, m2, 0.001) # use 0.1 % tolerance
+julia> judge(m1, m2; time_tolerance = 0.001) # use 0.1 % time tolerance
 BenchmarkTools.BenchmarkGroup:
   tags: ["string", "unicode"]
   "join" => TrialJudgement(-0.76% => improvement)
   "replace" => TrialJudgement(+0.37% => regression)
 ```
 
-`BenchmarkGroup` also supports a subset of Julia's `Associative` interface (e.g. `filter`, `keys`, `values`, etc.). A full list of supported functions can be found [in the reference document](reference.md#BenchmarkGroup).
+`BenchmarkGroup` also supports a subset of Julia's `Associative` interface (e.g. `filter`, `keys`, `values`, etc.). A full list of supported functions can be found [in the reference document](reference.md).
 
 ### Filtering a `BenchmarkGroup` by tag
 
@@ -572,6 +589,74 @@ As you can see, the allowable syntax for the `@tagged` predicate expressions inc
 mygroup[@tagged ("linalg" && "sparse") && !("parallel" || "simd")]
 ```
 
+### Indexing into a `BenchmarkGroup` with another `BenchmarkGroup`
+
+It's sometimes useful to create `BenchmarkGroup` where the keys are drawn from one `BenchmarkGroup`, but the values are drawn from another. You can accomplish this by indexing into the latter `BenchmarkGroup` with the former:
+
+```julia
+julia> showall(g) # leaf values are integers
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "c" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => 1
+	  "2" => 2
+	  "3" => 3
+  "b" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => 1
+	  "2" => 2
+	  "3" => 3
+  "a" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => 1
+	  "2" => 2
+	  "3" => 3
+  "d" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => 1
+	  "2" => 2
+	  "3" => 3
+
+julia> showall(x) # leaf values are characters
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "c" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "2" => '2'
+  "a" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => '1'
+	  "3" => '3'
+  "d" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => '1'
+	  "2" => '2'
+	  "3" => '3'
+
+julia> showall(g[x]) # index into `g` with the keys of `x`
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "c" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "2" => 2
+  "a" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => 1
+	  "3" => 3
+  "d" => BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  "1" => 1
+	  "2" => 2
+	  "3" => 3
+```
+
+An example scenario where this would be useful: You have a suite of benchmarks, and a corresponding group of `TrialJudgement`s, and you want to rerun the benchmarks in your suite that are considered regressions in the judgement group. You can easily do this with the following code:
+
+```julia
+run(suite[regressions(judgements)])
+```
+
 # Save benchmark parameters to increase consistency and decrease execution time
 
 A common workflow used in BenchmarkTools is the following:
@@ -581,11 +666,11 @@ A common workflow used in BenchmarkTools is the following:
 3. Save the results somehow (e.g. in a JLD file)
 4. Start a new Julia session
 5. Execute a benchmark suite using a new version of your package
-6. Compare the new results with the old results (saved in step 3) to determine a regression
+6. Compare the new results with the results saved in step 3 to determine regression status
 
-There are a couple of problems with this workflow, and all of which revolve around parameter tuning:
+There are a couple of problems with this workflow, and all of which revolve around parameter tuning (which would occur during steps 2 and 5):
 
-- Consistency: Given enough time, successive calls to `tune!` will usually yield reasonably consistent parameters, even in spite of noise. However, some benchmarks are highly sensitive to slight changes in these parameters. Thus, it would be best to have some guarantee that all experiments are configured equally (i.e., step 2 will use the exact same parameters as step 5).
+- Consistency: Given enough time, successive calls to `tune!` will usually yield reasonably consistent parameters, even in spite of noise. However, some benchmarks are highly sensitive to slight changes in these parameters. Thus, it would be best to have some guarantee that all experiments are configured equally (i.e., a guarantee that step 2 will use the exact same parameters as step 5).
 - Turnaround time: For most benchmarks, `tune!` needs to perform many evaluations to determine the proper parameters for any given benchmark - often more evaluations than are performed when running a trial. In fact, the majority of total benchmarking time is usually spent tuning parameters, rather than actually running trials.
 
 BenchmarkTools solves these problems by allowing you to pre-tune your benchmark suite, save the parameters, and load them on demand:
@@ -604,7 +689,7 @@ julia> tune!(suite);
 julia> using JLD
 
 # save the suite's parameters using JLD
-julia> JLD.save("parameters.jld", "suite", parameters(suite));
+julia> JLD.save("parameters.jld", "suite", params(suite));
 ```
 
 Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadparams!` function:
