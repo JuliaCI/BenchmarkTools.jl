@@ -137,14 +137,20 @@ end
 
 tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
-function Base.show(io::IO, group::BenchmarkGroup, pad = "")
-    println(io, pad, "BenchmarkTools.BenchmarkGroup:")
+function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false)
+    println(io, "BenchmarkTools.BenchmarkGroup:")
     print(io, pad, "  tags: ", tagrepr(group.tags))
-    for k in keys(group)
+    for (k, v) in group
         println(io)
         print(io, pad, "  ", repr(k), " => ")
-        showcompact(io, group[k])
+        if verbose
+            isa(v, BenchmarkGroup) ? show(io, v, "\t"*pad) : show(io, v)
+        else
+            showcompact(io, v)
+        end
     end
 end
+
+Base.showall(io::IO, group::BenchmarkGroup) = show(io, group, verbose = true)
 
 Base.showcompact(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup($(tagrepr(group.tags)))")
