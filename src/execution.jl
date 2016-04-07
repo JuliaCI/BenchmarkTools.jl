@@ -103,7 +103,7 @@ function hasevals(params)
 end
 
 macro warmup(item)
-    return esc(:(run($item, samples = 1, evals = 1, gctrial = false, gcsample = false)))
+    return esc(:(run($item; verbose = true, samples = 1, evals = 1, gctrial = false, gcsample = false)))
 end
 
 macro benchmark(args...)
