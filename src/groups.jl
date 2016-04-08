@@ -97,7 +97,7 @@ improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprov
 
 function loadparams!(group::BenchmarkGroup, paramgroup::BenchmarkGroup)
     for (k, v) in paramgroup
-        loadparams!(group[k], v)
+        haskey(group, k) && loadparams!(group[k], v)
     end
     return group
 end
