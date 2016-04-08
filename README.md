@@ -46,3 +46,12 @@ The BenchmarkTools package is a response to these issues, designed by examining 
 3. Noise tolerance has been made a per-benchmark configuration parameter.
 4. Benchmark configuration parameters can be easily cached and reloaded, significantly reducing benchmark execution time.
 5. The API is simpler, more transparent, and overall easier to use.
+
+## Acknowledgements
+
+This package was authored primarily by Jarrett Revels (@jrevels). Additionally, I'd like thank the following people:
+
+- John Myles White, for authoring the original Benchmarks package, which greatly inspired BenchmarkTools
+- Andreas Noack, for statistics help and investigating weird benchmark time distributions
+- Oscar Blumberg, for discussions on noise robustness
+- Jiahao Chen, for discussions on error analysis
