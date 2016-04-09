@@ -49,7 +49,7 @@ The BenchmarkTools package is a response to these issues, designed by examining 
 
 ## Acknowledgements
 
-This package was authored primarily by Jarrett Revels (@jrevels). Additionally, I'd like thank the following people:
+This package was authored primarily by Jarrett Revels (@jrevels). Additionally, I'd like to thank the following people:
 
 - John Myles White, for authoring the original Benchmarks package, which greatly inspired BenchmarkTools
 - Andreas Noack, for statistics help and investigating weird benchmark time distributions
