@@ -34,11 +34,6 @@ end
 # parameter tuning #
 ####################
 
-# How many evals do we need of a function that takes
-# time `t` to raise the overall sample time above the
-# clock resolution time `r`?
-evals_given_resolution(t, r) = max(ceil(Int, r / t), 1)
-
 function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
     gc() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
@@ -50,7 +45,18 @@ function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...
     return group
 end
 
-function tune!(b::Benchmark; seconds = b.params.seconds, kwargs...)
+function tune!(b::Benchmark; kwargs...)
+    times, evals = lineartrial(b; kwargs...)
+    tmin = minimum(ceil(times ./ evals))
+    # How many evals do we need of a function that takes time `t`
+    # to raise the overall sample time above the clock resolution
+    # time of 1ms (most machines will be higher resolution than
+    # that, but we're playing it safe)?
+    b.params.evals = max(ceil(Int, 1000000 / tmin), 1)
+    return b
+end
+
+function lineartrial(b::Benchmark; seconds = b.params.seconds, kwargs...)
     b.params.gctrial && gc()
     times = Vector{Int}()
     evals = Vector{Int}()
@@ -67,9 +73,7 @@ function tune!(b::Benchmark; seconds = b.params.seconds, kwargs...)
         current_evals = 1.0 + rate*current_evals
         current_evals > 1e5 && break
     end
-    # assume 1_000_000ns == 1ms resolution to be safe
-    b.params.evals = evals_given_resolution(minimum(ceil(times ./ evals)), 1000000)
-    return b
+    return times, evals
 end
 
 #####################################
