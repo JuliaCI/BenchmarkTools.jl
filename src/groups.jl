@@ -77,6 +77,7 @@ gctime(group::BenchmarkGroup) = mapvals(gctime, group)
 memory(group::BenchmarkGroup) = mapvals(memory, group)
 allocs(group::BenchmarkGroup) = mapvals(allocs, group)
 params(group::BenchmarkGroup) = mapvals(params, group)
+evals(group::BenchmarkGroup) = mapvals(evals, group)
 
 ratio(groups::BenchmarkGroup...) = mapvals(ratio, groups...)
 judge(groups::BenchmarkGroup...; kwargs...) = mapvals((x...) -> judge(x...; kwargs...), groups...)
@@ -102,6 +103,12 @@ function loadparams!(group::BenchmarkGroup, paramgroup::BenchmarkGroup)
     return group
 end
 
+function loadevals!(group::BenchmarkGroup, evalsgroup::BenchmarkGroup)
+    for (k, v) in evalsgroup
+        haskey(group, k) && loadevals!(group[k], v)
+    end
+    return group
+end
 
 # tagging #
 #---------#

@@ -50,3 +50,8 @@ end
 
 Base.copy(p::Parameters) = Parameters(p.seconds, p.samples, p.evals, p.gctrial,
                                       p.gcsample, p.time_tolerance, p.memory_tolerance)
+
+evals(x) = evals(params(x))
+evals(p::Parameters) = p.evals
+
+loadevals!(p::Parameters, evals) = (p.evals = evals; return p)

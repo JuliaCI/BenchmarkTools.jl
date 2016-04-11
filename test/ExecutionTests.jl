@@ -41,9 +41,7 @@ function testexpected(trial::BenchmarkTools.Trial, args...)
     @test length(trial) > 1
 end
 
-function testexpected(b::BenchmarkTools.Benchmark, args...)
-    @test params(b) != BenchmarkTools.DEFAULT_PARAMETERS
-end
+testexpected(b::BenchmarkTools.Benchmark, args...) = true
 
 #########
 # tune! #
@@ -58,9 +56,12 @@ end
 testexpected(tune!(groups["sin"], verbose = true), groups["sin"])
 testexpected(tune!(groups, verbose = true), groups)
 
+oldgroupscopy = copy(oldgroups)
+
+loadevals!(oldgroupscopy, evals(groups))
 loadparams!(oldgroups, params(groups))
 
-@test oldgroups == groups
+@test oldgroups == oldgroupscopy == groups
 
 #######
 # run #

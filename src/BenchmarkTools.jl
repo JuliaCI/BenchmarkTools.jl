@@ -8,6 +8,9 @@ using Compat
 
 include("parameters.jl")
 
+export evals,
+       loadevals!
+
 ##############
 # Trial Data #
 ##############

@@ -700,10 +700,10 @@ A common workflow used in BenchmarkTools is the following:
 
 There are a couple of problems with this workflow, and all of which revolve around parameter tuning (which would occur during steps 2 and 5):
 
-- Consistency: Given enough time, successive calls to `tune!` will usually yield reasonably consistent parameters, even in spite of noise. However, some benchmarks are highly sensitive to slight changes in these parameters. Thus, it would be best to have some guarantee that all experiments are configured equally (i.e., a guarantee that step 2 will use the exact same parameters as step 5).
+- Consistency: Given enough time, successive calls to `tune!` will usually yield reasonably consistent values for the "evaluations per sample" parameter, even in spite of noise. However, some benchmarks are highly sensitive to slight changes in this parameter. Thus, it would be best to have some guarantee that all experiments are configured equally (i.e., a guarantee that step 2 will use the exact same parameters as step 5).
 - Turnaround time: For most benchmarks, `tune!` needs to perform many evaluations to determine the proper parameters for any given benchmark - often more evaluations than are performed when running a trial. In fact, the majority of total benchmarking time is usually spent tuning parameters, rather than actually running trials.
 
-BenchmarkTools solves these problems by allowing you to pre-tune your benchmark suite, save the parameters, and load them on demand:
+BenchmarkTools solves these problems by allowing you to pre-tune your benchmark suite, save the "evaluations per sample" parameters, and load them on demand:
 
 ```julia
 # untuned example suite
@@ -719,13 +719,13 @@ julia> tune!(suite);
 julia> using JLD
 
 # save the suite's parameters using JLD
-julia> JLD.save("parameters.jld", "suite", params(suite));
+julia> JLD.save("evals.jld", "suite", evals(suite));
 ```
 
-Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadparams!` function:
+Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadevals!` function:
 
 ```julia
-julia> loadparams!(suite, JLD.load("parameters.jld", "suite"));
+julia> loadevals!(suite, JLD.load("evals.jld", "suite"));
 ```
 
 Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.

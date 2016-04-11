@@ -8,6 +8,7 @@ end
 
 params(b::Benchmark) = b.params
 loadparams!(b::Benchmark, params::Parameters) = (b.params = params; return b)
+loadevals!(b::Benchmark, evals) = (loadevals!(b.params, evals); return b)
 
 #############
 # execution #

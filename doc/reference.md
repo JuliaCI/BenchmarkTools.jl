@@ -83,6 +83,10 @@ Returns the number of allocations associated with `x`. If `isa(x, BenchmarkGroup
 
 Returns the `Parameters` instance associated with `x`. If `isa(x, BenchmarkGroup)`, return a `BenchmarkGroup` where `params` has been applied to the values of `x`.
 
+##### `evals(x::Union{Parameters, Benchmark, Trial, TrialEstimate, TrialRatio, TrialJudgement, BenchmarkGroup})`
+
+Returns the value of `x`'s "evaluations per sample" parameter. If `isa(x, BenchmarkGroup)`, return a `BenchmarkGroup` where `evals` has been applied to the values of `x`.
+
 ##### `ratio(x::TrialJudgement)`
 
 Returns the `TrialRatio` instance that underlies `x`'s classification data.
@@ -171,10 +175,16 @@ suite[id] = g
 return g
 ```
 
-##### `loadparams!(x::Benchmark, p::Parameters)`
-##### `loadparams!(x::BenchmarkGroup, p::BenchmarkGroup)`
+##### `loadevals!(x::Parameters, y::Integer)`
+##### `loadevals!(x::Benchmark, y::Integer)`
+##### `loadevals!(x::BenchmarkGroup, y::BenchmarkGroup)`
 
-Change `x`'s `Parameters` instance to `p`. If `x` and `p` are `BenchmarkGroup` instances, and the values of `p` are `Parameters` instances, change `x`' values' parameters to the parameters stored at matching keys in `p`. Relevant manual documentation can be found [here](manual.md#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters).
+Change the value of `x`'s "evaluations per sample" parameter  to `y`. If `x` and `y` are `BenchmarkGroup` instances, and the values of `y` are integers, change `x`'s values' "evaluations per sample" parameters to the integers stored at matching keys in `y`. Relevant manual documentation can be found [here](manual.md#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters).
+
+##### `loadparams!(x::Benchmark, y::Parameters)`
+##### `loadparams!(x::BenchmarkGroup, y::BenchmarkGroup)`
+
+Similar to `loadevals!`, but for full `Parameters` instances. Change `x`'s `Parameters` instance to `y`. If `x` and `y` are `BenchmarkGroup` instances, and the values of `y` are `Parameters` instances, change `x`'s values' parameters to the parameters stored at matching keys in `y`.
 
 ##### `run(x::Union{Benchmark, BenchmarkGroup}; verbose = false, kwargs...)`
 

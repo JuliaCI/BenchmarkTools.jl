@@ -67,6 +67,7 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 @test memory(g1).data == Dict("a" => memory(t1a), "b" => memory(t1b), "c" => memory(tc))
 @test allocs(g1).data == Dict("a" => allocs(t1a), "b" => allocs(t1b), "c" => allocs(tc))
 @test params(g1).data == Dict("a" => params(t1a), "b" => params(t1b), "c" => params(tc))
+@test evals(g1).data == Dict("a" => evals(t1a), "b" => evals(t1b), "c" => evals(tc))
 
 @test max(g1, g2).data == Dict("a" => t2a, "b" => t1b, "c" => tc)
 @test min(g1, g2).data == Dict("a" => t1a, "b" => t2b, "c" => tc)
@@ -130,6 +131,7 @@ groupstrial["g"] = gtrial
 @test memory(groupsa).data == Dict("g1" => memory(g1), "g2" => memory(g2), "g3" => memory(g3a))
 @test allocs(groupsa).data == Dict("g1" => allocs(g1), "g2" => allocs(g2), "g3" => allocs(g3a))
 @test params(groupsa).data == Dict("g1" => params(g1), "g2" => params(g2), "g3" => params(g3a))
+@test evals(groupsa).data == Dict("g1" => evals(g1), "g2" => evals(g2), "g3" => evals(g3a))
 
 @test max(groupsa, groupsb).data == Dict("g1" => max(g1, g1), "g2" => max(g2, g2), "g3" => max(g3a, g3b))
 @test min(groupsa, groupsb).data == Dict("g1" => min(g1, g1), "g2" => min(g2, g2), "g3" => min(g3a, g3b))
