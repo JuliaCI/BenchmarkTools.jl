@@ -88,13 +88,13 @@ BenchmarkTools.Trial:
 
 You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, and `run` to configure the execution process:
 
-- `samples`: The number of samples to take. Execution will end if this many samples have been collected. Defaults to `300`.
-- `seconds`: The number of seconds budgeted for the benchmarking process. The trial will terminate if this time is exceeded (regardless of `samples`), but at least one sample will always be taken. In practice, actual runtime can overshoot the budget by the duration of a sample. Defaults to `5.0`.
-- `evals`: The number of evaluations per sample. For best results, this should be kept consistent between trials. A good guess for this value can be automatically set on a benchmark via `tune!`, but using `tune!` can be less consistent than setting `evals` manually. Defaults to `1`.
-- `gctrial`: If `true`, run `gc()` before executing this benchmark's trial. Defaults to `true`.
-- `gcsample`: If `true`, run `gc()` before each sample. Defaults to `false`.
-- `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after the execution stage, when analyzing results. Defaults to `0.05` (5%).
-- `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after the execution stage, when analyzing results. Defaults to `0.05` (5%).
+- `samples`: The number of samples to take. Execution will end if this many samples have been collected. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.samples = 300`.
+- `seconds`: The number of seconds budgeted for the benchmarking process. The trial will terminate if this time is exceeded (regardless of `samples`), but at least one sample will always be taken. In practice, actual runtime can overshoot the budget by the duration of a sample. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.seconds = 5`.
+- `evals`: The number of evaluations per sample. For best results, this should be kept consistent between trials. A good guess for this value can be automatically set on a benchmark via `tune!`, but using `tune!` can be less consistent than setting `evals` manually. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.evals = 1`.
+- `gctrial`: If `true`, run `gc()` before executing this benchmark's trial. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.gctrial = true`.
+- `gcsample`: If `true`, run `gc()` before each sample. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.gcsample = false`.
+- `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
+- `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
 
 To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 
