@@ -93,8 +93,8 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `evals`: The number of evaluations per sample. For best results, this should be kept consistent between trials. A good guess for this value can be automatically set on a benchmark via `tune!`, but using `tune!` can be less consistent than setting `evals` manually. Defaults to `1`.
 - `gctrial`: If `true`, run `gc()` before executing this benchmark's trial. Defaults to `true`.
 - `gcsample`: If `true`, run `gc()` before each sample. Defaults to `false`.
-- `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. Defaults to `0.05` (5%).
-- `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. Defaults to `0.05` (5%).
+- `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after the execution stage, when analyzing results. Defaults to `0.05` (5%).
+- `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after the execution stage, when analyzing results. Defaults to `0.05` (5%).
 
 To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 
@@ -322,7 +322,7 @@ BenchmarkTools.TrialEstimate:
 
 ### Which estimator should I use?
 
-We've found that, for most benchmarks that we've tested, the time distribution is almost always right-skewed. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some sense, inherently positive. In other words, there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. Following this characterization of benchmark noise, we can describe the behavior of our estimators:
+Time distributions are always right-skewed for the benchmarks we've tested. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some sense, inherently positive - there aren't really sources of noise that would regularly cause your machine to execute a series of instructions *faster* than the theoretical "ideal" time prescribed by your hardware. Following this characterization of benchmark noise, we can describe the behavior of our estimators:
 
 - The minimum is a robust estimator for the location parameter of the time distribution, and should not be considered an outlier
 - The median, as a robust measure of central tendency, should be relatively unaffected by outliers
