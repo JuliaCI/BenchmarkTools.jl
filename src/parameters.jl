@@ -12,7 +12,7 @@ type Parameters
     memory_tolerance::Float64
 end
 
-const DEFAULT_PARAMETERS = Parameters(5.0, 300, 1, true, false, 0.05, 0.05)
+const DEFAULT_PARAMETERS = Parameters(5.0, 300, 1, true, false, 0.05, 0.01)
 
 function Parameters(; seconds = DEFAULT_PARAMETERS.seconds,
                     samples = DEFAULT_PARAMETERS.samples,
