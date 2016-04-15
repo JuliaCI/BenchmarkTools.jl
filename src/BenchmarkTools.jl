@@ -41,7 +41,7 @@ export BenchmarkGroup,
        improvements,
        @tagged,
        loadparams!,
-       newgroup!
+       addgroup!
 
 ######################
 # Execution Strategy #

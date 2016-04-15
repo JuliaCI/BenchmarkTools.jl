@@ -446,10 +446,10 @@ Here's an example where we organize multiple benchmarks using the `BenchmarkGrou
 suite = BenchmarkGroup()
 
 # Add some child groups to our benchmark suite. The most relevant BenchmarkGroup constructor
-# for this case is BenchmarkGroup(tags::AbstractString...). These tags are useful for
+# for this case is BenchmarkGroup(tags::Vector). These tags are useful for
 # filtering benchmarks by topic, which we'll cover in a later section.
-suite["utf8"] = BenchmarkGroup("string", "unicode")
-suite["trigonometry"] = BenchmarkGroup("math", "triangles")
+suite["utf8"] = BenchmarkGroup(["string", "unicode"])
+suite["trigonometry"] = BenchmarkGroup(["math", "triangles"])
 
 # Add some benchmarks to the "utf8" group
 teststr = UTF8String(join(rand(MersenneTwister(1), 'a':'d', 10^4)))

@@ -8,7 +8,8 @@ This document is an API reference for the types and functions provided by Benchm
 
 # Types
 
-##### `BenchmarkGroup(tag::AbstractString...)`
+##### `BenchmarkGroup(tags::Vector)`
+##### `BenchmarkGroup()`
 
 A type that stores multiple benchmarks or benchmark results in a `Dict`-like structure.
 
@@ -165,14 +166,16 @@ Not exported. Apply the function `f` to every value in `g`.
 
 ## Misc. Functions
 
-#### `newgroup!(suite::BenchmarkGroup, id, args...)`
+#### `addgroup!(suite::BenchmarkGroup, id, args...)`
 
 A convenience function for making a new child `BenchmarkGroup` in `suite`. Equivalent to:
 
 ```julia
-g = BenchmarkGroup(args...)
-suite[id] = g
-return g
+begin
+    g = BenchmarkGroup(args...)
+    suite[id] = g
+    return g
+end
 ```
 
 ##### `loadevals!(x::Parameters, y::Integer)`

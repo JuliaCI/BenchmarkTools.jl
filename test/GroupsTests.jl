@@ -1,4 +1,4 @@
-module GroupsTests
+# module GroupsTests
 
 using Base.Test
 using BenchmarkTools
@@ -13,7 +13,7 @@ seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 # setup #
 #-------#
 
-g1 = BenchmarkGroup("1", "2")
+g1 = BenchmarkGroup(["1", "2"])
 
 t1a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 32, 1, 2, 3)
 t1b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 4123, 123, 43, 9)
@@ -26,7 +26,7 @@ g1["c"] = tc
 g1copy = copy(g1)
 g1similar = similar(g1)
 
-g2 = BenchmarkGroup("2", "3")
+g2 = BenchmarkGroup(["2", "3"])
 
 t2a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 323, 1, 2, 3)
 t2b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 1002, 123, 43, 9)
@@ -106,7 +106,7 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 groupsa = BenchmarkGroup()
 groupsa["g1"] = g1
 groupsa["g2"] = g2
-g3a = newgroup!(groupsa, "g3", "3", "4")
+g3a = addgroup!(groupsa, "g3", ["3", "4"])
 g3a["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 6341, 23, 41, 536)
 g3a["d"] = TrialEstimate(Parameters(time_tolerance = .13, memory_tolerance = .13), 12341, 3013, 2, 150)
 
@@ -116,7 +116,7 @@ groups_similar = similar(groupsa)
 groupsb = BenchmarkGroup()
 groupsb["g1"] = g1
 groupsb["g2"] = g2
-g3b = newgroup!(groupsb, "g3", "3", "4")
+g3b = addgroup!(groupsb, "g3", ["3", "4"])
 g3b["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 1003, 23, 41, 536)
 g3b["d"] = TrialEstimate(Parameters(time_tolerance = .23, memory_tolerance = .23), 25341, 3013, 2, 150)
 
@@ -163,37 +163,63 @@ groupstrial["g"] = gtrial
 # tagging #
 #---------#
 
-@test groupsa[@tagged "1"] == BenchmarkGroup([], Dict("g1" => g1))
-@test groupsa[@tagged "2"] == BenchmarkGroup([], Dict("g1" => g1, "g2" => g2))
-@test groupsa[@tagged "3"] == BenchmarkGroup([], Dict("g2" => g2, "g3" => g3a))
-@test groupsa[@tagged "4"] == BenchmarkGroup([], Dict("g3" => g3a))
+@test groupsa[@tagged "1"] == BenchmarkGroup([], "g1" => g1)
+@test groupsa[@tagged "2"] == BenchmarkGroup([], "g1" => g1, "g2" => g2)
+@test groupsa[@tagged "3"] == BenchmarkGroup([], "g2" => g2, "g3" => g3a)
+@test groupsa[@tagged "4"] == BenchmarkGroup([], "g3" => g3a)
 @test groupsa[@tagged "3" && "4"] == groupsa[@tagged "4"]
 @test groupsa[@tagged ALL && !("2")] == groupsa[@tagged !("2")]
-@test groupsa[@tagged "1" || "4"] == BenchmarkGroup([], Dict("g1" => g1, "g3" => g3a))
+@test groupsa[@tagged "1" || "4"] == BenchmarkGroup([], "g1" => g1, "g3" => g3a)
 @test groupsa[@tagged ("1" || "4") && !("2")] == groupsa[@tagged "4"]
-@test groupsa[@tagged !("1" || "4") && "2"] == BenchmarkGroup([], Dict("g2" => g2))
+@test groupsa[@tagged !("1" || "4") && "2"] == BenchmarkGroup([], "g2" => g2)
 @test groupsa[@tagged ALL] == groupsa
 @test groupsa[@tagged !("1" || "3") && !("4")] == similar(groupsa)
+
+gnest = BenchmarkGroup(["1"],
+                       "2" => BenchmarkGroup(["3"], 1 => 1),
+                       4 => BenchmarkGroup(["3"], 5 => 6),
+                       7 => 8,
+                       9 => BenchmarkGroup(["2"],
+                                           10 => BenchmarkGroup(["3"]),
+                                           11 => BenchmarkGroup()))
+
+@test gnest[@tagged "1" && "2" && "3"] == BenchmarkGroup(["1"],
+                                                         "2" => BenchmarkGroup(["3"], 1 => 1),
+                                                          9 => BenchmarkGroup(["2"], 10 => BenchmarkGroup(["3"])))
+
+k = 3 + im
+gnest = BenchmarkGroup(["1"], :hi => BenchmarkGroup([], 1 => 1, k => BenchmarkGroup(["3"], 1 => 1)), 2 => 1)
+
+@test gnest[@tagged "1"] == gnest
+@test gnest[@tagged "1" && !(:hi)] == BenchmarkGroup(["1"], 2 => 1)
+@test gnest[@tagged :hi && !("3")] == BenchmarkGroup(["1"], :hi => BenchmarkGroup([], 1 => 1))
+@test gnest[@tagged k] == BenchmarkGroup(["1"], :hi => BenchmarkGroup([], k => BenchmarkGroup(["3"], 1 => 1)))
 
 # indexing by BenchmarkGroup #
 #----------------------------#
 
 g = BenchmarkGroup()
-g["a"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
-g["b"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
-g["c"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
-g["d"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
+d = Dict("1" => 1, "2" => 2, "3" => 3)
+g["a"] = BenchmarkGroup([], copy(d))
+g["b"] = BenchmarkGroup([], copy(d))
+g["c"] = BenchmarkGroup([], copy(d))
+g["d"] = BenchmarkGroup([], copy(d))
+g["e"] = BenchmarkGroup([], "1" => BenchmarkGroup([], copy(d)),
+                            "2" => BenchmarkGroup([], copy(d)),
+                            "3" => BenchmarkGroup([], copy(d)))
 
 x = BenchmarkGroup()
-x["a"] = BenchmarkGroup([], Dict("1" => '1', "3" => '3'))
-x["c"] = BenchmarkGroup([], Dict("2" => '2'))
-x["d"] = BenchmarkGroup([], Dict("1" => '1', "2" => '2', "3" => '3'))
+x["a"] = BenchmarkGroup([], "1" => '1', "3" => '3')
+x["c"] = BenchmarkGroup([], "2" => '2')
+x["d"] = BenchmarkGroup([], "1" => '1', "2" => '2', "3" => '3')
+x["e"] = BenchmarkGroup([], "1" => x["a"], "3" => x["c"])
 
 gx = BenchmarkGroup()
-gx["a"] = BenchmarkGroup([], Dict("1" => 1, "3" => 3))
-gx["c"] = BenchmarkGroup([], Dict("2" => 2))
-gx["d"] = BenchmarkGroup([], Dict("1" => 1, "2" => 2, "3" => 3))
+gx["a"] = BenchmarkGroup([], "1" => 1, "3" => 3)
+gx["c"] = BenchmarkGroup([], "2" => 2)
+gx["d"] = BenchmarkGroup([], "1" => 1, "2" => 2, "3" => 3)
+gx["e"] = BenchmarkGroup([], "1" => g["e"]["1"][x["a"]], "3" => g["e"]["3"][x["c"]])
 
 @test g[x] == gx
 
-end # module
+# end # module

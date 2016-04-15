@@ -5,8 +5,8 @@ using JLD
 const suite = BenchmarkGroup()
 
 # Add some child groups to our benchmark suite.
-suite["utf8"] = BenchmarkGroup("string", "unicode")
-suite["trigonometry"] = BenchmarkGroup("math", "triangles")
+suite["utf8"] = BenchmarkGroup(["string", "unicode"])
+suite["trigonometry"] = BenchmarkGroup(["math", "triangles"])
 
 # This string will be the same every time because we're seeding the RNG
 teststr = UTF8String(join(rand(MersenneTwister(1), 'a':'d', 10^4)))

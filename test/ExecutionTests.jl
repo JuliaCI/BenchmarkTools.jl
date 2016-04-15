@@ -10,8 +10,8 @@ seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 #########
 
 groups = BenchmarkGroup()
-groups["sum"] = BenchmarkGroup("arithmetic")
-groups["sin"] = BenchmarkGroup("trig")
+groups["sum"] = BenchmarkGroup(["arithmetic"])
+groups["sin"] = BenchmarkGroup(["trig"])
 groups["special"] = BenchmarkGroup()
 
 sizes = (5, 10, 20)

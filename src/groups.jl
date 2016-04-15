@@ -3,14 +3,14 @@
 ##################
 
 immutable BenchmarkGroup
-    tags::Vector{UTF8String}
+    tags::Vector{Any}
     data::Dict{Any,Any}
 end
 
-BenchmarkGroup(tags::Vector) = BenchmarkGroup(tags, Dict())
-BenchmarkGroup(tags::AbstractString...) = BenchmarkGroup(collect(UTF8String, tags))
+BenchmarkGroup(tags::Vector, args::Pair...) = BenchmarkGroup(tags, Dict(args...))
+BenchmarkGroup(args::Pair...) = BenchmarkGroup([], args...)
 
-function newgroup!(suite::BenchmarkGroup, id, args...)
+function addgroup!(suite::BenchmarkGroup, id, args...)
     g = BenchmarkGroup(args...)
     suite[id] = g
     return g
@@ -24,9 +24,9 @@ Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.d
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), similar(group.data))
 Base.isempty(group::BenchmarkGroup) = isempty(group.data)
 Base.length(group::BenchmarkGroup) = length(group.data)
-Base.getindex(group::BenchmarkGroup, k...) = getindex(group.data, k...)
-Base.setindex!(group::BenchmarkGroup, v, k...) = setindex!(group.data, v, k...)
-Base.delete!(group::BenchmarkGroup, v, k...) = delete!(group.data, v, k...)
+Base.getindex(group::BenchmarkGroup, i...) = getindex(group.data, i...)
+Base.setindex!(group::BenchmarkGroup, i...) = setindex!(group.data, i...)
+Base.delete!(group::BenchmarkGroup, k...) = delete!(group.data, k...)
 Base.haskey(group::BenchmarkGroup, k) = haskey(group.data, k)
 Base.keys(group::BenchmarkGroup) = keys(group.data)
 Base.values(group::BenchmarkGroup) = values(group.data)
@@ -96,44 +96,91 @@ invariants(group::BenchmarkGroup) = mapvals!(invariants, filtervals(isinvariant,
 regressions(group::BenchmarkGroup) = mapvals!(regressions, filtervals(isregression, group))
 improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprovement, group))
 
-function loadparams!(group::BenchmarkGroup, paramgroup::BenchmarkGroup)
-    for (k, v) in paramgroup
-        haskey(group, k) && loadparams!(group[k], v)
+function load!(f!, group::BenchmarkGroup, items::BenchmarkGroup)
+    for (k, v) in group
+        haskey(items, k) && f!(v, items[k])
     end
     return group
 end
 
-function loadevals!(group::BenchmarkGroup, evalsgroup::BenchmarkGroup)
-    for (k, v) in evalsgroup
-        haskey(group, k) && loadevals!(group[k], v)
-    end
-    return group
-end
+loadevals!(group::BenchmarkGroup, evalsgroup::BenchmarkGroup) = load!(loadevals!, group, evalsgroup)
+loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup) = load!(loadparams!, group, paramsgroup)
 
 # tagging #
 #---------#
 
 immutable TagFilter{P}
-    pred::P
+    predicate::P
 end
 
-istagged(id, group::BenchmarkGroup, tag) = tag == id || in(tag, group.tags)
-
-macro tagged(pred)
-    return :(BenchmarkTools.TagFilter((id, group) -> $(tagpred!(pred, :id, :group))))
+macro tagged(expr)
+    return esc(:(BenchmarkTools.TagFilter(tags -> $(tagpredicate!(expr)))))
 end
 
-tagpred!(item::AbstractString, id::Symbol, group::Symbol) = :(istagged($id, $group, $item))
-tagpred!(item::Symbol, id::Symbol, group::Symbol) = item == :ALL ? true : item
+tagpredicate!(tag) = :(in($tag, tags))
 
-function tagpred!(expr::Expr, id::Symbol, group::Symbol)
+function tagpredicate!(sym::Symbol)
+    sym == :! && return sym
+    sym == :ALL && return true
+    return :(in($sym, tags))
+end
+
+# build the body of the tag predicate in place
+function tagpredicate!(expr::Expr)
+    expr.head == :quote && return :(in($expr, tags))
     for i in eachindex(expr.args)
-        expr.args[i] = tagpred!(expr.args[i], id, group)
+        expr.args[i] = tagpredicate!(expr.args[i])
     end
     return expr
 end
 
-Base.getindex(group::BenchmarkGroup, f::TagFilter) = filter(f.pred, group)
+# normal union doesn't have the behavior we want
+# (e.g. union(["1"], "2") === ["1", '2'])
+vcatunion(args...) = unique(vcat(args...))
+
+function Base.getindex(src::BenchmarkGroup, f::TagFilter)
+    dest = similar(src)
+    loadtagged!(f, dest, src, src, Any[], src.tags)
+    return dest
+end
+
+function loadtagged!(f::TagFilter, dest::BenchmarkGroup, src::BenchmarkGroup,
+                     group::BenchmarkGroup, keys::Vector, tags::Vector)
+    ismatch = f.predicate(tags)
+    if ismatch
+        child_dest = createchild!(dest, src, keys)
+        for (k, v) in group
+            if isa(v, BenchmarkGroup)
+                loadtagged!(f, dest, src, v, vcatunion(keys, k), vcatunion(tags, k, v.tags))
+            else
+                child_dest[k] = v
+            end
+        end
+    else
+        for (k, v) in group
+            if isa(v, BenchmarkGroup)
+                loadtagged!(f, dest, src, v, vcatunion(keys, k), vcatunion(tags, k, v.tags))
+            end
+        end
+    end
+    return dest
+end
+
+function createchild!(dest, src, keys)
+    if isempty(keys)
+        return dest
+    else
+        k = first(keys)
+        src_child = src[k]
+        if !(haskey(dest, k))
+            dest_child = similar(src_child)
+            dest[k] = dest_child
+        else
+            dest_child = dest[k]
+        end
+        return createchild!(dest_child, src_child, keys[2:end])
+    end
+end
 
 # indexing by BenchmarkGroup #
 #----------------------------#
