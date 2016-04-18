@@ -106,6 +106,43 @@ end
 loadevals!(group::BenchmarkGroup, evalsgroup::BenchmarkGroup) = load!(loadevals!, group, evalsgroup)
 loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup) = load!(loadparams!, group, paramsgroup)
 
+# leaf iteration/indexing #
+#-------------------------#
+
+# normal union doesn't have the behavior we want
+# (e.g. union(["1"], "2") === ["1", '2'])
+vcatunion(args...) = unique(vcat(args...))
+
+leaves(group::BenchmarkGroup) = leaves!(Any[], Any[], group)
+
+function leaves!(results, parents, group::BenchmarkGroup)
+    for (k, v) in group
+        keys = vcatunion(parents, k)
+        if isa(v, BenchmarkGroup)
+            leaves!(results, keys, v)
+        else
+            push!(results, (keys, v))
+        end
+    end
+    return results
+end
+
+function Base.getindex(group::BenchmarkGroup, keys::Vector)
+    k = first(keys)
+    v = length(keys) == 1 ? group[k] : group[k][keys[2:end]]
+    return v
+end
+
+function Base.setindex!(group::BenchmarkGroup, x, keys::Vector)
+    k = first(keys)
+    if length(keys) == 1
+        group[k] = x
+        return x
+    else
+        return setindex!(group[k], x, keys[2:end])
+    end
+end
+
 # tagging #
 #---------#
 
@@ -133,10 +170,6 @@ function tagpredicate!(expr::Expr)
     end
     return expr
 end
-
-# normal union doesn't have the behavior we want
-# (e.g. union(["1"], "2") === ["1", '2'])
-vcatunion(args...) = unique(vcat(args...))
 
 function Base.getindex(src::BenchmarkGroup, f::TagFilter)
     dest = similar(src)

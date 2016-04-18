@@ -133,6 +133,10 @@ groupstrial["g"] = gtrial
 @test params(groupsa).data == Dict("g1" => params(g1), "g2" => params(g2), "g3" => params(g3a))
 @test evals(groupsa).data == Dict("g1" => evals(g1), "g2" => evals(g2), "g3" => evals(g3a))
 
+for (k, v) in BenchmarkTools.leaves(groupsa)
+    @test groupsa[k] == v
+end
+
 @test max(groupsa, groupsb).data == Dict("g1" => max(g1, g1), "g2" => max(g2, g2), "g3" => max(g3a, g3b))
 @test min(groupsa, groupsb).data == Dict("g1" => min(g1, g1), "g2" => min(g2, g2), "g3" => min(g3a, g3b))
 @test ratio(groupsa, groupsb).data == Dict("g1" => ratio(g1, g1), "g2" => ratio(g2, g2), "g3" => ratio(g3a, g3b))
