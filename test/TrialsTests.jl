@@ -15,9 +15,7 @@ trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(time_tolerance = 0.15))
 push!(trial2, 21, 0, 41, 51)
 push!(trial2, 2, 1, 4, 5)
 
-# test push! using GC_Diff, and deleteat!
-init = Base.gc_num(); sleep(0.5);
-push!(trial2, 0.5, Base.GC_Diff(Base.gc_num(), init))
+push!(trial2, 21, 0, 41, 51)
 @test length(trial2) == 3
 deleteat!(trial2, 3)
 @test length(trial1) == length(trial2) == 2
@@ -153,24 +151,24 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 # pretty printing #
 ###################
 
-@test BenchmarkTools.prettypercent(.3120123) == "31.2%"
+@test BenchmarkTools.prettypercent(.3120123) == "31.20%"
 
-@test BenchmarkTools.prettydiff(0.0) == "-100.0%"
-@test BenchmarkTools.prettydiff(1.0) == "+0.0%"
-@test BenchmarkTools.prettydiff(2.0) == "+100.0%"
+@test BenchmarkTools.prettydiff(0.0) == "-100.00%"
+@test BenchmarkTools.prettydiff(1.0) == "+0.00%"
+@test BenchmarkTools.prettydiff(2.0) == "+100.00%"
 
-@test BenchmarkTools.prettytime(999) == "999.0 ns"
-@test BenchmarkTools.prettytime(1000) == "1.0 μs"
-@test BenchmarkTools.prettytime(999_999) == "1000.0 μs"
-@test BenchmarkTools.prettytime(1_000_000) == "1.0 ms"
-@test BenchmarkTools.prettytime(999_999_999) == "1000.0 ms"
-@test BenchmarkTools.prettytime(1_000_000_000) == "1.0 s"
+@test BenchmarkTools.prettytime(999) == "999.00 ns"
+@test BenchmarkTools.prettytime(1000) == "1.00 μs"
+@test BenchmarkTools.prettytime(999_999) == "1000.00 μs"
+@test BenchmarkTools.prettytime(1_000_000) == "1.00 ms"
+@test BenchmarkTools.prettytime(999_999_999) == "1000.00 ms"
+@test BenchmarkTools.prettytime(1_000_000_000) == "1.00 s"
 
-@test BenchmarkTools.prettymemory(1023) == "1023.0 bytes"
-@test BenchmarkTools.prettymemory(1024) == "1.0 kb"
-@test BenchmarkTools.prettymemory(1048575) == "1024.0 kb"
-@test BenchmarkTools.prettymemory(1048576) == "1.0 mb"
-@test BenchmarkTools.prettymemory(1073741823) == "1024.0 mb"
-@test BenchmarkTools.prettymemory(1073741824) == "1.0 gb"
+@test BenchmarkTools.prettymemory(1023) == "1023.00 bytes"
+@test BenchmarkTools.prettymemory(1024) == "1.00 kb"
+@test BenchmarkTools.prettymemory(1048575) == "1024.00 kb"
+@test BenchmarkTools.prettymemory(1048576) == "1.00 mb"
+@test BenchmarkTools.prettymemory(1073741823) == "1024.00 mb"
+@test BenchmarkTools.prettymemory(1073741824) == "1.00 gb"
 
 end # module

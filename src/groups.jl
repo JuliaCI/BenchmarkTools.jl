@@ -240,13 +240,13 @@ function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false)
         println(io)
         print(io, pad, "  ", repr(k), " => ")
         if verbose
-            isa(v, BenchmarkGroup) ? show(io, v, "\t"*pad) : show(io, v)
+            isa(v, BenchmarkGroup) ? showall(io, v, "\t"*pad) : show(io, v)
         else
             showcompact(io, v)
         end
     end
 end
 
-Base.showall(io::IO, group::BenchmarkGroup) = show(io, group, verbose = true)
+Base.showall(io::IO, group::BenchmarkGroup, pad = "") = show(io, group, pad, verbose = true)
 
 Base.showcompact(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup($(tagrepr(group.tags)))")

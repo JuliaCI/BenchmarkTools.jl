@@ -22,14 +22,6 @@ end
 
 Base.copy(t::Trial) = Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
 
-function Base.push!(t::Trial, sample_time, gcdiff::Base.GC_Diff)
-    time = ceil(sample_time / t.params.evals)
-    gctime = ceil(gcdiff.total_time / t.params.evals)
-    memory = fld(gcdiff.allocd, t.params.evals)
-    allocs = fld(gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc, t.params.evals)
-    return push!(t, time, gctime, memory, allocs)
-end
-
 function Base.push!(t::Trial, time, gctime, memory, allocs)
     push!(t.times, time)
     push!(t.gctimes, gctime)
@@ -87,6 +79,8 @@ function rmskew(t::Trial)
     st = sort(t)
     return st[1:(skewcutoff(st) - 1)]
 end
+
+trim(t::Trial, percentage = 0.1) = t[1:max(1, floor(Int, length(t) - (length(t) * percentage)))]
 
 #################
 # TrialEstimate #
@@ -235,11 +229,11 @@ isinvariant(t::TrialJudgement) = time(t) == :invariant && memory(t) == :invarian
 # Pretty Printing #
 ###################
 
-prettypercent(p) = string(round(p * 100, 2), "%")
+prettypercent(p) = string(@sprintf("%.2f", p * 100), "%")
 
 function prettydiff(p)
     diff = p - 1.0
-    return string(diff >= 0.0 ? "+" : "", round(diff * 100, 2), "%")
+    return string(diff >= 0.0 ? "+" : "", @sprintf("%.2f", diff * 100), "%")
 end
 
 function prettytime(t)
@@ -252,7 +246,7 @@ function prettytime(t)
     else
         value, units = t / 1e9, "s"
     end
-    return string(round(value, 2), " ", units)
+    return string(@sprintf("%.2f", value), " ", units)
 end
 
 function prettymemory(b)
@@ -265,7 +259,7 @@ function prettymemory(b)
     else
         value, units = b / 1024^3, "gb"
     end
-    return string(round(value, 2), " ", units)
+    return string(@sprintf("%.2f", value), " ", units)
 end
 
 function Base.show(io::IO, t::Trial)

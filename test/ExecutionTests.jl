@@ -108,10 +108,31 @@ t = @benchmark sin(foo.x) evals=3 samples=10 setup=(foo.x = 0)
 @test params(t).evals == 3
 @test params(t).samples == 10
 
-t = @benchmark sin(foo.x) teardown=(foo.x = 1)
+b = @benchmarkable sin(x) setup=(foo.x = -1; x = foo.x) teardown=(@assert(x == -1); foo.x = 1)
+tune!(b, tune_samples = false)
 
 @test foo.x == 1
-@test params(t).evals > 10000
-@test params(t).samples == BenchmarkTools.DEFAULT_PARAMETERS.samples
+@test params(b).evals > 100
+@test params(b).samples == BenchmarkTools.DEFAULT_PARAMETERS.samples
+
+foo.x = 0
+tune!(b, tune_samples = true)
+
+@test foo.x == 1
+@test params(b).evals > 100
+@test params(b).samples > BenchmarkTools.DEFAULT_PARAMETERS.samples
+
+########
+# misc #
+########
+
+# This should always be 1 if BenchmarkTools.OVERHEAD was tuned correctly
+@test time(minimum(@benchmark nothing)) == 1
+
+@test [:x, :y, :z] == BenchmarkTools.collectvars(quote
+           x = 1 + 3
+           y = 1 + x
+           z = (a = 4; y + a)
+       end)
 
 end # module

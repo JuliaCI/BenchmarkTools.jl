@@ -1,3 +1,33 @@
+################################
+# Resolution/Overhead Settings #
+################################
+
+@noinline nullfunc() = nothing
+
+@noinline function overhead_sample(evals)
+    start_time = time_ns()
+    for _ in 1:evals
+        nullfunc()
+    end
+    sample_time = time_ns() - start_time
+    return Int(cld(sample_time, evals))
+end
+
+function empircal_overhead(samples, evals)
+    x = typemax(Int)
+    for _ in 1:samples
+        y = overhead_sample(evals)
+        if y < x
+            x = y
+        end
+    end
+    return x
+end
+
+# most machines will be higher resolution than this, but we're playing it safe
+const RESOLUTION = 1000 # 1 μs = 1000 ns
+const OVERHEAD = empircal_overhead(10000, RESOLUTION)
+
 #############
 # Benchmark #
 #############
@@ -16,7 +46,7 @@ loadevals!(b::Benchmark, evals) = (loadevals!(b.params, evals); return b)
 
 sample(b::Benchmark, args...) = error("`sample` not defined for $b")
 
-Base.run(b::Benchmark, args...; kwargs...) = error("`execute` not defined for $b")
+Base.run(b::Benchmark, args...; kwargs...) = error("`run` not defined for $b")
 
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
     result = similar(group)
@@ -34,6 +64,52 @@ end
 # parameter tuning #
 ####################
 
+# The tuning process is as follows:
+#
+#   1. Using `lineartrial`, take one sample of the benchmark for each `evals` in `1:RESOLUTION`.
+#
+#   2. Extract the minimum sample found in this trial. Hopefully, this value will be
+#      reasonably close to the the true benchmark time. At the very least, we can be certain
+#      that the minimum sample overcomes discretization noise, assuming a sufficient time
+#      budget for the trial (which technically should never need to be more than a couple of
+#      seconds if `RESOLUTION` ∼ 1μs).
+#
+#   3. Using the sample from step 2 as a reasonable estimate `t`, calculate `evals`. This
+#      is done by indexing into a pregenerated table that maps potential `t` values to the
+#      appropriate `evals` values. The actual generation of this table is accomplished via
+#      heuristic, driven mainly by empircal insight. It's built on the following postulates:
+#          - Small variations in `t` should not cause large variations in `evals`
+#          - `RESOLUTION` <= 1000ns
+#          - `evals` <= `RESOLUTION` if `RESOLUTION` is in nanoseconds and `t` >= 1ns
+#          - Increasing `t` should generally decrease `evals`
+#
+#   4. By default, tune the `samples` parameter as a function of `t`, `evals`, and the time
+#      budget for the benchmark.
+
+# the logistic function is useful for determining `evals` for `1 < t < RESOLUTION`
+logistic(u, l, k, t, t0) = round(Int, ((u - l) / (1 + exp(-k * (t - t0)))) + l)
+
+const EVALS = Vector{Int}(9000) # any `t > length(EVALS)` should get an `evals` of 1
+for t in 1:400    (EVALS[t] = logistic(1006, 195, -0.025, t, 200)) end # EVALS[1] == 1000, EVALS[400] == 200
+for t in 401:1000 (EVALS[t] = logistic(204, -16, -0.01, t, 800))   end # EVALS[401] == 200, EVALS[1000] == 10
+for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] = 11 - i)      end # linearly decrease from EVALS[1000]
+
+guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
+
+function lineartrial(b::Benchmark; seconds = b.params.seconds, maxevals = RESOLUTION, kwargs...)
+    b.params.gctrial && gc()
+    estimates = zeros(Int, maxevals)
+    completed = 0
+    start_time = time()
+    for evals in eachindex(estimates)
+        b.params.gcsample && gc()
+        estimates[evals] = first(sample(b, evals))
+        completed += 1
+        ((time() - start_time) > seconds) && break
+    end
+    return estimates[1:completed]
+end
+
 function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
     gc() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
@@ -45,35 +121,14 @@ function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...
     return group
 end
 
-function tune!(b::Benchmark; kwargs...)
-    times, evals = lineartrial(b; kwargs...)
-    tmin = minimum(ceil(times ./ evals))
-    # How many evals do we need of a function that takes time `t`
-    # to raise the overall sample time above the clock resolution
-    # time of 1ms (most machines will be higher resolution than
-    # that, but we're playing it safe)?
-    b.params.evals = max(ceil(Int, 1000000 / tmin), 1)
-    return b
-end
-
-function lineartrial(b::Benchmark; seconds = b.params.seconds, kwargs...)
-    b.params.gctrial && gc()
-    times = Vector{Int}()
-    evals = Vector{Int}()
-    rate = 1.1
-    current_evals = 1.0
-    local unused::Base.GC_Diff
-    start_time = time()
-    while (time() - start_time) < seconds
-        b.params.gcsample && gc()
-        current_evals_floor = floor(Int, current_evals)
-        t, unused = sample(b, current_evals_floor)
-        push!(times, t)
-        push!(evals, current_evals_floor)
-        current_evals = 1.0 + rate*current_evals
-        current_evals > 1e5 && break
+function tune!(b::Benchmark; tune_samples = true, kwargs...)
+    estimate = minimum(lineartrial(b; kwargs...))
+    b.params.evals = guessevals(estimate)
+    if tune_samples
+        sample_estimate = floor(Int, (b.params.seconds * 1e9) / (estimate * b.params.evals))
+        b.params.samples = min(10000, max(sample_estimate, b.params.samples))
     end
-    return times, evals
+    return b
 end
 
 #####################################
@@ -105,6 +160,17 @@ function hasevals(params)
         end
     end
     return false
+end
+
+function collectvars(setup::Expr, vars::Vector{Symbol} = Symbol[])
+    if setup.head == :(=) && isa(first(setup.args), Symbol)
+        push!(vars, first(setup.args))
+    else
+        for arg in setup.args
+            isa(arg, Expr) && collectvars(arg, vars)
+        end
+    end
+    return vars
 end
 
 macro warmup(item, args...)
@@ -140,28 +206,37 @@ macro benchmarkable(args...)
         end
     end
     deleteat!(params, delinds)
+    vars = collectvars(setup)
     return esc(quote
         let
-            samplefn = gensym("sample")
+            func = gensym("func")
+            samplefunc = gensym("sample")
+            vars = $(Expr(:quote, vars))
             id = Expr(:quote, gensym("benchmark"))
             params = BenchmarkTools.Parameters($(params...))
             eval(current_module(), quote
-                @noinline function $(samplefn)(evals::Int)
+                @noinline $(func)($(vars...)) = $($(Expr(:quote, core)))
+                @noinline function $(samplefunc)(evals::Int)
                     $($(Expr(:quote, setup)))
                     gc_start = Base.gc_num()
                     start_time = time_ns()
                     for _ in 1:evals
-                        $($(Expr(:quote, core)))
+                        $(func)($(vars...))
                     end
                     sample_time = time_ns() - start_time
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
                     $($(Expr(:quote, teardown)))
-                    return sample_time, gcdiff
+                    time = max(Int(cld(sample_time, evals)) - BenchmarkTools.OVERHEAD, 1)
+                    gctime = max(Int(cld(gcdiff.total_time, evals)) - BenchmarkTools.OVERHEAD, 0)
+                    memory = Int(fld(gcdiff.allocd, evals))
+                    allocs = Int(fld(gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc, evals))
+                    return time, gctime, memory, allocs
                 end
                 function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)}, evals = b.params.evals)
-                    return $(samplefn)(floor(Int, evals))
+                    return $(samplefunc)(Int(evals))
                 end
-                function Base.run(b::BenchmarkTools.Benchmark{$(id)}, p::BenchmarkTools.Parameters = b.params;
+                function Base.run(b::BenchmarkTools.Benchmark{$(id)},
+                                  p::BenchmarkTools.Parameters = b.params;
                                   verbose = false, pad = "", kwargs...)
                     params = BenchmarkTools.Parameters(p; kwargs...)
                     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
@@ -171,7 +246,7 @@ macro benchmarkable(args...)
                     iters = 1
                     while (time() - start_time) < params.seconds
                         params.gcsample && gc()
-                        push!(trial, $(samplefn)(params.evals)...)
+                        push!(trial, $(samplefunc)(params.evals)...)
                         iters += 1
                         iters > params.samples && break
                     end
