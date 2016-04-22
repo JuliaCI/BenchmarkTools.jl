@@ -1,5 +1,5 @@
 ################################
-# Resolution/Overhead Settings #
+# RESOLUTION/OVERHEAD settings #
 ################################
 
 @noinline nullfunc() = nothing

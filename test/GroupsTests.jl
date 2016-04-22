@@ -187,6 +187,8 @@ gnest = BenchmarkGroup(["1"],
                                            10 => BenchmarkGroup(["3"]),
                                            11 => BenchmarkGroup()))
 
+@test leaves(gnest) == [([7],8), ([4,5],6), (["2",1],1)]
+
 @test gnest[@tagged "1" && "2" && "3"] == BenchmarkGroup(["1"],
                                                          "2" => BenchmarkGroup(["3"], 1 => 1),
                                                           9 => BenchmarkGroup(["2"], 10 => BenchmarkGroup(["3"])))

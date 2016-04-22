@@ -8,8 +8,9 @@ This document is an API reference for the types and functions provided by Benchm
 
 # Types
 
-##### `BenchmarkGroup(tags::Vector)`
-##### `BenchmarkGroup()`
+##### `BenchmarkGroup(tags::Vector, data::Dict)`
+##### `BenchmarkGroup(tags::Vector, args::Pairs...)`
+##### `BenchmarkGroup(args::Pairs...)`
 
 A type that stores multiple benchmarks or benchmark results in a `Dict`-like structure.
 
@@ -34,7 +35,7 @@ Base.filter(f, group::BenchmarkGroup)
 Base.filter!(f, group::BenchmarkGroup)
 ```
 
-Relevant manual documentation can be found [here](manual.md#using-benchmarkgroups).
+Relevant manual documentation can be found [here](manual.md#the-benchmarkgroup-type).
 
 ##### `Parameters(; kwargs...)`
 
@@ -154,7 +155,7 @@ Only makes sense if the leaf values of `x` are of type `TrialJudgement`. Return 
 
 ##### `rmskew!(x::Trial)`, `rmskew(x::Trial)`
 
-Return `x` (or a copy of `x`, in the non-mutating case) where samples that positively skew `x`'s time distribution have been removed. This can be useful when examining a `Trial` generated in a very noisy environment; see [here](#which-estimator-should-i-use) for a short discussion of how machine noise can affect benchmark time distribution.
+Return `x` (or a copy of `x`, in the non-mutating case) where samples that positively skew `x`'s time distribution have been removed. This can be useful when examining a `Trial` generated in a very noisy environment; see [here](manual.md#which-estimator-should-i-use) for a short discussion of how machine noise can affect benchmark time distribution.
 
 ##### `filtervals!(f, g::BenchmarkGroup)`, `filtervals(f, g::BenchmarkGroup)`
 
@@ -177,6 +178,10 @@ begin
     return g
 end
 ```
+
+##### `leaves(x::BenchmarkGroup)`
+
+Return an iterator over `x`'s leaf index/value pairs. Relevant manual documentation can be found [here](manual.md#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters).
 
 ##### `loadevals!(x::Parameters, y::Integer)`
 ##### `loadevals!(x::Benchmark, y::Integer)`
@@ -209,7 +214,7 @@ Define, tune, and run the `Benchmark` generated from `expr`. Relevant manual doc
 
 ##### `@tagged(expr)`
 
-Construct a tag predicate from `expr` than can be used to index into a `BenchmarkGroup`. Relevant manual documentation can be found  [here](manual.md#filtering-a-benchmarkgroup-by-tag).
+Construct a tag predicate from `expr` than can be used to index into a `BenchmarkGroup`. Relevant manual documentation can be found  [here](manual.md#indexing-into-a-benchmarkgroup-using-tagged).
 
 ##### `@warmup(x::Union{Benchmark, BenchmarkGroup}, [, verbose = true])`
 
