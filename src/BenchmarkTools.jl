@@ -27,7 +27,8 @@ export gctime,
        isregression,
        isimprovement,
        rmskew!,
-       rmskew
+       rmskew,
+       trim
 
 ##################
 # Benchmark Data #

@@ -157,6 +157,10 @@ Only makes sense if the leaf values of `x` are of type `TrialJudgement`. Return 
 
 Return `x` (or a copy of `x`, in the non-mutating case) where samples that positively skew `x`'s time distribution have been removed. This can be useful when examining a `Trial` generated in a very noisy environment; see [here](manual.md#which-estimator-should-i-use) for a short discussion of how machine noise can affect benchmark time distribution.
 
+##### `trim(x::Trial, percentage = 0.1)`
+
+Return a copy of `x` with the top `percentage` samples removed. Useful for outlier trimming.
+
 ##### `filtervals!(f, g::BenchmarkGroup)`, `filtervals(f, g::BenchmarkGroup)`
 
 Not exported. Remove `k => v` pairs in `g` for which `f(v) == false`.
