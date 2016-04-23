@@ -233,20 +233,27 @@ Base.setindex!(group::BenchmarkGroup, v, k::BenchmarkGroup) = error("A Benchmark
 
 tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
-function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false)
-    println(io, "BenchmarkTools.BenchmarkGroup:")
+function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
+    println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
     print(io, pad, "  tags: ", tagrepr(group.tags))
+    count = 1
     for (k, v) in group
         println(io)
         print(io, pad, "  ", repr(k), " => ")
         if verbose
-            isa(v, BenchmarkGroup) ? showall(io, v, "\t"*pad) : show(io, v)
+            if isa(v, BenchmarkGroup)
+                show(io, v, "\t"*pad; verbose = verbose, limit = limit)
+            else
+                show(io, v)
+            end
         else
             showcompact(io, v)
         end
+        count > limit && (println(io); print(io, pad, "  ⋮"); break)
+        count += 1
     end
 end
 
-Base.showall(io::IO, group::BenchmarkGroup, pad = "") = show(io, group, pad, verbose = true)
+Base.showall(io::IO, group::BenchmarkGroup) = show(io, group; verbose = true, limit = Inf)
 
-Base.showcompact(io::IO, group::BenchmarkGroup) = print(io, "BenchmarkGroup($(tagrepr(group.tags)))")
+Base.showcompact(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
