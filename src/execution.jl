@@ -43,10 +43,14 @@ loadevals!(b::Benchmark, evals) = (loadevals!(b.params, evals); return b)
 #############
 # execution #
 #############
+# Note that trials executed via `run` and `lineartrial` are always executed at the top-level
+# scope of the module returned by `current_module()`. This is to avoid any weird quirks
+# when calling the experiment from within other contexts.
 
-sample(b::Benchmark, args...) = error("`sample` not defined for $b")
+sample(b::Benchmark, args...) = error("no execution method defined on type $(typeof(b))")
+_run(b::Benchmark, args...; kwargs...) = error("no execution method defined on type $(typeof(b))")
 
-Base.run(b::Benchmark, args...; kwargs...) = error("`run` not defined for $b")
+Base.run(b::Benchmark, args...; kwargs...) = eval(current_module(), :(BenchmarkTools._run($(b), $(args...); $(kwargs...))))
 
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
     result = similar(group)
@@ -59,6 +63,22 @@ function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "
     end
     return result
 end
+
+function _lineartrial(b::Benchmark; seconds = b.params.seconds, maxevals = RESOLUTION, kwargs...)
+    b.params.gctrial && gc()
+    estimates = zeros(Int, maxevals)
+    completed = 0
+    start_time = time()
+    for evals in eachindex(estimates)
+        b.params.gcsample && gc()
+        estimates[evals] = first(sample(b, evals))
+        completed += 1
+        ((time() - start_time) > seconds) && break
+    end
+    return estimates[1:completed]
+end
+
+lineartrial(b::Benchmark; kwargs...) = eval(current_module(), :(BenchmarkTools._lineartrial($(b); $(kwargs...))))
 
 ####################
 # parameter tuning #
@@ -95,20 +115,6 @@ for t in 401:1000 (EVALS[t] = logistic(204, -16, -0.01, t, 800))   end # EVALS[4
 for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] = 11 - i)      end # linearly decrease from EVALS[1000]
 
 guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
-
-function lineartrial(b::Benchmark; seconds = b.params.seconds, maxevals = RESOLUTION, kwargs...)
-    b.params.gctrial && gc()
-    estimates = zeros(Int, maxevals)
-    completed = 0
-    start_time = time()
-    for evals in eachindex(estimates)
-        b.params.gcsample && gc()
-        estimates[evals] = first(sample(b, evals))
-        completed += 1
-        ((time() - start_time) > seconds) && break
-    end
-    return estimates[1:completed]
-end
 
 function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
     gc() # run GC before running group, even if individual benchmarks don't manually GC
@@ -232,12 +238,13 @@ macro benchmarkable(args...)
                     allocs = Int(fld(gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc, evals))
                     return time, gctime, memory, allocs
                 end
-                function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)}, evals = b.params.evals)
+                function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)},
+                                               evals = b.params.evals)
                     return $(samplefunc)(Int(evals))
                 end
-                function Base.run(b::BenchmarkTools.Benchmark{$(id)},
-                                  p::BenchmarkTools.Parameters = b.params;
-                                  verbose = false, pad = "", kwargs...)
+                function BenchmarkTools._run(b::BenchmarkTools.Benchmark{$(id)},
+                                             p::BenchmarkTools.Parameters = b.params;
+                                             verbose = false, pad = "", kwargs...)
                     params = BenchmarkTools.Parameters(p; kwargs...)
                     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
                     params.gctrial && gc()
