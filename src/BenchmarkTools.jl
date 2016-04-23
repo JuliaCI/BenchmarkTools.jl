@@ -8,8 +8,7 @@ using Compat
 
 include("parameters.jl")
 
-export evals,
-       loadevals!
+export loadparams!
 
 ##############
 # Trial Data #
@@ -41,7 +40,6 @@ export BenchmarkGroup,
        regressions,
        improvements,
        @tagged,
-       loadparams!,
        addgroup!,
        leaves
 

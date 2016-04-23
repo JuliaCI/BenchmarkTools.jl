@@ -77,7 +77,6 @@ gctime(group::BenchmarkGroup) = mapvals(gctime, group)
 memory(group::BenchmarkGroup) = mapvals(memory, group)
 allocs(group::BenchmarkGroup) = mapvals(allocs, group)
 params(group::BenchmarkGroup) = mapvals(params, group)
-evals(group::BenchmarkGroup) = mapvals(evals, group)
 
 ratio(groups::BenchmarkGroup...) = mapvals(ratio, groups...)
 judge(groups::BenchmarkGroup...; kwargs...) = mapvals((x...) -> judge(x...; kwargs...), groups...)
@@ -96,15 +95,12 @@ invariants(group::BenchmarkGroup) = mapvals!(invariants, filtervals(isinvariant,
 regressions(group::BenchmarkGroup) = mapvals!(regressions, filtervals(isregression, group))
 improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprovement, group))
 
-function load!(f!, group::BenchmarkGroup, items::BenchmarkGroup)
+function loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup, fields...)
     for (k, v) in group
-        haskey(items, k) && f!(v, items[k])
+        haskey(paramsgroup, k) && loadparams!(v, paramsgroup[k], fields...)
     end
     return group
 end
-
-loadevals!(group::BenchmarkGroup, evalsgroup::BenchmarkGroup) = load!(loadevals!, group, evalsgroup)
-loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup) = load!(loadparams!, group, paramsgroup)
 
 # leaf iteration/indexing #
 #-------------------------#

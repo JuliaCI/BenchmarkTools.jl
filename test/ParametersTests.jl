@@ -34,7 +34,6 @@ BenchmarkTools.DEFAULT_PARAMETERS.evals = p.evals
 BenchmarkTools.DEFAULT_PARAMETERS.gcsample = p.gcsample
 @test p == Parameters()
 @test p == Parameters(p)
-@test evals(p) == BenchmarkTools.DEFAULT_PARAMETERS.evals
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = oldseconds
 BenchmarkTools.DEFAULT_PARAMETERS.gctrial = oldgctrial
 BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = old_time_tolerance

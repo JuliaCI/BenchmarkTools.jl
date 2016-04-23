@@ -22,8 +22,8 @@ for f in (sin, cos, tan)
     end
 end
 
-# Load the suite's cached `evals` parameters as part of including the file. This is much
+# Load the suite's cached parameters as part of including the file. This is much
 # faster and more reliable than re-tuning `suite` every time the file is included
-evalspath = joinpath(Pkg.dir("BenchmarkTools"), "benchmark", "evals.jld")
-# tune!(suite); JLD.save(evalspath, "suite", evals(suite));
-loadevals!(suite, JLD.load(evalspath, "suite"));
+paramspath = joinpath(Pkg.dir("BenchmarkTools"), "benchmark", "params.jld")
+#tune!(suite); JLD.save(paramspath, "suite", params(suite));
+loadparams!(suite, JLD.load(paramspath, "suite"), :evals, :samples);

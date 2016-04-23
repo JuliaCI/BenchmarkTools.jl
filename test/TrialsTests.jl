@@ -40,7 +40,6 @@ trial2.params = trial1.params
 @test memory(trial1) == memory(trial2) == trial1.memory
 @test allocs(trial1) == allocs(trial2) == trial1.allocs
 @test params(trial1) == params(trial2) == trial1.params
-@test evals(trial1) == evals(trial2) == evals(trial1.params)
 
 # outlier trimming
 trial3 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1, 2, 3, 10, 11],
@@ -78,7 +77,6 @@ tmax = maximum(randtrial)
 @test memory(tmin) == memory(tmed) == memory(tmean) == memory(tmax) == memory(randtrial)
 @test allocs(tmin) == allocs(tmed) == allocs(tmean) == allocs(tmax) == allocs(randtrial)
 @test params(tmin) == params(tmed) == params(tmean) == params(tmax) == params(randtrial)
-@test evals(tmin) == evals(tmed) == evals(tmean) == evals(tmax) == evals(randtrial)
 
 @test tmin <= tmed
 @test tmean <= tmed # this should be true since we called rmoutliers!(randtrial) earlier
@@ -104,7 +102,6 @@ tr = ratio(ta, tb)
 @test memory(tr) == ratio(memory(ta), memory(tb))
 @test allocs(tr) == ratio(allocs(ta), allocs(tb))
 @test params(tr) == params(ta) == params(tb)
-@test evals(tr) == evals(ta) == evals(tb)
 
 @test BenchmarkTools.gcratio(ta) == ratio(gctime(ta), time(ta))
 @test BenchmarkTools.gcratio(tb) == ratio(gctime(tb), time(tb))

@@ -826,13 +826,14 @@ julia> tune!(suite);
 julia> using JLD
 
 # save the suite's parameters using JLD
-julia> JLD.save("evals.jld", "suite", evals(suite));
+julia> JLD.save("params.jld", "suite", params(suite));
 ```
 
-Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadevals!` function:
+Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadparams!` function:
 
 ```julia
-julia> loadevals!(suite, JLD.load("evals.jld", "suite"));
+# syntax is loadparams!(group, paramsgroup, fields...)
+julia> loadparams!(suite, JLD.load("params.jld", "suite"), :evals, :samples);
 ```
 
 Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.

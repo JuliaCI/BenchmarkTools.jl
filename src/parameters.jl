@@ -51,7 +51,10 @@ end
 Base.copy(p::Parameters) = Parameters(p.seconds, p.samples, p.evals, p.gctrial,
                                       p.gcsample, p.time_tolerance, p.memory_tolerance)
 
-evals(x) = evals(params(x))
-evals(p::Parameters) = p.evals
-
-loadevals!(p::Parameters, evals) = (p.evals = evals; return p)
+function loadparams!(a::Parameters, b::Parameters, fields...)
+    fields = isempty(fields) ? fieldnames(Parameters) : fields
+    for f in fields
+        setfield!(a, f, getfield(b, f))
+    end
+    return a
+end

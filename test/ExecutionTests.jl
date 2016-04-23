@@ -58,7 +58,7 @@ testexpected(tune!(groups, verbose = true), groups)
 
 oldgroupscopy = copy(oldgroups)
 
-loadevals!(oldgroupscopy, evals(groups))
+loadparams!(oldgroups, params(groups), :evals, :samples)
 loadparams!(oldgroups, params(groups))
 
 @test oldgroups == oldgroupscopy == groups

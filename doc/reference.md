@@ -85,10 +85,6 @@ Returns the number of allocations associated with `x`. If `isa(x, BenchmarkGroup
 
 Returns the `Parameters` instance associated with `x`. If `isa(x, BenchmarkGroup)`, return a `BenchmarkGroup` where `params` has been applied to the values of `x`.
 
-##### `evals(x::Union{Parameters, Benchmark, Trial, TrialEstimate, TrialRatio, TrialJudgement, BenchmarkGroup})`
-
-Returns the value of `x`'s "evaluations per sample" parameter. If `isa(x, BenchmarkGroup)`, return a `BenchmarkGroup` where `evals` has been applied to the values of `x`.
-
 ##### `ratio(x::TrialJudgement)`
 
 Returns the `TrialRatio` instance that underlies `x`'s classification data.
@@ -187,16 +183,11 @@ end
 
 Return an iterator over `x`'s leaf index/value pairs. Relevant manual documentation can be found [here](manual.md#indexing-into-a-benchmarkgroup-using-a-vector).
 
-##### `loadevals!(x::Parameters, y::Integer)`
-##### `loadevals!(x::Benchmark, y::Integer)`
-##### `loadevals!(x::BenchmarkGroup, y::BenchmarkGroup)`
+##### `loadparams!(x::Parameters, y::Parameters, fields...)`
+##### `loadparams!(x::Benchmark, y::Parameters, fields...)`
+##### `loadparams!(x::BenchmarkGroup, y::BenchmarkGroup, fields...)`
 
-Change the value of `x`'s "evaluations per sample" parameter  to `y`. If `x` and `y` are `BenchmarkGroup` instances, and the values of `y` are integers, change `x`'s values' "evaluations per sample" parameters to the integers stored at matching keys in `y`. Relevant manual documentation can be found [here](manual.md#caching-parameters).
-
-##### `loadparams!(x::Benchmark, y::Parameters)`
-##### `loadparams!(x::BenchmarkGroup, y::BenchmarkGroup)`
-
-Similar to `loadevals!`, but for full `Parameters` instances. Change `x`'s `Parameters` instance to `y`. If `x` and `y` are `BenchmarkGroup` instances, and the values of `y` are `Parameters` instances, change `x`'s values' parameters to the parameters stored at matching keys in `y`.
+If no `fields` are provided, load all of `y`'s parameters into `x`. If `fields` are provided, load only the parameters that correspond to those fields (e.g. `loadparams!(x, y, :evals, :samples)` will load only `y`'s `evals` and `samples` parameters). If `x` and `y` are `BenchmarkGroup` instances, change `x`'s values' parameters to the parameters stored at matching keys in `y`. Relevant manual documentation can be found [here](manual.md#caching-parameters).
 
 ##### `run(x::Union{Benchmark, BenchmarkGroup}; verbose = false, kwargs...)`
 
