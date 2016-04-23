@@ -39,7 +39,7 @@ Relevant manual documentation can be found [here](manual.md#the-benchmarkgroup-t
 
 ##### `Parameters(; kwargs...)`
 
-Not exported. A type containing all benchmark configuration parameters. Valid  `kwargs` values can be found in the relevant manual documentation [here](manual.md#tunable-benchmark-parameters).
+Not exported. A type containing all benchmark configuration parameters. Valid  `kwargs` values can be found in the relevant manual documentation [here](manual.md#benchmark-parameters).
 
 ##### `Benchmark`
 
@@ -185,13 +185,13 @@ end
 
 ##### `leaves(x::BenchmarkGroup)`
 
-Return an iterator over `x`'s leaf index/value pairs. Relevant manual documentation can be found [here](manual.md#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters).
+Return an iterator over `x`'s leaf index/value pairs. Relevant manual documentation can be found [here](manual.md#indexing-into-a-benchmarkgroup-using-a-vector).
 
 ##### `loadevals!(x::Parameters, y::Integer)`
 ##### `loadevals!(x::Benchmark, y::Integer)`
 ##### `loadevals!(x::BenchmarkGroup, y::BenchmarkGroup)`
 
-Change the value of `x`'s "evaluations per sample" parameter  to `y`. If `x` and `y` are `BenchmarkGroup` instances, and the values of `y` are integers, change `x`'s values' "evaluations per sample" parameters to the integers stored at matching keys in `y`. Relevant manual documentation can be found [here](manual.md#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters).
+Change the value of `x`'s "evaluations per sample" parameter  to `y`. If `x` and `y` are `BenchmarkGroup` instances, and the values of `y` are integers, change `x`'s values' "evaluations per sample" parameters to the integers stored at matching keys in `y`. Relevant manual documentation can be found [here](manual.md#caching-parameters).
 
 ##### `loadparams!(x::Benchmark, y::Parameters)`
 ##### `loadparams!(x::BenchmarkGroup, y::BenchmarkGroup)`
@@ -200,7 +200,7 @@ Similar to `loadevals!`, but for full `Parameters` instances. Change `x`'s `Para
 
 ##### `run(x::Union{Benchmark, BenchmarkGroup}; verbose = false, kwargs...)`
 
-Run the specified benchmark(s), returning a `Trial` or a `BenchmarkGroup` with `Trial`s as leaf values. Valid  `kwargs` values can be found in the relevant manual documentation [here](manual.md#tunable-benchmark-parameters).
+Run the specified benchmark(s), returning a `Trial` or a `BenchmarkGroup` with `Trial`s as leaf values. Valid  `kwargs` values can be found in the relevant manual documentation [here](manual.md#benchmark-parameters).
 
 ##### `tune!(x::Union{Benchmark, BenchmarkGroup}; verbose = false)`
 
@@ -210,11 +210,11 @@ Tune the `evals` parameter (evaluations per sample) of the specified benchmark(s
 
 ##### `@benchmarkable(expr; kwargs...)`
 
-Define and return, but do not tune or run, a `Benchmark` that can be used to test the performance of `expr`. Relevant manual documentation can be found [here](manual.md#benchmarking-basics) (for valid `kwargs` values, see [here](manual.md#tunable-benchmark-parameters) specifically).
+Define and return, but do not tune or run, a `Benchmark` that can be used to test the performance of `expr`. Relevant manual documentation can be found [here](manual.md#benchmarking-basics) (for valid `kwargs` values, see [here](manual.md#benchmark-parameters) specifically).
 
 ##### `@benchmark(expr; kwargs...)`
 
-Define, tune, and run the `Benchmark` generated from `expr`. Relevant manual documentation can be found [here](manual.md#benchmarking-basics) (for valid `kwargs` values, see [here](manual.md#tunable-benchmark-parameters) specifically).
+Define, tune, and run the `Benchmark` generated from `expr`. Relevant manual documentation can be found [here](manual.md#benchmarking-basics) (for valid `kwargs` values, see [here](manual.md#benchmark-parameters) specifically).
 
 ##### `@tagged(expr)`
 

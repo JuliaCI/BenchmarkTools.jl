@@ -7,7 +7,7 @@ Bold links indicate sections that should be read carefully in order to avoid com
 - [Introduction](#introduction)
 - [Benchmarking basics](#defining-and-executing-benchmarks)
     * [Defining and executing benchmarks](#defining-and-executing-benchmarks)
-    * [Tunable benchmark parameters](#tunable-benchmark-parameters)
+    * [Benchmark `Parameters`](#benchmark-parameters)
     * **[Interpolating values into benchmark expressions](#interpolating-values-into-benchmark-expressions)**
     * [Setup and teardown phases](#setup-and-teardown-phases)
 - [Handling benchmark results](#handling-benchmark-results)
@@ -21,7 +21,7 @@ Bold links indicate sections that should be read carefully in order to avoid com
     * [Indexing into a `BenchmarkGroup` using `@tagged`](#indexing-into-a-benchmarkgroup-using-tagged)
     * [Indexing into a `BenchmarkGroup` using another `BenchmarkGroup`](#indexing-into-a-benchmarkgroup-using-another-benchmarkgroup)
     * [Indexing into a `BenchmarkGroup` using a `Vector`](#indexing-into-a-benchmarkgroup-using-a-vector)
-- **[Increase consistency and decrease execution time by caching benchmark parameters](#increase-consistency-and-decrease-execution-time-by-caching-benchmark-parameters)**
+- **[Caching `Parameters`](#caching-parameters)**
 - [Miscellaneous tips and info](#miscellaneous-tips-and-info)
 
 # Introduction
@@ -86,7 +86,7 @@ BenchmarkTools.Trial:
   maximum time:     25.00 ns (0.00% GC)
 ```
 
-### Tunable benchmark parameters
+### Benchmark `Parameters`
 
 You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, and `run` to configure the execution process:
 
@@ -794,7 +794,7 @@ julia> collect(leaves(g))
 
 Note that terminal child group nodes are not considered "leaves" by the `leaves` function.
 
-# Save benchmark parameters to increase consistency and decrease execution time
+# Caching `Parameters`
 
 A common workflow used in BenchmarkTools is the following:
 
