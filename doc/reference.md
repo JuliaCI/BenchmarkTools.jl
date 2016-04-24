@@ -193,9 +193,13 @@ If no `fields` are provided, load all of `y`'s parameters into `x`. If `fields` 
 
 Run the specified benchmark(s), returning a `Trial` or a `BenchmarkGroup` with `Trial`s as leaf values. Valid  `kwargs` values can be found in the relevant manual documentation [here](manual.md#benchmark-parameters).
 
-##### `tune!(x::Union{Benchmark, BenchmarkGroup}; verbose = false)`
+##### `tune!(x::Union{Benchmark, BenchmarkGroup}; verbose = false, kwargs...)`
 
-Tune the `evals` parameter (evaluations per sample) of the specified benchmark(s). Relevant manual documentation can be found [here](manual.md#defining-and-executing-benchmarks).
+Tune the `evals` parameter (evaluations per sample) of the specified benchmark(s). Valid `kwargs` match those of `run`. Relevant manual documentation can be found [here](manual.md#defining-and-executing-benchmarks).
+
+##### `warmup(x::Union{Benchmark, BenchmarkGroup} [, verbose = true])`
+
+Run a single evaluation of `x`. This can be useful if you think JIT overhead is being incorporated into your results (which is rarely the case, unless very few samples are taken).
 
 # Macros
 
@@ -210,7 +214,3 @@ Define, tune, and run the `Benchmark` generated from `expr`. Relevant manual doc
 ##### `@tagged(expr)`
 
 Construct a tag predicate from `expr` than can be used to index into a `BenchmarkGroup`. Relevant manual documentation can be found  [here](manual.md#indexing-into-a-benchmarkgroup-using-tagged).
-
-##### `@warmup(x::Union{Benchmark, BenchmarkGroup}, [, verbose = true])`
-
-Run a single evaluation of `x`. This can be useful if you think JIT overhead is being incorporated into your results (which is rarely the case, unless very few samples are taken).

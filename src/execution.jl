@@ -1,34 +1,3 @@
-################################
-# RESOLUTION/OVERHEAD settings #
-################################
-
-@noinline nullfunc() = nothing
-
-@noinline function overhead_sample(evals)
-    start_time = time_ns()
-    for _ in 1:evals
-        nullfunc()
-    end
-    sample_time = time_ns() - start_time
-    return Int(cld(sample_time, evals))
-end
-
-function empircal_overhead(samples, evals)
-    x = typemax(Int)
-    for _ in 1:samples
-        y = overhead_sample(evals)
-        if y < x
-            x = y
-        end
-    end
-    return x
-end
-
-# most machines will be higher resolution than this, but we're playing it safe
-const RESOLUTION = 1000 # 1 μs = 1000 ns
-
-DEFAULT_PARAMETERS.overhead = empircal_overhead(10000, RESOLUTION)
-
 #############
 # Benchmark #
 #############
@@ -54,7 +23,9 @@ end
 sample(b::Benchmark, args...) = error("no execution method defined on type $(typeof(b))")
 _run(b::Benchmark, args...; kwargs...) = error("no execution method defined on type $(typeof(b))")
 
-Base.run(b::Benchmark, args...; kwargs...) = eval(current_module(), :(BenchmarkTools._run($(b), $(args...); $(kwargs...))))
+function Base.run(b::Benchmark, p::Parameters = b.params; kwargs...)
+    return eval(current_module(), :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
+end
 
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
     result = similar(group)
@@ -68,21 +39,28 @@ function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "
     return result
 end
 
-function _lineartrial(b::Benchmark; seconds = b.params.seconds, maxevals = RESOLUTION, kwargs...)
-    b.params.gctrial && gc()
+function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUTION, kwargs...)
+    params = Parameters(p; kwargs...)
     estimates = zeros(Int, maxevals)
     completed = 0
+    params.gctrial && gc()
     start_time = time()
     for evals in eachindex(estimates)
-        b.params.gcsample && gc()
-        estimates[evals] = first(sample(b, evals))
+        params.gcsample && gc()
+        params.evals = evals
+        estimates[evals] = first(sample(b, params))
         completed += 1
-        ((time() - start_time) > seconds) && break
+        ((time() - start_time) > params.seconds) && break
     end
     return estimates[1:completed]
 end
 
-lineartrial(b::Benchmark; kwargs...) = eval(current_module(), :(BenchmarkTools._lineartrial($(b); $(kwargs...))))
+function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
+    return eval(current_module(), :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
+end
+
+warmup(item, verbose = true) = run(item; verbose = verbose, samples = 1, evals = 1,
+                                   gctrial = false, gcsample = false)
 
 ####################
 # parameter tuning #
@@ -131,18 +109,15 @@ function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...
     return group
 end
 
-function tune!(b::Benchmark; tune_samples = true, kwargs...)
-    estimate = minimum(lineartrial(b; kwargs...))
+function tune!(b::Benchmark, p::Parameters = b.params;
+               verbose::Bool = false, pad = "", kwargs...)
+    estimate = minimum(lineartrial(b, p; kwargs...))
     b.params.evals = guessevals(estimate)
-    if tune_samples
-        sample_estimate = floor(Int, (b.params.seconds * 1e9) / (estimate * b.params.evals))
-        b.params.samples = min(10000, max(sample_estimate, b.params.samples))
-    end
     return b
 end
 
 #####################################
-# @warmup/@benchmark/@benchmarkable #
+# warmup/@benchmark/@benchmarkable #
 #####################################
 
 function prunekwargs(args)
@@ -183,19 +158,13 @@ function collectvars(setup::Expr, vars::Vector{Symbol} = Symbol[])
     return vars
 end
 
-macro warmup(item, args...)
-    @assert length(args) < 2 "too many arguments for @warmup"
-    verbose = isempty(args) ? true : first(args)
-    return esc(:(run($item; verbose = $verbose, samples = 1, evals = 1, gctrial = false, gcsample = false)))
-end
-
 macro benchmark(args...)
     tmp = gensym()
     _, params = prunekwargs(args)
     tune_expr = hasevals(params) ? :() : :(BenchmarkTools.tune!($(tmp)))
     return esc(quote
         $(tmp) = BenchmarkTools.@benchmarkable $(args...)
-        BenchmarkTools.@warmup $(tmp)
+        BenchmarkTools.warmup($(tmp))
         $(tune_expr)
         BenchmarkTools.Base.run($(tmp))
     end)
@@ -226,8 +195,9 @@ macro benchmarkable(args...)
             params = BenchmarkTools.Parameters($(params...))
             eval(current_module(), quote
                 @noinline $(func)($(vars...)) = $($(Expr(:quote, core)))
-                @noinline function $(samplefunc)(evals::Int)
+                @noinline function $(samplefunc)(params::BenchmarkTools.Parameters)
                     $($(Expr(:quote, setup)))
+                    evals = params.evals
                     gc_start = Base.gc_num()
                     start_time = time_ns()
                     for _ in 1:evals
@@ -236,18 +206,18 @@ macro benchmarkable(args...)
                     sample_time = time_ns() - start_time
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
                     $($(Expr(:quote, teardown)))
-                    time = max(Int(cld(sample_time, evals)) - BenchmarkTools.OVERHEAD, 1)
-                    gctime = max(Int(cld(gcdiff.total_time, evals)) - BenchmarkTools.OVERHEAD, 0)
+                    time = max(Int(cld(sample_time, evals)) - params.overhead, 1)
+                    gctime = max(Int(cld(gcdiff.total_time, evals)) - params.overhead, 0)
                     memory = Int(fld(gcdiff.allocd, evals))
                     allocs = Int(fld(gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc, evals))
                     return time, gctime, memory, allocs
                 end
                 function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)},
-                                               evals = b.params.evals)
-                    return $(samplefunc)(Int(evals))
+                                               p::BenchmarkTools.Parameters = b.params)
+                    return $(samplefunc)(p)
                 end
                 function BenchmarkTools._run(b::BenchmarkTools.Benchmark{$(id)},
-                                             p::BenchmarkTools.Parameters = b.params;
+                                             p::BenchmarkTools.Parameters;
                                              verbose = false, pad = "", kwargs...)
                     params = BenchmarkTools.Parameters(p; kwargs...)
                     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
@@ -257,7 +227,7 @@ macro benchmarkable(args...)
                     iters = 1
                     while (time() - start_time) < params.seconds
                         params.gcsample && gc()
-                        push!(trial, $(samplefunc)(params.evals)...)
+                        push!(trial, $(samplefunc)(params)...)
                         iters += 1
                         iters > params.samples && break
                     end

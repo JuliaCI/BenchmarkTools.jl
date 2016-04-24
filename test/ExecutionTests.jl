@@ -82,10 +82,10 @@ testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, time
 testexpected(run(groups["sum"][first(sizes)], BenchmarkTools.DEFAULT_PARAMETERS))
 
 ###########
-# @warmup #
+# warmup #
 ###########
 
-p = params(@warmup @benchmarkable sin(1))
+p = params(warmup(@benchmarkable sin(1)))
 
 @test p.samples == 1
 @test p.evals == 1
@@ -109,26 +109,23 @@ t = @benchmark sin(foo.x) evals=3 samples=10 setup=(foo.x = 0)
 @test params(t).samples == 10
 
 b = @benchmarkable sin(x) setup=(foo.x = -1; x = foo.x) teardown=(@assert(x == -1); foo.x = 1)
-tune!(b, tune_samples = false)
+tune!(b)
 
 @test foo.x == 1
 @test params(b).evals > 100
-@test params(b).samples == BenchmarkTools.DEFAULT_PARAMETERS.samples
 
 foo.x = 0
-tune!(b, tune_samples = true)
+tune!(b)
 
 @test foo.x == 1
 @test params(b).evals > 100
-@test params(b).samples > BenchmarkTools.DEFAULT_PARAMETERS.samples
 
 ########
 # misc #
 ########
 
-# This should be 1 if BenchmarkTools.OVERHEAD was tuned correctly
-# This test is currently volatile on Travis (specifically Linux + Julia v0.5)
-# @test time(minimum(@benchmark nothing)) == 1
+BenchmarkTools.DEFAULT_PARAMETERS.overhead = BenchmarkTools.estimate_overhead()
+@test time(minimum(@benchmark nothing)) == 1
 
 @test [:x, :y, :z] == BenchmarkTools.collectvars(quote
            x = 1 + 3
