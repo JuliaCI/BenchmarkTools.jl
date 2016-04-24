@@ -26,7 +26,8 @@ end
 
 # most machines will be higher resolution than this, but we're playing it safe
 const RESOLUTION = 1000 # 1 μs = 1000 ns
-const OVERHEAD = empircal_overhead(10000, RESOLUTION)
+
+DEFAULT_PARAMETERS.overhead = empircal_overhead(10000, RESOLUTION)
 
 #############
 # Benchmark #

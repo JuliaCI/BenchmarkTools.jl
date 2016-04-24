@@ -6,17 +6,19 @@ type Parameters
     seconds::Float64
     samples::Int
     evals::Int
+    overhead::Int
     gctrial::Bool
     gcsample::Bool
     time_tolerance::Float64
     memory_tolerance::Float64
 end
 
-const DEFAULT_PARAMETERS = Parameters(5.0, 1000, 1, true, false, 0.05, 0.01)
+const DEFAULT_PARAMETERS = Parameters(5.0, 1000, 1, 0, true, false, 0.05, 0.01)
 
 function Parameters(; seconds = DEFAULT_PARAMETERS.seconds,
                     samples = DEFAULT_PARAMETERS.samples,
                     evals = DEFAULT_PARAMETERS.evals,
+                    overhead = DEFAULT_PARAMETERS.overhead,
                     gctrial = DEFAULT_PARAMETERS.gctrial,
                     gcsample = DEFAULT_PARAMETERS.gcsample,
                     time_tolerance = DEFAULT_PARAMETERS.time_tolerance,
@@ -25,12 +27,14 @@ function Parameters(; seconds = DEFAULT_PARAMETERS.seconds,
 end
 
 function Parameters(default::Parameters; seconds = nothing, samples = nothing,
-                    evals = nothing, gctrial = nothing, gcsample = nothing,
-                    time_tolerance = nothing, memory_tolerance = nothing)
+                    evals = nothing, overhead = nothing, gctrial = nothing,
+                    gcsample = nothing, time_tolerance = nothing,
+                    memory_tolerance = nothing)
     params = Parameters()
     params.seconds = seconds != nothing ? seconds : default.seconds
     params.samples = samples != nothing ? samples : default.samples
     params.evals = evals != nothing ? evals : default.evals
+    params.overhead = overhead != nothing ? overhead : default.overhead
     params.gctrial = gctrial != nothing ? gctrial : default.gctrial
     params.gcsample = gcsample != nothing ? gcsample : default.gcsample
     params.time_tolerance = time_tolerance != nothing ? time_tolerance : default.time_tolerance
@@ -42,13 +46,14 @@ function Base.(:(==))(a::Parameters, b::Parameters)
     return a.seconds == b.seconds &&
            a.samples == b.samples &&
            a.evals == b.evals &&
+           a.overhead == b.overhead &&
            a.gctrial == b.gctrial &&
            a.gcsample == b.gcsample &&
            a.time_tolerance == b.time_tolerance &&
            a.memory_tolerance == b.memory_tolerance
 end
 
-Base.copy(p::Parameters) = Parameters(p.seconds, p.samples, p.evals, p.gctrial,
+Base.copy(p::Parameters) = Parameters(p.seconds, p.samples, p.evals, p.overhead, p.gctrial,
                                       p.gcsample, p.time_tolerance, p.memory_tolerance)
 
 function loadparams!(a::Parameters, b::Parameters, fields...)
