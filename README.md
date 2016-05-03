@@ -25,7 +25,9 @@ If you want to explore the BenchmarkTools API, see the [reference document](doc/
 
 If you want a short example of a toy benchmark suite, see the sample file in this repo ([benchmark/benchmarks.jl](benchmark/benchmarks.jl)).
 
-If you want an extensive example of a benchmark suite being used in the real world, you can look at the source code of [BaseBenchmarks.jl](https://github.com/JuliaCI/BaseBenchmarks.jl).
+If you want an extensive example of a benchmark suite being used in the real world, you can look at the source code of [BaseBenchmarks.jl](https://github.com/JuliaCI/BaseBenchmarks.jl/tree/nanosoldier).
+
+If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/linuxtips.md) to help eliminate noise during performance tests.
 
 ## Why does this package exist?
 
