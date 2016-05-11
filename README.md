@@ -14,7 +14,7 @@ The CI infrastructure for automated performance testing of the Julia language is
 To install BenchmarkTools, you can run the following:
 
 ```julia
-Pkg.add("BenchmarkTools.jl")
+Pkg.add("BenchmarkTools")
 ```
 
 ## Documentation
