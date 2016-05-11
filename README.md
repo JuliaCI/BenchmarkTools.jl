@@ -11,10 +11,10 @@ The CI infrastructure for automated performance testing of the Julia language is
 
 ## Installation
 
-BenchmarkTools isn't yet registered with Julia's package manager. To install it, you can run the following:
+To install BenchmarkTools, you can run the following:
 
 ```julia
-Pkg.clone("https://github.com/JuliaCI/BenchmarkTools.jl")
+Pkg.add("BenchmarkTools.jl")
 ```
 
 ## Documentation
