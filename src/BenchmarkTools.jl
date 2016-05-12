@@ -69,6 +69,6 @@ export tune!,
 # Plotting Facilities (loaded on demand) #
 ##########################################
 
-loadplotting() = include(joinpath(Pkg.dir("BenchmarkTools"), "src", "plotting.jl"))
+loadplotting() = include(joinpath(dirname(@__FILE__), "plotting.jl"))
 
 end # module BenchmarkTools
