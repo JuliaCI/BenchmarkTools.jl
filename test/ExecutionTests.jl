@@ -128,10 +128,12 @@ BenchmarkTools.DEFAULT_PARAMETERS.overhead = BenchmarkTools.estimate_overhead()
 # should theoretically be exactly 1, but this test is kind of volatile on Linux
 @test time(minimum(@benchmark nothing)) < 5
 
-@test [:x, :y, :z] == BenchmarkTools.collectvars(quote
+@test [:x, :y, :z, :v, :w] == BenchmarkTools.collectvars(quote
            x = 1 + 3
            y = 1 + x
            z = (a = 4; y + a)
+           v,w = 1,2
+           [u^2 for u in [1,2,3]]
        end)
 
 end # module
