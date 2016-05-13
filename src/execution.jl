@@ -194,22 +194,40 @@ macro benchmarkable(args...)
     end
     deleteat!(params, delinds)
     vars = collectvars(setup)
+    outvars = isa(core,Expr) ? collectvars(core) : []
+    if length(outvars) == 0
+        returns = :(return)
+    elseif length(outvars) == 1
+        returns = :(return $(outvars[1]))
+    else
+        outtuple = Expr(:tuple, outvars...)
+        returns = :(return $outtuple)
+    end
     return esc(quote
         let
             func = gensym("func")
             samplefunc = gensym("sample")
             vars = $(Expr(:quote, vars))
+            outvars = $(Expr(:quote, outvars))
+            if length(outvars) == 0
+                invocation = :($(func)($(vars...)))
+            elseif length(outvars) == 1
+                invocation = :($(outvars[1]) = $(func)($(vars...)))
+            else
+                outtuple = Expr(:tuple, outvars...)
+                invocation = :($outtuple = $(func)($(vars...)))
+            end
             id = Expr(:quote, gensym("benchmark"))
             params = BenchmarkTools.Parameters($(params...))
             eval(current_module(), quote
-                @noinline $(func)($(vars...)) = $($(Expr(:quote, core)))
+                @noinline $(func)($(vars...)) = $($(Expr(:quote, Expr(:block, core, returns))))
                 @noinline function $(samplefunc)(params::BenchmarkTools.Parameters)
                     $($(Expr(:quote, setup)))
                     evals = params.evals
                     gc_start = Base.gc_num()
                     start_time = time_ns()
                     for _ in 1:evals
-                        $(func)($(vars...))
+                        $invocation
                     end
                     sample_time = time_ns() - start_time
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)

@@ -120,6 +120,13 @@ tune!(b)
 @test foo.x == 1
 @test params(b).evals > 100
 
+@benchmark local_var="good" setup=(local_var="bad") teardown(@test local_var=="good")
+@test_throws UndefVarError local_var
+
+@benchmark some_var="whatever" teardown(@test_throws UndefVarError some_var)
+
+@benchmark foo,bar="good","good" setup=(foo="bad"; bar="bad") teardown=(@test foo=="good" && bar=="good")
+
 ########
 # misc #
 ########
