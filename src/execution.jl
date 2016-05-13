@@ -195,6 +195,7 @@ macro benchmarkable(args...)
     deleteat!(params, delinds)
     vars = collectvars(setup)
     outvars = isa(core,Expr) ? collectvars(core) : []
+    outvars = filter(var -> var in vars, outvars)   # only return vars defined in setup
     if length(outvars) == 0
         returns = :(return)
     elseif length(outvars) == 1
