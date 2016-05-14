@@ -148,8 +148,16 @@ function hasevals(params)
 end
 
 function collectvars(setup::Expr, vars::Vector{Symbol} = Symbol[])
-    if setup.head == :(=) && isa(first(setup.args), Symbol)
-        push!(vars, first(setup.args))
+    if setup.head == :(=)
+        lhs = first(setup.args)
+        if isa(lhs, Symbol)
+            push!(vars, lhs)
+        elseif isa(lhs, Expr) && lhs.head == :tuple
+            append!(vars, lhs.args)
+        end
+    elseif setup.head == :comprehension
+        arg = setup.args[1]
+        isa(arg, Expr) && collectvars(arg, vars)
     else
         for arg in setup.args
             isa(arg, Expr) && collectvars(arg, vars)
@@ -186,22 +194,41 @@ macro benchmarkable(args...)
     end
     deleteat!(params, delinds)
     vars = collectvars(setup)
+    outvars = isa(core,Expr) ? collectvars(core) : []
+    outvars = filter(var -> var in vars, outvars)   # only return vars defined in setup
+    if length(outvars) == 0
+        returns = :(return)
+    elseif length(outvars) == 1
+        returns = :(return $(outvars[1]))
+    else
+        outtuple = Expr(:tuple, outvars...)
+        returns = :(return $outtuple)
+    end
     return esc(quote
         let
             func = gensym("func")
             samplefunc = gensym("sample")
             vars = $(Expr(:quote, vars))
+            outvars = $(Expr(:quote, outvars))
+            if length(outvars) == 0
+                invocation = :($(func)($(vars...)))
+            elseif length(outvars) == 1
+                invocation = :($(outvars[1]) = $(func)($(vars...)))
+            else
+                outtuple = Expr(:tuple, outvars...)
+                invocation = :($outtuple = $(func)($(vars...)))
+            end
             id = Expr(:quote, gensym("benchmark"))
             params = BenchmarkTools.Parameters($(params...))
             eval(current_module(), quote
-                @noinline $(func)($(vars...)) = $($(Expr(:quote, core)))
+                @noinline $(func)($(vars...)) = $($(Expr(:quote, Expr(:block, core, returns))))
                 @noinline function $(samplefunc)(params::BenchmarkTools.Parameters)
                     $($(Expr(:quote, setup)))
                     evals = params.evals
                     gc_start = Base.gc_num()
                     start_time = time_ns()
                     for _ in 1:evals
-                        $(func)($(vars...))
+                        $invocation
                     end
                     sample_time = time_ns() - start_time
                     gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
