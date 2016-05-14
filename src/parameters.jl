@@ -46,7 +46,7 @@ function Parameters(default::Parameters; seconds = nothing, samples = nothing,
     return params::BenchmarkTools.Parameters
 end
 
-function Base.(:(==))(a::Parameters, b::Parameters)
+@compat function Base.:(==)(a::Parameters, b::Parameters)
     return a.seconds == b.seconds &&
            a.samples == b.samples &&
            a.evals == b.evals &&
