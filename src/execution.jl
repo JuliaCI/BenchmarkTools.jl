@@ -116,26 +116,27 @@ function tune!(b::Benchmark, p::Parameters = b.params;
     return b
 end
 
-#####################################
-# warmup/@benchmark/@benchmarkable #
-#####################################
+#############################
+# @benchmark/@benchmarkable #
+#############################
 
-function prunekwargs(args)
-    arg1 = first(args)
-    if isa(arg1, Expr) && arg1.head == :parameters
-        @assert length(args) == 2 "wrong number of arguments supplied to @benchmarkable: $(args)"
-        core = args[2]
-        params = arg1.args
+function prunekwargs(args...)
+    firstarg = first(args)
+    if isa(firstarg, Expr) && firstarg.head == :parameters
+        return prunekwargs(drop(args, 1)..., firstarg.args...)
     else
-        core = arg1
+        core = firstarg
         params = collect(drop(args, 1))
         for ex in params
             if isa(ex, Expr) && ex.head == :(=)
                 ex.head = :kw
             end
         end
+        if isa(core, Expr) && core.head == :kw
+            core.head = :(=)
+        end
+        return core, params
     end
-    return core, params
 end
 
 function hasevals(params)
@@ -168,7 +169,7 @@ end
 
 macro benchmark(args...)
     tmp = gensym()
-    _, params = prunekwargs(args)
+    _, params = prunekwargs(args...)
     tune_expr = hasevals(params) ? :() : :(BenchmarkTools.tune!($(tmp)))
     return esc(quote
         $(tmp) = BenchmarkTools.@benchmarkable $(args...)
@@ -179,7 +180,7 @@ macro benchmark(args...)
 end
 
 macro benchmarkable(args...)
-    core, params = prunekwargs(args)
+    core, params = prunekwargs(args...)
     setup, teardown = :(), :()
     delinds = Int[]
     for i in eachindex(params)
@@ -222,22 +223,24 @@ macro benchmarkable(args...)
             params = BenchmarkTools.Parameters($(params...))
             eval(current_module(), quote
                 @noinline $(func)($(vars...)) = $($(Expr(:quote, Expr(:block, core, returns))))
-                @noinline function $(samplefunc)(params::BenchmarkTools.Parameters)
+                @noinline function $(samplefunc)(__params::BenchmarkTools.Parameters)
                     $($(Expr(:quote, setup)))
-                    evals = params.evals
-                    gc_start = Base.gc_num()
-                    start_time = time_ns()
-                    for _ in 1:evals
+                    __evals = __params.evals
+                    __gc_start = Base.gc_num()
+                    __start_time = time_ns()
+                    for __iter in 1:__evals
                         $invocation
                     end
-                    sample_time = time_ns() - start_time
-                    gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
+                    __sample_time = time_ns() - __start_time
+                    __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
                     $($(Expr(:quote, teardown)))
-                    time = max(Int(cld(sample_time, evals)) - params.overhead, 1)
-                    gctime = max(Int(cld(gcdiff.total_time, evals)) - params.overhead, 0)
-                    memory = Int(fld(gcdiff.allocd, evals))
-                    allocs = Int(fld(gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc, evals))
-                    return time, gctime, memory, allocs
+                    __time = max(Int(cld(__sample_time, __evals)) - __params.overhead, 1)
+                    __gctime = max(Int(cld(__gcdiff.total_time, __evals)) - __params.overhead, 0)
+                    __memory = Int(fld(__gcdiff.allocd, __evals))
+                    __allocs = Int(fld(__gcdiff.malloc + __gcdiff.realloc +
+                                       __gcdiff.poolalloc + __gcdiff.bigalloc,
+                                       __evals))
+                    return __time, __gctime, __memory, __allocs
                 end
                 function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)},
                                                p::BenchmarkTools.Parameters = b.params)
