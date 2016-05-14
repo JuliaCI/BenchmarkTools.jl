@@ -12,7 +12,7 @@ end
 
 Trial(params::Parameters) = Trial(params, Int[], Int[], typemax(Int), typemax(Int))
 
-function Base.(:(==))(a::Trial, b::Trial)
+@compat function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
            a.times == b.times &&
            a.gctimes == b.gctimes &&
@@ -98,7 +98,7 @@ function TrialEstimate(trial::Trial, t, gct)
     return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial))
 end
 
-function Base.(:(==))(a::TrialEstimate, b::TrialEstimate)
+@compat function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
     return a.params == b.params &&
            a.time == b.time &&
            a.gctime == b.gctime &&
@@ -141,7 +141,7 @@ type TrialRatio
     allocs::Float64
 end
 
-function Base.(:(==))(a::TrialRatio, b::TrialRatio)
+@compat function Base.:(==)(a::TrialRatio, b::TrialRatio)
     return a.params == b.params &&
            a.time == b.time &&
            a.gctime == b.gctime &&
@@ -190,7 +190,7 @@ function TrialJudgement(r::TrialRatio)
     return TrialJudgement(r, judge(time(r), ttol), judge(memory(r), mtol))
 end
 
-function Base.(:(==))(a::TrialJudgement, b::TrialJudgement)
+@compat function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
     return a.ratio == b.ratio &&
            a.time == b.time &&
            a.memory == b.memory

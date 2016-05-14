@@ -19,7 +19,7 @@ end
 # Dict-like methods #
 #-------------------#
 
-Base.(:(==))(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
+@compat Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.data))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), similar(group.data))
 Base.isempty(group::BenchmarkGroup) = isempty(group.data)

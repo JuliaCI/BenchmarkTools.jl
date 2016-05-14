@@ -17,7 +17,7 @@ A type that stores multiple benchmarks or benchmark results in a `Dict`-like str
 `BenchmarkGroup` supports the following methods from Julia's `Associative` interface:
 
 ```julia
-Base.(:(==))(a::BenchmarkGroup, b::BenchmarkGroup)
+Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup)
 Base.copy(group::BenchmarkGroup)
 Base.similar(group::BenchmarkGroup)
 Base.isempty(group::BenchmarkGroup)
