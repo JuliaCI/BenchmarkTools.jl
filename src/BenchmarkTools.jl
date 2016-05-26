@@ -2,15 +2,9 @@ module BenchmarkTools
 
 using Compat
 
-# Used to patch showcompact compatibility between v0.4 and v0.5.
-# We can't just define something like
-#
-#   Base.showcompact(io, x) = show(IOContext(io, limit_output = true), x)
-#
-# because showcompact then gets used by default by the REPL display methods,
-# which is pretty annoying.
-if VERSION < v"0.5-"
-    limit_output(io) = false
+# `show` compatibility for pre-JuliaLang/julia#16354 builds
+if VERSION < v"0.5.0-dev+4305"
+    Base.get(io::IO, setting::Symbol, default::Bool) = default
 end
 
 ##############

@@ -234,7 +234,7 @@ Base.showall(io::IO, group::BenchmarkGroup) = show(io, group; verbose = true, li
 # written this way for v0.5/v0.4 compatibility
 _showcompact(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
 
-if VERSION < v"0.5-"
+if VERSION < v"0.5.0-dev+4305"
     Base.showcompact(io::IO, group::BenchmarkGroup) = _showcompact(io, group)
     function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
         println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
@@ -258,24 +258,24 @@ if VERSION < v"0.5-"
     end
 else
     function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
-        if limit_output(io)
-            _showcompact(io, group)
-        else
+        if get(io, :multiline, true)
             println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
             print(io, pad, "  tags: ", tagrepr(group.tags))
             count = 1
-            element_io = verbose ? io : IOContext(io, :limit_output => true)
+            element_io = verbose ? io : IOContext(io, :multiline => false)
             for (k, v) in group
                 println(io)
                 print(io, pad, "  ", repr(k), " => ")
                 if verbose && isa(v, BenchmarkGroup)
-                    show(io, v, "\t"*pad; verbose = verbose, limit = limit)
+                    show(element_io, v, "\t"*pad; verbose = verbose, limit = limit)
                 else
-                    show(io, v)
+                    show(element_io, v)
                 end
                 count > limit && (println(io); print(io, pad, "  ⋮"); break)
                 count += 1
             end
+        else
+            _showcompact(io, t)
         end
     end
 end
