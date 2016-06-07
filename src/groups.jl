@@ -275,7 +275,7 @@ else
                 count += 1
             end
         else
-            _showcompact(io, t)
+            _showcompact(io, group)
         end
     end
 end
