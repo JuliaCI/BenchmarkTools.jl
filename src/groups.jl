@@ -105,15 +105,11 @@ end
 # leaf iteration/indexing #
 #-------------------------#
 
-# normal union doesn't have the behavior we want
-# (e.g. union(["1"], "2") === ["1", '2'])
-vcatunion(args...) = unique(vcat(args...))
-
 leaves(group::BenchmarkGroup) = leaves!(Any[], Any[], group)
 
 function leaves!(results, parents, group::BenchmarkGroup)
     for (k, v) in group
-        keys = vcatunion(parents, k)
+        keys = vcat(parents, k)
         if isa(v, BenchmarkGroup)
             leaves!(results, keys, v)
         else
@@ -172,6 +168,10 @@ function Base.getindex(src::BenchmarkGroup, f::TagFilter)
     loadtagged!(f, dest, src, src, Any[], src.tags)
     return dest
 end
+
+# normal union doesn't have the behavior we want
+# (e.g. union(["1"], "2") === ["1", '2'])
+vcatunion(args...) = unique(vcat(args...))
 
 function loadtagged!(f::TagFilter, dest::BenchmarkGroup, src::BenchmarkGroup,
                      group::BenchmarkGroup, keys::Vector, tags::Vector)
