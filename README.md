@@ -1,3 +1,5 @@
+Note: Some type definitions were changed between BenchmarkTools v0.0.2 and v0.0.3. To deserialize old JLD-formatted data using a newer version of BenchmarkTools, use `BenchmarkTools.loadold(args...)` instead of `JLD.load(args...)`.
+
 # BenchmarkTools.jl
 
 [![Build Status](https://travis-ci.org/JuliaCI/BenchmarkTools.jl.svg?branch=master)](https://travis-ci.org/JuliaCI/BenchmarkTools.jl)

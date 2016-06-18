@@ -9,7 +9,7 @@ type Parameters
     seconds::Float64
     samples::Int
     evals::Int
-    overhead::Int
+    overhead::Float64
     gctrial::Bool
     gcsample::Bool
     time_tolerance::Float64
@@ -80,16 +80,13 @@ end
         nullfunc()
     end
     sample_time = time_ns() - start_time
-    return Int(cld(sample_time, evals))
+    return sample_time / evals
 end
 
 function estimate_overhead()
     x = typemax(Int)
     for _ in 1:10000
-        y = overhead_sample(RESOLUTION)
-        if y < x
-            x = y
-        end
+        x = min(x, overhead_sample(RESOLUTION))
     end
     return x
 end

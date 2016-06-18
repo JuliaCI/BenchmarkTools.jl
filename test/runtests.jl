@@ -13,3 +13,8 @@ println("done (took ", toq(), " seconds)")
 print("Testing execution..."); tic()
 include("ExecutionTests.jl")
 println("done (took ", toq(), " seconds)")
+
+
+print("Testing backwards compatibility..."); tic()
+include("CompatTests.jl")
+println("done (took ", toq(), " seconds)")

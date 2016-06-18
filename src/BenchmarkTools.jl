@@ -1,6 +1,7 @@
 module BenchmarkTools
 
 using Compat
+import JLD
 
 # `show` compatibility for pre-JuliaLang/julia#16354 builds
 if VERSION < v"0.5.0-dev+4305"
@@ -58,6 +59,12 @@ export tune!,
        warmup,
        @benchmark,
        @benchmarkable
+
+###########################
+# Backwards Compatibility #
+###########################
+
+include("compat.jl")
 
 ##########################################
 # Plotting Facilities (loaded on demand) #
