@@ -156,7 +156,7 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 
 @test BenchmarkTools.prettytime(999) == "999.000 ns"
 @test BenchmarkTools.prettytime(1000) == "1.000 μs"
-@test BenchmarkTools.prettytime(999_999) == "1000.000 μs"
+@test BenchmarkTools.prettytime(999_999) == "999.999 μs"
 @test BenchmarkTools.prettytime(1_000_000) == "1.000 ms"
 @test BenchmarkTools.prettytime(999_999_999) == "1000.000 ms"
 @test BenchmarkTools.prettytime(1_000_000_000) == "1.000 s"
