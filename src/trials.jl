@@ -56,32 +56,6 @@ memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 params(t::Trial) = t.params
 
-# returns the index of the first outlier in `values`, if any outliers are detected.
-# `values` is assumed to be sorted from least to greatest, and assumed to be right-skewed.
-function skewcutoff(values)
-    current_values = copy(values)
-    while mean(current_values) > median(current_values)
-        deleteat!(current_values, length(current_values))
-    end
-    return length(current_values) + 1
-end
-
-skewcutoff(t::Trial) = skewcutoff(t.times)
-
-function rmskew!(t::Trial)
-    sort!(t)
-    i = skewcutoff(t)
-    i <= length(t) && deleteat!(t, i:length(t))
-    return t
-end
-
-function rmskew(t::Trial)
-    st = sort(t)
-    return st[1:(skewcutoff(st) - 1)]
-end
-
-trim(t::Trial, percentage = 0.1) = t[1:max(1, floor(Int, length(t) - (length(t) * percentage)))]
-
 #################
 # TrialEstimate #
 #################

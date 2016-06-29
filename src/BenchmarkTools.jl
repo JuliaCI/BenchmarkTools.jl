@@ -21,6 +21,7 @@ export loadparams!
 ##############
 
 include("trials.jl")
+include("subsample.jl")
 
 export gctime,
        memory,
@@ -30,10 +31,7 @@ export gctime,
        judge,
        isinvariant,
        isregression,
-       isimprovement,
-       rmskew!,
-       rmskew,
-       trim
+       isimprovement
 
 ##################
 # Benchmark Data #

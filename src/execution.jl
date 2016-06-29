@@ -261,7 +261,7 @@ macro benchmarkable(args...)
                         iters += 1
                         iters > params.samples && break
                     end
-                    return sort!(trial)
+                    return trial
                 end
                 BenchmarkTools.Benchmark{$(id)}($(params))
             end)
