@@ -1,6 +1,16 @@
 module BenchmarkTools
 
+import JSON
+
+import Compat.String
 using Compat
+
+##############
+# versioning #
+##############
+
+# keep this updated; it's necessary for versioned serialization
+const BENCHMARKTOOLS_VERSION = v"0.0.3"
 
 # `show` compatibility for pre-JuliaLang/julia#16354 builds
 if VERSION < v"0.5.0-dev+4305"
@@ -58,6 +68,12 @@ export tune!,
        warmup,
        @benchmark,
        @benchmarkable
+
+#####################
+# Save/Load Methods #
+#####################
+
+include("serialization.jl")
 
 ##########################################
 # Plotting Facilities (loaded on demand) #
