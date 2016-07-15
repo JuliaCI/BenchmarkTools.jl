@@ -56,6 +56,18 @@ memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 params(t::Trial) = t.params
 
+# replace the top `percent` samples with the next largest sample
+maxtrim(t::Trial, args...) = maxtrim!(copy(t), args...)
+
+function maxtrim!(t::Trial, percent = 0.05)
+    n = length(t)
+    if n > 1
+        startmax = n - floor(Int, n * percent) + 1
+        deleteat!(t, sort(sortperm(t.times)[startmax:end]))
+    end
+    return t
+end
+
 #################
 # TrialEstimate #
 #################
@@ -154,6 +166,7 @@ gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
 
 immutable TrialJudgement
     ratio::TrialRatio
+    pvalue::Float64
     time::Symbol
     memory::Symbol
 end
@@ -161,17 +174,31 @@ end
 function TrialJudgement(r::TrialRatio)
     ttol = params(r).time_tolerance
     mtol = params(r).memory_tolerance
-    return TrialJudgement(r, judge(time(r), ttol), judge(memory(r), mtol))
+    return TrialJudgement(r, NaN, judge(time(r), ttol), judge(memory(r), mtol))
+end
+
+function TrialJudgement(r::TrialRatio, p)
+    ttol = params(r).time_tolerance
+    mtol = params(r).memory_tolerance
+    if reject_pvalue(p, ttol)
+        time_ratio = time(r)
+        time_judgement = isnan(time_ratio) || (time_ratio > 1.0) ? :regression : :improvement
+    else
+        time_judgement = :invariant
+    end
+    return TrialJudgement(r, p, time_judgement, judge(memory(r), mtol))
 end
 
 @compat function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
     return a.ratio == b.ratio &&
+           ((isnan(a) && isnan(b)) || (a.pvalue == b.pvalue)) &&
            a.time == b.time &&
            a.memory == b.memory
 end
 
-Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.params), t.time, t.memory)
+Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.params), t.pvalue, t.time, t.memory)
 
+pvalue(t::TrialJudgement) = t.pvalue
 Base.time(t::TrialJudgement) = t.time
 memory(t::TrialJudgement) = t.memory
 ratio(t::TrialJudgement) = t.ratio
@@ -185,7 +212,14 @@ function judge(r::TrialRatio; kwargs...)
     return TrialJudgement(newr)
 end
 
-function judge(ratio::Real, tolerance::Float64)
+function judge(a::Trial, b::Trial; trials = nothing, block_size = nothing, kwargs...)
+    r = ratio(minimum(a), minimum(b))
+    r.params = Parameters(params(r); kwargs...)
+    p = subsample_pvalue(a.times, b.times; trials = trials, block_size = block_size)
+    return TrialJudgement(r, p)
+end
+
+function judge(ratio, tolerance)
     if isnan(ratio) || (ratio - tolerance) > 1.0
         return :regression
     elseif (ratio + tolerance) < 1.0
@@ -203,7 +237,7 @@ isinvariant(t::TrialJudgement) = time(t) == :invariant && memory(t) == :invarian
 # Pretty Printing #
 ###################
 
-prettypercent(p) = string(@sprintf("%.2f", p * 100), "%")
+prettypercent(p) = isnan(p) ? "N/A" : string(@sprintf("%.2f", p * 100), "%")
 
 function prettydiff(p)
     diff = p - 1.0
@@ -316,9 +350,19 @@ end
 
 function Base.show(io::IO, t::TrialJudgement)
     if get(io, :multiline, true)
+        p = pvalue(t)
+        if isnan(p)
+            time_tolstr = string(prettypercent(params(t).time_tolerance), " tolerance")
+            pvalue_str = ""
+        else
+            time_tolstr = string(@sprintf("%.3f", params(t).time_tolerance), " tolerance")
+            pvalue_str = string(@sprintf("%.3f", pvalue(t)), " pvalue, ")
+        end
+        time_qualifier = string(" (", pvalue_str, time_tolstr, ")")
+        memory_qualifier = string(" (", prettypercent(params(t).memory_tolerance), " tolerance)")
         println(io, "BenchmarkTools.TrialJudgement: ")
-        println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
-        print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
+        println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), time_qualifier)
+        print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), memory_qualifier)
     else
         _showcompact(io, t)
     end

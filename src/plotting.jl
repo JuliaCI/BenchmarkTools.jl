@@ -12,7 +12,7 @@ function plotkde(trials::Vector; kwargs...)
 end
 
 function plotkde(trial::BenchmarkTools.Trial; cut = 0.1, bandwidth = nothing, kwargs...)
-    trial = BenchmarkTools.trim(trial, cut)
+    trial = BenchmarkTools.maxtrim(trial, cut)
     k = bandwidth == nothing ? kde(trial) : kde(trial; bandwidth = bandwidth)
     plot(k; kwargs...)
 end
