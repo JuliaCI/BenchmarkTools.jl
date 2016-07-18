@@ -41,32 +41,11 @@ Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.times[i], t.gctime
 Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.endof(t::Trial) = length(t)
 
-function Base.sort!(t::Trial)
-    inds = sortperm(t.times)
-    t.times = t.times[inds]
-    t.gctimes = t.gctimes[inds]
-    return t
-end
-
-Base.sort(t::Trial) = sort!(copy(t))
-
 Base.time(t::Trial) = time(minimum(t))
 gctime(t::Trial) = gctime(minimum(t))
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 params(t::Trial) = t.params
-
-# replace the top `percent` samples with the next largest sample
-maxtrim(t::Trial, args...) = maxtrim!(copy(t), args...)
-
-function maxtrim!(t::Trial, percent = 0.05)
-    n = length(t)
-    if n > 1
-        startmax = n - floor(Int, n * percent) + 1
-        deleteat!(t, sort(sortperm(t.times)[startmax:end]))
-    end
-    return t
-end
 
 #################
 # TrialEstimate #
@@ -167,6 +146,7 @@ gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
 immutable TrialJudgement
     ratio::TrialRatio
     pvalue::Float64
+    threshold::Float64
     time::Symbol
     memory::Symbol
 end
@@ -174,19 +154,20 @@ end
 function TrialJudgement(r::TrialRatio)
     ttol = params(r).time_tolerance
     mtol = params(r).memory_tolerance
-    return TrialJudgement(r, NaN, judge(time(r), ttol), judge(memory(r), mtol))
+    return TrialJudgement(r, NaN, NaN, judge(time(r), ttol), judge(memory(r), mtol))
 end
 
-function TrialJudgement(r::TrialRatio, p)
+function TrialJudgement(r::TrialRatio, p, threshold)
     ttol = params(r).time_tolerance
     mtol = params(r).memory_tolerance
-    if reject_pvalue(p, ttol)
-        time_ratio = time(r)
-        time_judgement = isnan(time_ratio) || (time_ratio > 1.0) ? :regression : :improvement
-    else
-        time_judgement = :invariant
-    end
-    return TrialJudgement(r, p, time_judgement, judge(memory(r), mtol))
+    time_ratio = time(r)
+    # if reject_pvalue(p, threshold)
+    #     time_judgement = isnan(time_ratio) || (time_ratio > 1.0) ? :regression : :improvement
+    # else
+        time_judgement = judge(time_ratio, ttol)
+    # end
+    memory_judgement = judge(memory(r), mtol)
+    return TrialJudgement(r, p, threshold, time_judgement, memory_judgement)
 end
 
 @compat function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
@@ -198,6 +179,7 @@ end
 
 Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.params), t.pvalue, t.time, t.memory)
 
+threshold(t::TrialJudgement) = t.threshold
 pvalue(t::TrialJudgement) = t.pvalue
 Base.time(t::TrialJudgement) = t.time
 memory(t::TrialJudgement) = t.memory
@@ -212,11 +194,11 @@ function judge(r::TrialRatio; kwargs...)
     return TrialJudgement(newr)
 end
 
-function judge(a::Trial, b::Trial; trials = nothing, block_size = nothing, kwargs...)
+function judge(a::Trial, b::Trial; threshold = 0.05, beta = 0.0, trials = 1000, block_size = nothing, kwargs...)
     r = ratio(minimum(a), minimum(b))
     r.params = Parameters(params(r); kwargs...)
-    p = subsample_pvalue(a.times, b.times; trials = trials, block_size = block_size)
-    return TrialJudgement(r, p)
+    null_estimate, estimate = subsample(a, b, beta; trials = trials, block_size = block_size)
+    return TrialJudgement(r, two_tailed_pvalue(null_estimate, estimate), threshold)
 end
 
 function judge(ratio, tolerance)
@@ -350,19 +332,22 @@ end
 
 function Base.show(io::IO, t::TrialJudgement)
     if get(io, :multiline, true)
-        p = pvalue(t)
+        p, thresh = pvalue(t), threshold(t)
         if isnan(p)
-            time_tolstr = string(prettypercent(params(t).time_tolerance), " tolerance")
-            pvalue_str = ""
+            significance_string = "N/A"
         else
-            time_tolstr = string(@sprintf("%.3f", params(t).time_tolerance), " tolerance")
-            pvalue_str = string(@sprintf("%.3f", pvalue(t)), " pvalue, ")
+            rejected = p < thresh
+            comparator = rejected ? " < " : " >= "
+            pvalue_str = string(@sprintf("%.2f", p), " pvalue")
+            thresh_str = string(@sprintf("%.2f", thresh), " threshold")
+            hypothesis_string = string(rejected, " (", pvalue_str, comparator, thresh_str, ") ")
         end
-        time_qualifier = string(" (", pvalue_str, time_tolstr, ")")
-        memory_qualifier = string(" (", prettypercent(params(t).memory_tolerance), " tolerance)")
+        time_tolerance_string = string(" (", prettypercent(params(t).time_tolerance), " tolerance)")
+        memory_tolerance_string = string(" (", prettypercent(params(t).memory_tolerance), " tolerance)")
         println(io, "BenchmarkTools.TrialJudgement: ")
-        println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), time_qualifier)
-        print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), memory_qualifier)
+        println(io, "  significant change?: ", hypothesis_string)
+        println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), time_tolerance_string)
+        print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), memory_tolerance_string)
     else
         _showcompact(io, t)
     end
