@@ -148,19 +148,19 @@ function hasevals(params)
     return false
 end
 
-function collectvars(setup::Expr, vars::Vector{Symbol} = Symbol[])
-    if setup.head == :(=)
-        lhs = first(setup.args)
+function collectvars(ex::Expr, vars::Vector{Symbol} = Symbol[])
+    if ex.head == :(=)
+        lhs = first(ex.args)
         if isa(lhs, Symbol)
             push!(vars, lhs)
         elseif isa(lhs, Expr) && lhs.head == :tuple
             append!(vars, lhs.args)
         end
-    elseif setup.head == :comprehension
-        arg = setup.args[1]
+    elseif (ex.head == :comprehension || ex.head == :generator)
+        arg = ex.args[1]
         isa(arg, Expr) && collectvars(arg, vars)
     else
-        for arg in setup.args
+        for arg in ex.args
             isa(arg, Expr) && collectvars(arg, vars)
         end
     end
