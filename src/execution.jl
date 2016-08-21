@@ -181,6 +181,8 @@ end
 
 macro benchmarkable(args...)
     core, params = prunekwargs(args...)
+
+    # extract setup/teardown if present, removing them from the original expression
     setup, teardown = :(), :()
     delinds = Int[]
     for i in eachindex(params)
@@ -194,42 +196,47 @@ macro benchmarkable(args...)
         end
     end
     deleteat!(params, delinds)
-    vars = collectvars(setup)
-    outvars = isa(core,Expr) ? collectvars(core) : []
-    outvars = filter(var -> var in vars, outvars)   # only return vars defined in setup
-    if length(outvars) == 0
+
+    # extract any variable bindings shared between the core and setup expressions
+    setup_vars = collectvars(setup)
+    core_vars = isa(core, Expr) ? collectvars(core) : []
+    out_vars = filter(var -> var in setup_vars, core_vars)
+
+    if length(out_vars) == 0
         returns = :(return)
-    elseif length(outvars) == 1
-        returns = :(return $(outvars[1]))
+    elseif length(out_vars) == 1
+        returns = :(return $(out_vars[1]))
     else
-        outtuple = Expr(:tuple, outvars...)
-        returns = :(return $outtuple)
+        returns = :(return $(Expr(:tuple, out_vars...)))
     end
+
+    # Return an expression that, when eval'd, will itself eval an expression that defines
+    # the benchmark in the calling module's scope. This forcibly defines the benchmark at
+    # top-level module scope, hopefully ensuring that the "location" of the benchmark's
+    # definition will not be a factor for the sake of performance testing.
+    #
+    # The double-underscore-prefixed variable names are not particularly hygienic - it's
+    # possible for them to conflict with names used in the setup or teardown expressions.
+    # A more robust solution would be preferable.
     return esc(quote
-        let
-            func = gensym("func")
-            samplefunc = gensym("sample")
-            vars = $(Expr(:quote, vars))
-            outvars = $(Expr(:quote, outvars))
-            if length(outvars) == 0
-                invocation = :($(func)($(vars...)))
-            elseif length(outvars) == 1
-                invocation = :($(outvars[1]) = $(func)($(vars...)))
-            else
-                outtuple = Expr(:tuple, outvars...)
-                invocation = :($outtuple = $(func)($(vars...)))
-            end
-            id = Expr(:quote, gensym("benchmark"))
-            params = BenchmarkTools.Parameters($(params...))
+        let params = BenchmarkTools.Parameters($(params...)),
+            id = Expr(:quote, gensym("benchmark")),
+            setup_vars = $(Expr(:quote, setup_vars)),
+            out_vars = $(Expr(:quote, out_vars)),
+            samplefunc = gensym("sample"),
+            func = gensym("func"),
+            signature = :($(func)($(setup_vars...))),
+            n = $(length(out_vars)),
+            invocation = n == 0 ? signature : (n == 1 ? :($(out_vars[1]) = $(signature)) : :($(Expr(:tuple, out_vars...)) = $(signature)))
             eval(current_module(), quote
-                @noinline $(func)($(vars...)) = $($(Expr(:quote, Expr(:block, core, returns))))
+                @noinline $(signature) = $($(Expr(:quote, Expr(:block, core, returns))))
                 @noinline function $(samplefunc)(__params::BenchmarkTools.Parameters)
                     $($(Expr(:quote, setup)))
                     __evals = __params.evals
                     __gc_start = Base.gc_num()
                     __start_time = time_ns()
                     for __iter in 1:__evals
-                        $invocation
+                        $(invocation)
                     end
                     __sample_time = time_ns() - __start_time
                     __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
