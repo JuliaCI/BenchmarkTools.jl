@@ -202,76 +202,83 @@ macro benchmarkable(args...)
     core_vars = isa(core, Expr) ? collectvars(core) : []
     out_vars = filter(var -> var in setup_vars, core_vars)
 
+    # generate the benchmark definition
+    return esc(quote
+        BenchmarkTools.generate_benchmark_definition(current_module(),
+                                                     $(Expr(:quote, out_vars)),
+                                                     $(Expr(:quote, setup_vars)),
+                                                     $(Expr(:quote, core)),
+                                                     $(Expr(:quote, setup)),
+                                                     $(Expr(:quote, teardown)),
+                                                     BenchmarkTools.Parameters($(params...)))
+    end)
+end
+
+# `eval` an expression that forcibly defines the specified benchmark at
+# top-level of `eval_module`, hopefully ensuring that the "location" of the benchmark's
+# definition will not be a factor for the sake of performance testing.
+#
+# The double-underscore-prefixed variable names are not particularly hygienic - it's
+# possible for them to conflict with names used in the setup or teardown expressions.
+# A more robust solution would be preferable.
+function generate_benchmark_definition(eval_module, out_vars, setup_vars,
+                                       core, setup, teardown, params)
+    id = Expr(:quote, gensym("benchmark"))
+    corefunc = gensym("core")
+    samplefunc = gensym("sample")
+    signature = Expr(:call, corefunc, setup_vars...)
     if length(out_vars) == 0
         returns = :(return)
+        invocation = signature
     elseif length(out_vars) == 1
         returns = :(return $(out_vars[1]))
+        invocation = :($(out_vars[1]) = $(signature))
     else
         returns = :(return $(Expr(:tuple, out_vars...)))
+        invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
     end
-
-    # Return an expression that, when eval'd, will itself eval an expression that defines
-    # the benchmark in the calling module's scope. This forcibly defines the benchmark at
-    # top-level module scope, hopefully ensuring that the "location" of the benchmark's
-    # definition will not be a factor for the sake of performance testing.
-    #
-    # The double-underscore-prefixed variable names are not particularly hygienic - it's
-    # possible for them to conflict with names used in the setup or teardown expressions.
-    # A more robust solution would be preferable.
-    return esc(quote
-        let params = BenchmarkTools.Parameters($(params...)),
-            id = Expr(:quote, gensym("benchmark")),
-            setup_vars = $(Expr(:quote, setup_vars)),
-            out_vars = $(Expr(:quote, out_vars)),
-            samplefunc = gensym("sample"),
-            func = gensym("func"),
-            signature = :($(func)($(setup_vars...))),
-            n = $(length(out_vars)),
-            invocation = n == 0 ? signature : (n == 1 ? :($(out_vars[1]) = $(signature)) : :($(Expr(:tuple, out_vars...)) = $(signature)))
-            eval(current_module(), quote
-                @noinline $(signature) = $($(Expr(:quote, Expr(:block, core, returns))))
-                @noinline function $(samplefunc)(__params::BenchmarkTools.Parameters)
-                    $($(Expr(:quote, setup)))
-                    __evals = __params.evals
-                    __gc_start = Base.gc_num()
-                    __start_time = time_ns()
-                    for __iter in 1:__evals
-                        $(invocation)
-                    end
-                    __sample_time = time_ns() - __start_time
-                    __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
-                    $($(Expr(:quote, teardown)))
-                    __time = max(Int(cld(__sample_time, __evals)) - __params.overhead, 1)
-                    __gctime = max(Int(cld(__gcdiff.total_time, __evals)) - __params.overhead, 0)
-                    __memory = Int(fld(__gcdiff.allocd, __evals))
-                    __allocs = Int(fld(__gcdiff.malloc + __gcdiff.realloc +
-                                       __gcdiff.poolalloc + __gcdiff.bigalloc,
-                                       __evals))
-                    return __time, __gctime, __memory, __allocs
-                end
-                function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)},
-                                               p::BenchmarkTools.Parameters = b.params)
-                    return $(samplefunc)(p)
-                end
-                function BenchmarkTools._run(b::BenchmarkTools.Benchmark{$(id)},
-                                             p::BenchmarkTools.Parameters;
-                                             verbose = false, pad = "", kwargs...)
-                    params = BenchmarkTools.Parameters(p; kwargs...)
-                    @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-                    params.gctrial && gc()
-                    start_time = time()
-                    trial = BenchmarkTools.Trial(params)
-                    iters = 1
-                    while (time() - start_time) < params.seconds
-                        params.gcsample && gc()
-                        push!(trial, $(samplefunc)(params)...)
-                        iters += 1
-                        iters > params.samples && break
-                    end
-                    return sort!(trial)
-                end
-                BenchmarkTools.Benchmark{$(id)}($(params))
-            end)
+    eval(eval_module, quote
+        @noinline $(signature) = ($(core); $(returns))
+        @noinline function $(samplefunc)(__params::BenchmarkTools.Parameters)
+            $(setup)
+            __evals = __params.evals
+            __gc_start = Base.gc_num()
+            __start_time = time_ns()
+            for __iter in 1:__evals
+                $(invocation)
+            end
+            __sample_time = time_ns() - __start_time
+            __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
+            $(teardown)
+            __time = max(Int(cld(__sample_time, __evals)) - __params.overhead, 1)
+            __gctime = max(Int(cld(__gcdiff.total_time, __evals)) - __params.overhead, 0)
+            __memory = Int(fld(__gcdiff.allocd, __evals))
+            __allocs = Int(fld(__gcdiff.malloc + __gcdiff.realloc +
+                               __gcdiff.poolalloc + __gcdiff.bigalloc,
+                               __evals))
+            return __time, __gctime, __memory, __allocs
         end
+        function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)},
+                                       p::BenchmarkTools.Parameters = b.params)
+            return $(samplefunc)(p)
+        end
+        function BenchmarkTools._run(b::BenchmarkTools.Benchmark{$(id)},
+                                     p::BenchmarkTools.Parameters;
+                                     verbose = false, pad = "", kwargs...)
+            params = BenchmarkTools.Parameters(p; kwargs...)
+            @assert params.seconds > 0.0 "time limit must be greater than 0.0"
+            params.gctrial && gc()
+            start_time = time()
+            trial = BenchmarkTools.Trial(params)
+            iters = 1
+            while (time() - start_time) < params.seconds
+                params.gcsample && gc()
+                push!(trial, $(samplefunc)(params)...)
+                iters += 1
+                iters > params.samples && break
+            end
+            return sort!(trial)
+        end
+        BenchmarkTools.Benchmark{$(id)}($(params))
     end)
 end
