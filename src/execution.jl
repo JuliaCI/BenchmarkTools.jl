@@ -1,3 +1,8 @@
+# Trigger several successive GC sweeps. This is more comprehensive than running just a
+# single sweep, since freeable objects may need more than one sweep to be appropriately
+# marked and freed.
+gcscrub() = (gc(); gc(); gc(); gc())
+
 #############
 # Benchmark #
 #############
@@ -29,7 +34,7 @@ end
 
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
     result = similar(group)
-    gc() # run GC before running group, even if individual benchmarks don't manually GC
+    gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
     for id in keys(group)
         verbose && (println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "..."); tic())
@@ -43,10 +48,10 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
     params = Parameters(p; kwargs...)
     estimates = zeros(Int, maxevals)
     completed = 0
-    params.gctrial && gc()
+    params.gctrial && gcscrub()
     start_time = time()
     for evals in eachindex(estimates)
-        params.gcsample && gc()
+        params.gcsample && gcscrub()
         params.evals = evals
         estimates[evals] = first(sample(b, params))
         completed += 1
@@ -99,7 +104,7 @@ for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] = 11 - i)      end # linearl
 guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
 
 function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
-    gc() # run GC before running group, even if individual benchmarks don't manually GC
+    gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
     for id in keys(group)
         verbose && (println(pad, "($(i)/$(length(group))) tuning ", repr(id), "..."); tic())
@@ -111,6 +116,7 @@ end
 
 function tune!(b::Benchmark, p::Parameters = b.params;
                verbose::Bool = false, pad = "", kwargs...)
+    warmup(b, false)
     estimate = minimum(lineartrial(b, p; kwargs...))
     b.params.evals = guessevals(estimate)
     return b
@@ -267,12 +273,12 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
                                      verbose = false, pad = "", kwargs...)
             params = BenchmarkTools.Parameters(p; kwargs...)
             @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-            params.gctrial && gc()
+            params.gctrial && BenchmarkTools.gcscrub()
             start_time = time()
             trial = BenchmarkTools.Trial(params)
             iters = 1
             while (time() - start_time) < params.seconds
-                params.gcsample && gc()
+                params.gcsample && gcscrub()
                 push!(trial, $(samplefunc)(params)...)
                 iters += 1
                 iters > params.samples && break
