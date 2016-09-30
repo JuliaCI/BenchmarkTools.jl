@@ -1,11 +1,14 @@
 module BenchmarkTools
 
 using Compat
+import JLD
 
 # `show` compatibility for pre-JuliaLang/julia#16354 builds
 if VERSION < v"0.5.0-dev+4305"
     Base.get(io::IO, setting::Symbol, default::Bool) = default
 end
+
+const BENCHMARKTOOLS_VERSION = v"0.0.6"
 
 ##############
 # Parameters #
@@ -64,5 +67,11 @@ export tune!,
 ##########################################
 
 loadplotting() = include(joinpath(dirname(@__FILE__), "plotting.jl"))
+
+#################
+# Serialization #
+#################
+
+include("serialization.jl")
 
 end # module BenchmarkTools

@@ -46,7 +46,7 @@ end
 
 function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUTION, kwargs...)
     params = Parameters(p; kwargs...)
-    estimates = zeros(Int, maxevals)
+    estimates = zeros(maxevals)
     completed = 0
     params.gctrial && gcscrub()
     start_time = time()
@@ -117,7 +117,7 @@ end
 function tune!(b::Benchmark, p::Parameters = b.params;
                verbose::Bool = false, pad = "", kwargs...)
     warmup(b, false)
-    estimate = minimum(lineartrial(b, p; kwargs...))
+    estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
     b.params.evals = guessevals(estimate)
     return b
 end
@@ -256,8 +256,8 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
             __sample_time = time_ns() - __start_time
             __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
             $(teardown)
-            __time = max(Int(cld(__sample_time, __evals)) - __params.overhead, 1)
-            __gctime = max(Int(cld(__gcdiff.total_time, __evals)) - __params.overhead, 0)
+            __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+            __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
             __memory = Int(fld(__gcdiff.allocd, __evals))
             __allocs = Int(fld(__gcdiff.malloc + __gcdiff.realloc +
                                __gcdiff.poolalloc + __gcdiff.bigalloc,
