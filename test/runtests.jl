@@ -13,3 +13,7 @@ println("done (took ", toq(), " seconds)")
 print("Testing execution..."); tic()
 include("ExecutionTests.jl")
 println("done (took ", toq(), " seconds)")
+
+print("Testing serialization..."); tic()
+include("SerializationTests.jl")
+println("done (took ", toq(), " seconds)")

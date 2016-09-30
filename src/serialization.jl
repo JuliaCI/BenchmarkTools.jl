@@ -37,7 +37,7 @@ function save(filename, args...)
     return nothing
 end
 
-function load(filename, args...)
+@inline function load(filename, args...)
     # no version-based rules are needed for now, we just need
     # to check that version information exists in the file.
     if JLD.jldopen(file -> JLD.exists(file, VERSION_KEY), filename, "r")
