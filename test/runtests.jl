@@ -13,3 +13,9 @@ println("done (took ", toq(), " seconds)")
 print("Testing execution..."); tic()
 include("ExecutionTests.jl")
 println("done (took ", toq(), " seconds)")
+
+# This test fails due to a weird JLD scoping error. See JuliaCI/BenchmarkTools.jl#23.
+#
+# print("Testing serialization..."); tic()
+# include("SerializationTests.jl")
+# println("done (took ", toq(), " seconds)")

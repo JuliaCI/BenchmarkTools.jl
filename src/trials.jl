@@ -4,13 +4,13 @@
 
 type Trial
     params::Parameters
-    times::Vector{Int}
-    gctimes::Vector{Int}
+    times::Vector{Float64}
+    gctimes::Vector{Float64}
     memory::Int
     allocs::Int
 end
 
-Trial(params::Parameters) = Trial(params, Int[], Int[], typemax(Int), typemax(Int))
+Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
 
 @compat function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
@@ -246,7 +246,7 @@ function prettytime(t)
     else
         value, units = t / 1e9, "s"
     end
-    return string(@sprintf("%.2f", value), " ", units)
+    return string(@sprintf("%.3f", value), " ", units)
 end
 
 function prettymemory(b)

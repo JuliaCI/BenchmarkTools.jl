@@ -154,12 +154,12 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 @test BenchmarkTools.prettydiff(1.0) == "+0.00%"
 @test BenchmarkTools.prettydiff(2.0) == "+100.00%"
 
-@test BenchmarkTools.prettytime(999) == "999.00 ns"
-@test BenchmarkTools.prettytime(1000) == "1.00 μs"
-@test BenchmarkTools.prettytime(999_999) == "1000.00 μs"
-@test BenchmarkTools.prettytime(1_000_000) == "1.00 ms"
-@test BenchmarkTools.prettytime(999_999_999) == "1000.00 ms"
-@test BenchmarkTools.prettytime(1_000_000_000) == "1.00 s"
+@test BenchmarkTools.prettytime(999) == "999.000 ns"
+@test BenchmarkTools.prettytime(1000) == "1.000 μs"
+@test BenchmarkTools.prettytime(999_999) == "999.999 μs"
+@test BenchmarkTools.prettytime(1_000_000) == "1.000 ms"
+@test BenchmarkTools.prettytime(999_999_999) == "1000.000 ms"
+@test BenchmarkTools.prettytime(1_000_000_000) == "1.000 s"
 
 @test BenchmarkTools.prettymemory(1023) == "1023.00 bytes"
 @test BenchmarkTools.prettymemory(1024) == "1.00 kb"
