@@ -8,6 +8,10 @@ if VERSION < v"0.5.0-dev+4305"
     Base.get(io::IO, setting::Symbol, default::Bool) = default
 end
 
+if VERSION >= v"0.6.0-dev.1015"
+  using Base.Iterators
+end
+
 const BENCHMARKTOOLS_VERSION = v"0.0.6"
 
 ##############
