@@ -234,17 +234,20 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
     samplefunc = gensym("sample")
     signature = Expr(:call, corefunc, setup_vars...)
     if length(out_vars) == 0
-        returns = :(return)
+        returns = :()
         invocation = signature
+        core_body = core
     elseif length(out_vars) == 1
         returns = :(return $(out_vars[1]))
         invocation = :($(out_vars[1]) = $(signature))
+        core_body = :($(core); $(returns))
     else
         returns = :(return $(Expr(:tuple, out_vars...)))
         invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
+        core_body = :($(core); $(returns))
     end
     eval(eval_module, quote
-        @noinline $(signature) = ($(core); $(returns))
+        @noinline $(signature) = begin $(core_body) end
         @noinline function $(samplefunc)(__params::BenchmarkTools.Parameters)
             $(setup)
             __evals = __params.evals
