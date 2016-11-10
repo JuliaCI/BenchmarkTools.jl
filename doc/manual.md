@@ -52,16 +52,18 @@ To quickly benchmark a Julia expression, use `@benchmark`:
 ```julia
 julia> @benchmark sin(1)
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     1000
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  0.00 bytes
   allocs estimate:  0
+  --------------
   minimum time:     13.00 ns (0.00% GC)
   median time:      13.00 ns (0.00% GC)
   mean time:        13.02 ns (0.00% GC)
   maximum time:     36.00 ns (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1000
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 ```
 
 The `@benchmark` macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark's configuration parameters, and running the benchmark. These three steps can be done explicitly using `@benchmarkable`, `tune!` and `run`:
@@ -74,16 +76,18 @@ julia> tune!(b);
 
 julia> run(b)
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     1000
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  0.00 bytes
   allocs estimate:  0
+  --------------
   minimum time:     13.00 ns (0.00% GC)
   median time:      13.00 ns (0.00% GC)
   mean time:        13.10 ns (0.00% GC)
   maximum time:     25.00 ns (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1000
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 ```
 
 ### Benchmark `Parameters`
@@ -123,31 +127,35 @@ You can interpolate values into `@benchmark` and `@benchmarkable` expressions:
 # rand(1000) is executed for each evaluation
 julia> @benchmark sum(rand(1000))
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     4
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  7.92 kb
   allocs estimate:  3
+  --------------
   minimum time:     1.68 μs (0.00% GC)
   median time:      2.10 μs (0.00% GC)
   mean time:        3.03 μs (25.09% GC)
   maximum time:     720.40 μs (99.23% GC)
+  --------------
+  samples:          10000
+  evals/sample:     4
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 
 # rand(1000) is evaluated at definition time, and the resulting
 # value is interpolated into the benchmark expression
 julia> @benchmark sum($(rand(1000)))
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     153
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  0.00 bytes
   allocs estimate:  0
+  --------------
   minimum time:     185.00 ns (0.00% GC)
   median time:      186.00 ns (0.00% GC)
   mean time:        188.95 ns (0.00% GC)
   maximum time:     264.00 ns (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     153
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 ```
 
 A good rule of thumb is that **external variables should be explicitly interpolated into the benchmark expression**:
@@ -158,30 +166,34 @@ julia> A = rand(1000);
 # BAD: A is a global variable in the benchmarking context
 julia> @benchmark [i*i for i in A]
 BenchmarkTools.Trial:
-  samples:          5528
-  evals/sample:     1
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  241.63 kb
   allocs estimate:  9960
+  --------------
   minimum time:     856.66 μs (0.00% GC)
   median time:      867.32 μs (0.00% GC)
   mean time:        903.11 μs (3.83% GC)
   maximum time:     4.26 ms (78.46% GC)
+  --------------
+  samples:          5528
+  evals/sample:     1
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 
 # GOOD: A is a constant value in the benchmarking context
 julia> @benchmark [i*i for i in $A]
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     7
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  7.89 kb
   allocs estimate:  1
+  --------------
   minimum time:     1.12 μs (0.00% GC)
   median time:      1.54 μs (0.00% GC)
   mean time:        2.94 μs (33.45% GC)
   maximum time:     1.13 ms (99.59% GC)
+  --------------
+  samples:          10000
+  evals/sample:     7
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 ```
 
 Keep in mind that you can mutate external state from within a benchmark:
@@ -222,16 +234,18 @@ BenchmarkTools.Benchmark{symbol("##benchmark#7556")}(BenchmarkTools.Parameters(5
 
 julia> run(b)
 BenchmarkTools.Trial:
-  samples:          1000
-  evals/sample:     1
-  time tolerance:   5.0%
-  memory tolerance: 5.0%
   memory estimate:  0.0 bytes
   allocs estimate:  0
+  --------------
   minimum time:     6.76 ms (0.0% GC)
   median time:      6.81 ms (0.0% GC)
   mean time:        6.82 ms (0.0% GC)
   maximum time:     6.96 ms (0.0% GC)
+  --------------
+  samples:          1000
+  evals/sample:     1
+  time tolerance:   5.0%
+  memory tolerance: 5.0%
 ```
 
 In the above example, we wish to benchmark Julia's in-place sorting method. Without a setup phase, we'd have to either allocate a new input vector for each sample (such that the allocation time would pollute our results) or use the same input vector every sample (such that all samples but the first would benchmark the wrong thing - sorting an already sorted vector). The setup phase solves the problem by allowing us to do some work that can be utilized by the core expression, without that work being erroneously included in our performance results.
@@ -256,16 +270,18 @@ Running a benchmark produces an instance of the `Trial` type:
 ```julia
 julia> t = @benchmark eig(rand(10, 10))
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     1
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  18.84 kb
   allocs estimate:  70
+  --------------
   minimum time:     167.17 μs (0.00% GC)
   median time:      180.65 μs (0.00% GC)
   mean time:        202.64 μs (1.00% GC)
   maximum time:     3.00 ms (88.78% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 
 julia> dump(t) # here's what's actually stored in a Trial
 BenchmarkTools.Trial
