@@ -260,16 +260,18 @@ It's possible for LLVM and Julia's compiler to perform optimizations on `@benchm
 ```julia
 julia> @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     1000
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  0.00 bytes
   allocs estimate:  0
+  --------------
   minimum time:     2.537 ns (0.00% GC)
   median time:      2.548 ns (0.00% GC)
   mean time:        2.563 ns (0.00% GC)
   maximum time:     12.567 ns (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1000
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 ```
 
 Note, however, that this does not mean that `view(a, 1:2, 1:2)` is non-allocating:
@@ -277,16 +279,18 @@ Note, however, that this does not mean that `view(a, 1:2, 1:2)` is non-allocatin
 ```julia
 julia> @benchmark view(a, 1:2, 1:2) setup=(a = rand(3, 3))
 BenchmarkTools.Trial:
-  samples:          10000
-  evals/sample:     998
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
   memory estimate:  64.00 bytes
   allocs estimate:  1
+  --------------
   minimum time:     17.079 ns (0.00% GC)
   median time:      19.489 ns (0.00% GC)
   mean time:        21.523 ns (7.58% GC)
   maximum time:     757.319 ns (81.70% GC)
+  --------------
+  samples:          10000
+  evals/sample:     998
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
 ```
 
 The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away `view(a, 1:2, 1:2)` because it could prove that the value wasn't being returned and `a` wasn't being mutated. In the second example, the optimization is not performed because `view(a, 1:2, 1:2)` is a return value of the benchmark expression.
