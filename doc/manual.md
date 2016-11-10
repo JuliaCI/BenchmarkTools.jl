@@ -10,6 +10,7 @@ Bold links indicate sections that should be read carefully in order to avoid com
     * [Benchmark `Parameters`](#benchmark-parameters)
     * **[Interpolating values into benchmark expressions](#interpolating-values-into-benchmark-expressions)**
     * [Setup and teardown phases](#setup-and-teardown-phases)
+    * [Understanding compiler optimizations](#understanding-compiler-optimizations)
 - [Handling benchmark results](#handling-benchmark-results)
     * [`Trial` and `TrialEstimate`](#trial-and-trialestimate)
     * **[Which estimator should I use?](#which-estimator-should-i-use)**
@@ -237,6 +238,46 @@ BenchmarkTools.Trial:
 In the above example, we wish to benchmark Julia's in-place sorting method. Without a setup phase, we'd have to either allocate a new input vector for each sample (such that the allocation time would pollute our results) or use the same input vector every sample (such that all samples but the first would benchmark the wrong thing - sorting an already sorted vector). The setup phase solves the problem by allowing us to do some work that can be utilized by the core expression, without that work being erroneously included in our performance results.
 
 Note that the `setup` and `teardown` phases are **executed for each sample, not each evaluation**. Thus, the sorting example above wouldn't produce the intended results if `evals/sample > 1` (it'd suffer from the same problem of benchmarking against an already sorted vector).
+
+### Understanding compiler optimizations
+
+It's possible for LLVM and Julia's compiler to perform optimizations on `@benchmarkable` expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly "fast" benchmarks. For example, the following expression is non-allocating:
+
+```julia
+julia> @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
+BenchmarkTools.Trial:
+  samples:          10000
+  evals/sample:     1000
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
+  memory estimate:  0.00 bytes
+  allocs estimate:  0
+  minimum time:     2.537 ns (0.00% GC)
+  median time:      2.548 ns (0.00% GC)
+  mean time:        2.563 ns (0.00% GC)
+  maximum time:     12.567 ns (0.00% GC)
+```
+
+Note, however, that this does not mean that `view(a, 1:2, 1:2)` is non-allocating:
+
+```julia
+julia> @benchmark view(a, 1:2, 1:2) setup=(a = rand(3, 3))
+BenchmarkTools.Trial:
+  samples:          10000
+  evals/sample:     998
+  time tolerance:   5.00%
+  memory tolerance: 1.00%
+  memory estimate:  64.00 bytes
+  allocs estimate:  1
+  minimum time:     17.079 ns (0.00% GC)
+  median time:      19.489 ns (0.00% GC)
+  mean time:        21.523 ns (7.58% GC)
+  maximum time:     757.319 ns (81.70% GC)
+```
+
+The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away `view(a, 1:2, 1:2)` because it could prove that the value wasn't being returned and `a` wasn't being mutated. In the second example, the optimization is not performed because `view(a, 1:2, 1:2)` is a return value of the benchmark expression.
+
+In conclusion, BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It's up to you to design benchmarks which actually exercise the code you intend to exercise.
 
 # Handling benchmark results
 
