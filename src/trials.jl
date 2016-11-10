@@ -297,16 +297,19 @@ function Base.show(io::IO, t::Trial)
             meanstr = "N/A"
         end
         println(io, "BenchmarkTools.Trial: ")
-        println(io, "  samples:          ", length(t))
-        println(io, "  evals/sample:     ", t.params.evals)
-        println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-        println(io, "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
         println(io, "  memory estimate:  ", memorystr)
         println(io, "  allocs estimate:  ", allocsstr)
+        println(io, "  --------------")
         println(io, "  minimum time:     ", minstr)
         println(io, "  median time:      ", maxstr)
         println(io, "  mean time:        ", medstr)
-        print(io,   "  maximum time:     ", meanstr)
+        println(io, "  maximum time:     ", meanstr)
+        println(io, "  --------------")
+        println(io, "  samples:          ", length(t))
+        println(io, "  evals/sample:     ", t.params.evals)
+        println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
+        print(io, "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
+
     else
         _showcompact(io, t)
     end
