@@ -220,10 +220,12 @@ macro benchmarkable(args...)
     end
     deleteat!(params, delinds)
 
-    quote_vars = Expr[]
-    core = quasiquote!(core, quote_vars)
-    if !isempty(quote_vars)
-        setup = Expr(:block, setup, quote_vars...)
+    if isa(core, Expr)
+        quote_vars = Expr[]
+        core = quasiquote!(core, quote_vars)
+        if !isempty(quote_vars)
+            setup = Expr(:block, setup, quote_vars...)
+        end
     end
 
     # extract any variable bindings shared between the core and setup expressions
