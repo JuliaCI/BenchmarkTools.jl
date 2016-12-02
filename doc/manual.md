@@ -221,6 +221,21 @@ julia> A
  0.647885
  0.647885
 ```
+
+Normally, you can't use locally scoped variables in `@benchmark` or `@benchmarkable`, since all benchmarks are defined at the top-level scope by design. However, you can work around this by interpolating local variables into the benchmark expression:
+
+```julia
+# will throw UndefVar error for `x`
+julia> let x = 1
+           @benchmark sin(x)
+       end
+
+# will work fine
+julia> let x = 1
+           @benchmark sin($x)
+       end
+```
+
 ### Setup and teardown phases
 
 BenchmarkTools allows you to pass `setup` and `teardown` expressions to `@benchmark` and `@benchmarkable`. The `setup` expression is evaluated just before sample execution, while the `teardown` expression is evaluated just after sample execution. Here's an example where this kind of thing is useful:
