@@ -173,6 +173,23 @@ function collectvars(ex::Expr, vars::Vector{Symbol} = Symbol[])
     return vars
 end
 
+function quasiquote!(ex::Expr, vars::Vector{Expr})
+    if ex.head === :($)
+        lhs = ex.args[1]
+        rhs = isa(lhs, Symbol) ? gensym(lhs) : gensym()
+        push!(vars, Expr(:(=), rhs, ex))
+        return rhs
+    elseif ex.head !== :quote
+        for i in 1:length(ex.args)
+            arg = ex.args[i]
+            if isa(arg, Expr)
+                ex.args[i] = quasiquote!(arg, vars)
+            end
+        end
+    end
+    return ex
+end
+
 macro benchmark(args...)
     tmp = gensym()
     _, params = prunekwargs(args...)
@@ -189,7 +206,7 @@ macro benchmarkable(args...)
     core, params = prunekwargs(args...)
 
     # extract setup/teardown if present, removing them from the original expression
-    setup, teardown = :(), :()
+    setup, teardown = nothing, nothing
     delinds = Int[]
     for i in eachindex(params)
         ex = params[i]
@@ -203,8 +220,16 @@ macro benchmarkable(args...)
     end
     deleteat!(params, delinds)
 
+    if isa(core, Expr)
+        quote_vars = Expr[]
+        core = quasiquote!(core, quote_vars)
+        if !isempty(quote_vars)
+            setup = Expr(:block, setup, quote_vars...)
+        end
+    end
+
     # extract any variable bindings shared between the core and setup expressions
-    setup_vars = collectvars(setup)
+    setup_vars = isa(setup, Expr) ? collectvars(setup) : []
     core_vars = isa(core, Expr) ? collectvars(core) : []
     out_vars = filter(var -> var in setup_vars, core_vars)
 
@@ -234,7 +259,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
     samplefunc = gensym("sample")
     signature = Expr(:call, corefunc, setup_vars...)
     if length(out_vars) == 0
-        returns = :()
+        #returns = :(return $(Expr(:tuple, setup_vars...)))
         invocation = signature
         core_body = core
     elseif length(out_vars) == 1
