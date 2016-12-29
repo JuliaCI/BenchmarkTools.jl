@@ -262,10 +262,10 @@ function prettymemory(b)
     return string(@sprintf("%.2f", value), " ", units)
 end
 
-show(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
-show(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(time(t)), ")")
-show(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(time(t)), ")")
-show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
+Base.show(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
+Base.show(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(time(t)), ")")
+Base.show(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(time(t)), ")")
+Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     if length(t) > 0

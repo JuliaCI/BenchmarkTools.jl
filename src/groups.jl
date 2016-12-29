@@ -231,7 +231,7 @@ tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
 Base.showall(io::IO, group::BenchmarkGroup) = @compat show(io, MIME"text/plain"(), group; verbose = true, limit = Inf)
 
-show(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
+Base.show(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
 
 @compat function Base.show(io::IO, mime::MIME"text/plain", group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
     println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
