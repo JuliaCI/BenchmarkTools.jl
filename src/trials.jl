@@ -262,93 +262,68 @@ function prettymemory(b)
     return string(@sprintf("%.2f", value), " ", units)
 end
 
-# written this way for v0.5/v0.4 compatibility
-_showcompact(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
-_showcompact(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(time(t)), ")")
-_showcompact(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(time(t)), ")")
-_showcompact(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
+Base.show(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
+Base.show(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(time(t)), ")")
+Base.show(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(time(t)), ")")
+Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
 
-if VERSION < v"0.5-"
-    Base.showcompact(io::IO, t::Trial) = _showcompact(io, t)
-    Base.showcompact(io::IO, t::TrialEstimate) = _showcompact(io, t)
-    Base.showcompact(io::IO, t::TrialRatio) = _showcompact(io, t)
-    Base.showcompact(io::IO, t::TrialJudgement) = _showcompact(io, t)
+@compat function Base.show(io::IO, ::MIME"text/plain", t::Trial)
+    if length(t) > 0
+        min = minimum(t)
+        max = maximum(t)
+        med = median(t)
+        avg = mean(t)
+        memorystr = string(prettymemory(memory(min)))
+        allocsstr = string(allocs(min))
+        minstr = string(prettytime(time(min)), " (", prettypercent(gcratio(min)), " GC)")
+        maxstr = string(prettytime(time(med)), " (", prettypercent(gcratio(med)), " GC)")
+        medstr = string(prettytime(time(avg)), " (", prettypercent(gcratio(avg)), " GC)")
+        meanstr = string(prettytime(time(max)), " (", prettypercent(gcratio(max)), " GC)")
+    else
+        memorystr = "N/A"
+        allocsstr = "N/A"
+        minstr = "N/A"
+        maxstr = "N/A"
+        medstr = "N/A"
+        meanstr = "N/A"
+    end
+    println(io, "BenchmarkTools.Trial: ")
+    println(io, "  memory estimate:  ", memorystr)
+    println(io, "  allocs estimate:  ", allocsstr)
+    println(io, "  --------------")
+    println(io, "  minimum time:     ", minstr)
+    println(io, "  median time:      ", maxstr)
+    println(io, "  mean time:        ", medstr)
+    println(io, "  maximum time:     ", meanstr)
+    println(io, "  --------------")
+    println(io, "  samples:          ", length(t))
+    println(io, "  evals/sample:     ", t.params.evals)
+    println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
+    print(io, "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
 end
 
-function Base.show(io::IO, t::Trial)
-    if get(io, :multiline, true)
-        if length(t) > 0
-            min = minimum(t)
-            max = maximum(t)
-            med = median(t)
-            avg = mean(t)
-            memorystr = string(prettymemory(memory(min)))
-            allocsstr = string(allocs(min))
-            minstr = string(prettytime(time(min)), " (", prettypercent(gcratio(min)), " GC)")
-            maxstr = string(prettytime(time(med)), " (", prettypercent(gcratio(med)), " GC)")
-            medstr = string(prettytime(time(avg)), " (", prettypercent(gcratio(avg)), " GC)")
-            meanstr = string(prettytime(time(max)), " (", prettypercent(gcratio(max)), " GC)")
-        else
-            memorystr = "N/A"
-            allocsstr = "N/A"
-            minstr = "N/A"
-            maxstr = "N/A"
-            medstr = "N/A"
-            meanstr = "N/A"
-        end
-        println(io, "BenchmarkTools.Trial: ")
-        println(io, "  memory estimate:  ", memorystr)
-        println(io, "  allocs estimate:  ", allocsstr)
-        println(io, "  --------------")
-        println(io, "  minimum time:     ", minstr)
-        println(io, "  median time:      ", maxstr)
-        println(io, "  mean time:        ", medstr)
-        println(io, "  maximum time:     ", meanstr)
-        println(io, "  --------------")
-        println(io, "  samples:          ", length(t))
-        println(io, "  evals/sample:     ", t.params.evals)
-        println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-        print(io, "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
-
-    else
-        _showcompact(io, t)
-    end
+@compat function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
+    println(io, "BenchmarkTools.TrialEstimate: ")
+    println(io, "  time:             ", prettytime(time(t)))
+    println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
+    println(io, "  memory:           ", prettymemory(memory(t)))
+    println(io, "  allocs:           ", allocs(t))
+    println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
+    print(io,   "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
 end
 
-function Base.show(io::IO, t::TrialEstimate)
-    if get(io, :multiline, true)
-        println(io, "BenchmarkTools.TrialEstimate: ")
-        println(io, "  time:             ", prettytime(time(t)))
-        println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
-        println(io, "  memory:           ", prettymemory(memory(t)))
-        println(io, "  allocs:           ", allocs(t))
-        println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-        print(io,   "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
-    else
-        _showcompact(io, t)
-    end
+@compat function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
+    println(io, "BenchmarkTools.TrialRatio: ")
+    println(io, "  time:             ", time(t))
+    println(io, "  gctime:           ", gctime(t))
+    println(io, "  memory:           ", memory(t))
+    println(io, "  allocs:           ", allocs(t))
+    println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
+    print(io,   "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
 end
 
-function Base.show(io::IO, t::TrialRatio)
-    if get(io, :multiline, true)
-        println(io, "BenchmarkTools.TrialRatio: ")
-        println(io, "  time:             ", time(t))
-        println(io, "  gctime:           ", gctime(t))
-        println(io, "  memory:           ", memory(t))
-        println(io, "  allocs:           ", allocs(t))
-        println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-        print(io,   "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
-    else
-        _showcompact(io, t)
-    end
-end
-
-function Base.show(io::IO, t::TrialJudgement)
-    if get(io, :multiline, true)
-        println(io, "BenchmarkTools.TrialJudgement: ")
-        println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
-        print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
-    else
-        _showcompact(io, t)
-    end
+@compat function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
+    println(io, "BenchmarkTools.TrialJudgement: ")
+    println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
+    print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
 end

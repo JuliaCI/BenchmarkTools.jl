@@ -229,53 +229,23 @@ Base.setindex!(group::BenchmarkGroup, v, k::BenchmarkGroup) = error("A Benchmark
 
 tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
-Base.showall(io::IO, group::BenchmarkGroup) = show(io, group; verbose = true, limit = Inf)
+Base.showall(io::IO, group::BenchmarkGroup) = @compat show(io, MIME"text/plain"(), group; verbose = true, limit = Inf)
 
-# written this way for v0.5/v0.4 compatibility
-_showcompact(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
+Base.show(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
 
-if VERSION < v"0.5.0-dev+4305"
-    Base.showcompact(io::IO, group::BenchmarkGroup) = _showcompact(io, group)
-    function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
-        println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
-        print(io, pad, "  tags: ", tagrepr(group.tags))
-        count = 1
-        for (k, v) in group
-            println(io)
-            print(io, pad, "  ", repr(k), " => ")
-            if verbose
-                if isa(v, BenchmarkGroup)
-                    show(io, v, "\t"*pad; verbose = verbose, limit = limit)
-                else
-                    show(io, v)
-                end
-            else
-                showcompact(io, v)
-            end
-            count > limit && (println(io); print(io, pad, "  ⋮"); break)
-            count += 1
-        end
-    end
-else
-    function Base.show(io::IO, group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
-        if get(io, :multiline, true)
-            println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
-            print(io, pad, "  tags: ", tagrepr(group.tags))
-            count = 1
-            element_io = verbose ? io : IOContext(io, :multiline => false)
-            for (k, v) in group
-                println(io)
-                print(io, pad, "  ", repr(k), " => ")
-                if verbose && isa(v, BenchmarkGroup)
-                    show(element_io, v, "\t"*pad; verbose = verbose, limit = limit)
-                else
-                    show(element_io, v)
-                end
-                count > limit && (println(io); print(io, pad, "  ⋮"); break)
-                count += 1
-            end
+@compat function Base.show(io::IO, mime::MIME"text/plain", group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
+    println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
+    print(io, pad, "  tags: ", tagrepr(group.tags))
+    count = 1
+    for (k, v) in group
+        println(io)
+        print(io, pad, "  ", repr(k), " => ")
+        if verbose && isa(v, BenchmarkGroup)
+            @compat show(io, mime, v, "\t"*pad; verbose = verbose, limit = limit)
         else
-            _showcompact(io, group)
+            show(io, v)
         end
+        count > limit && (println(io); print(io, pad, "  ⋮"); break)
+        count += 1
     end
 end
