@@ -167,7 +167,7 @@ let fname = tempname()
         end
         s = readstring(fname)
         try
-            @test ismatch(r"[0-9.]+ \w*s \(0 allocations: 0 bytes\)", s)
+            @test ismatch(r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)", s)
         catch
             println(STDERR, "@btime output didn't match ", repr(s))
             rethrow()
