@@ -251,13 +251,13 @@ end
 
 function prettymemory(b)
     if b < 1024
-        value, units = b, "bytes"
+        return string(b, " bytes")
     elseif b < 1024^2
-        value, units = b / 1024, "kb"
+        value, units = b / 1024, "KiB"
     elseif b < 1024^3
-        value, units = b / 1024^2, "mb"
+        value, units = b / 1024^2, "MiB"
     else
-        value, units = b / 1024^3, "gb"
+        value, units = b / 1024^3, "GiB"
     end
     return string(@sprintf("%.2f", value), " ", units)
 end

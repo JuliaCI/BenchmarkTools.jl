@@ -161,11 +161,11 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 @test BenchmarkTools.prettytime(999_999_999) == "1000.000 ms"
 @test BenchmarkTools.prettytime(1_000_000_000) == "1.000 s"
 
-@test BenchmarkTools.prettymemory(1023) == "1023.00 bytes"
-@test BenchmarkTools.prettymemory(1024) == "1.00 kb"
-@test BenchmarkTools.prettymemory(1048575) == "1024.00 kb"
-@test BenchmarkTools.prettymemory(1048576) == "1.00 mb"
-@test BenchmarkTools.prettymemory(1073741823) == "1024.00 mb"
-@test BenchmarkTools.prettymemory(1073741824) == "1.00 gb"
+@test BenchmarkTools.prettymemory(1023) == "1023 bytes"
+@test BenchmarkTools.prettymemory(1024) == "1.00 KiB"
+@test BenchmarkTools.prettymemory(1048575) == "1024.00 KiB"
+@test BenchmarkTools.prettymemory(1048576) == "1.00 MiB"
+@test BenchmarkTools.prettymemory(1073741823) == "1024.00 MiB"
+@test BenchmarkTools.prettymemory(1073741824) == "1.00 GiB"
 
 end # module

@@ -2,6 +2,8 @@ module ExecutionTests
 
 using Base.Test
 using BenchmarkTools
+using Compat
+import Compat.String
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
@@ -150,5 +152,24 @@ tune!(b)
            v,w = 1,2
            [u^2 for u in [1,2,3]]
        end)
+
+# this should take < 1 µs on any sane machine
+@test @belapsed(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) < 1e-6
+
+let fname = tempname()
+    try
+        ret = open(fname, "w") do f
+            redirect_stdout(f) do
+                x = 1
+                y = @btime(sin($x))
+                @test y == sin(1)
+            end
+        end
+        s = readstring(fname)
+        @test ismatch(r"[0-9.]+ ns \(0 allocations: 0 bytes\)", s)
+    finally
+        isfile(fname) && rm(fname)
+    end
+end
 
 end # module
