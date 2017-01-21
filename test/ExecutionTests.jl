@@ -19,7 +19,7 @@ sizes = (5, 10, 20)
 for s in sizes
     A = rand(s, s)
     groups["sum"][s] = @benchmarkable sum($A) seconds=3
-    groups["sin"][s] = @benchmarkable(sin($s); seconds=1, gctrial=false)
+    groups["sin"][s] = @benchmarkable(sin($s), seconds=1, gctrial=false)
 end
 
 groups["special"]["macro"] = @benchmarkable @test(1 == 1)
@@ -134,12 +134,6 @@ tune!(b)
 
 # test kwargs separated by `,`
 @benchmark(output=sin(x), setup=(x=1.0; output=0.0), teardown=(@test output == sin(x)))
-
-# test kwargs separated by `;`
-@benchmark(output=sin(x); setup=(x=1.0; output=0.0), teardown=(@test output == sin(x)))
-
-# test kwargs separated by `,` and `;`
-@benchmark(output=sin(x), setup=(x=1.0; output=0.0); teardown=(@test output == sin(x)))
 
 ########
 # misc #
