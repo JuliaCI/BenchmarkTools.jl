@@ -153,8 +153,8 @@ tune!(b)
            [u^2 for u in [1,2,3]]
        end)
 
-# this should take < 1 µs on any sane machine
-@test @belapsed(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) < 1e-6
+# this should take < 1 s on any sane machine
+@test @belapsed(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) < 1
 
 let fname = tempname()
     try
@@ -166,7 +166,12 @@ let fname = tempname()
             end
         end
         s = readstring(fname)
-        @test ismatch(r"[0-9.]+ ns \(0 allocations: 0 bytes\)", s)
+        try
+            @test ismatch(r"[0-9.]+ \w*s \(0 allocations: 0 bytes\)", s)
+        catch
+            println(STDERR, "@btime output didn't match ", repr(s))
+            rethrow()
+        end
     finally
         isfile(fname) && rm(fname)
     end
