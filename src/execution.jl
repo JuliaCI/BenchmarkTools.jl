@@ -322,7 +322,6 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
             iters = 2
             while (time() - start_time) < params.seconds && iters ≤ params.samples
                  params.gcsample && BenchmarkTools.gcscrub()
-                 params.gcsample && BenchmarkTools.gcscrub()
                  push!(trial, $(samplefunc)(params)[1:end-1]...)
                  iters += 1
             end
