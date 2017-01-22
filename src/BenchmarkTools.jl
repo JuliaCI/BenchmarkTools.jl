@@ -64,7 +64,9 @@ include("execution.jl")
 export tune!,
        warmup,
        @benchmark,
-       @benchmarkable
+       @benchmarkable,
+       @belapsed,
+       @btime
 
 ##########################################
 # Plotting Facilities (loaded on demand) #

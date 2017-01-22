@@ -53,7 +53,7 @@ To quickly benchmark a Julia expression, use `@benchmark`:
 ```julia
 julia> @benchmark sin(1)
 BenchmarkTools.Trial:
-  memory estimate:  0.00 bytes
+  memory estimate:  0 bytes
   allocs estimate:  0
   --------------
   minimum time:     13.00 ns (0.00% GC)
@@ -77,7 +77,7 @@ julia> tune!(b);
 
 julia> run(b)
 BenchmarkTools.Trial:
-  memory estimate:  0.00 bytes
+  memory estimate:  0 bytes
   allocs estimate:  0
   --------------
   minimum time:     13.00 ns (0.00% GC)
@@ -89,6 +89,22 @@ BenchmarkTools.Trial:
   evals/sample:     1000
   time tolerance:   5.00%
   memory tolerance: 1.00%
+```
+
+Alternatively, you can use the `@btime` or `@belapsed` macros.
+These take exactly the same arguments as `@benchmark`, but
+behave like the `@time` or `@elapsed` macros included with
+Julia: `@btime` prints the minimum time and memory allocation
+before returning the value of the expression, while `@elapsed`
+returns the minimum time in seconds.
+
+```
+julia> @btime sin(1)
+  11.410 ns (0 allocations: 0 bytes)
+0.8414709848078965
+
+julia> @belapsed sin(1)
+1.1412412412412412e-8
 ```
 
 ### Benchmark `Parameters`
@@ -128,7 +144,7 @@ You can interpolate values into `@benchmark` and `@benchmarkable` expressions:
 # rand(1000) is executed for each evaluation
 julia> @benchmark sum(rand(1000))
 BenchmarkTools.Trial:
-  memory estimate:  7.92 kb
+  memory estimate:  7.92 KiB
   allocs estimate:  3
   --------------
   minimum time:     1.68 μs (0.00% GC)
@@ -145,7 +161,7 @@ BenchmarkTools.Trial:
 # value is interpolated into the benchmark expression
 julia> @benchmark sum($(rand(1000)))
 BenchmarkTools.Trial:
-  memory estimate:  0.00 bytes
+  memory estimate:  0 bytes
   allocs estimate:  0
   --------------
   minimum time:     185.00 ns (0.00% GC)
@@ -167,7 +183,7 @@ julia> A = rand(1000);
 # BAD: A is a global variable in the benchmarking context
 julia> @benchmark [i*i for i in A]
 BenchmarkTools.Trial:
-  memory estimate:  241.63 kb
+  memory estimate:  241.63 KiB
   allocs estimate:  9960
   --------------
   minimum time:     856.66 μs (0.00% GC)
@@ -183,7 +199,7 @@ BenchmarkTools.Trial:
 # GOOD: A is a constant value in the benchmarking context
 julia> @benchmark [i*i for i in $A]
 BenchmarkTools.Trial:
-  memory estimate:  7.89 kb
+  memory estimate:  7.89 KiB
   allocs estimate:  1
   --------------
   minimum time:     1.12 μs (0.00% GC)
@@ -196,6 +212,8 @@ BenchmarkTools.Trial:
   time tolerance:   5.00%
   memory tolerance: 1.00%
 ```
+
+(Note that "KiB" is the SI prefix for a [kibibyte](https://en.wikipedia.org/wiki/Kibibyte): 1024 bytes.)
 
 Keep in mind that you can mutate external state from within a benchmark:
 
@@ -250,7 +268,7 @@ BenchmarkTools.Benchmark{symbol("##benchmark#7556")}(BenchmarkTools.Parameters(5
 
 julia> run(b)
 BenchmarkTools.Trial:
-  memory estimate:  0.0 bytes
+  memory estimate:  0 bytes
   allocs estimate:  0
   --------------
   minimum time:     6.76 ms (0.0% GC)
@@ -275,7 +293,7 @@ It's possible for LLVM and Julia's compiler to perform optimizations on `@benchm
 ```julia
 julia> @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
 BenchmarkTools.Trial:
-  memory estimate:  0.00 bytes
+  memory estimate:  0 bytes
   allocs estimate:  0
   --------------
   minimum time:     2.537 ns (0.00% GC)
@@ -294,7 +312,7 @@ Note, however, that this does not mean that `view(a, 1:2, 1:2)` is non-allocatin
 ```julia
 julia> @benchmark view(a, 1:2, 1:2) setup=(a = rand(3, 3))
 BenchmarkTools.Trial:
-  memory estimate:  64.00 bytes
+  memory estimate:  64 bytes
   allocs estimate:  1
   --------------
   minimum time:     17.079 ns (0.00% GC)
@@ -330,7 +348,7 @@ Running a benchmark produces an instance of the `Trial` type:
 ```julia
 julia> t = @benchmark eig(rand(10, 10))
 BenchmarkTools.Trial:
-  memory estimate:  18.84 kb
+  memory estimate:  18.84 KiB
   allocs estimate:  70
   --------------
   minimum time:     167.17 μs (0.00% GC)

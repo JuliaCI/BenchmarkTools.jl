@@ -28,9 +28,13 @@ end
 sample(b::Benchmark, args...) = error("no execution method defined on type $(typeof(b))")
 _run(b::Benchmark, args...; kwargs...) = error("no execution method defined on type $(typeof(b))")
 
-function Base.run(b::Benchmark, p::Parameters = b.params; kwargs...)
+# return (Trial, result) tuple, where result is the result of the benchmarked expression
+function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
     return eval(current_module(), :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
 end
+
+Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) =
+    run_result(b, p; kwargs...)[1]
 
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
     result = similar(group)
@@ -202,7 +206,7 @@ macro benchmark(args...)
     end)
 end
 
-macro benchmarkable(args...)
+function benchmarkable_parts(args)
     core, params = prunekwargs(args...)
 
     # extract setup/teardown if present, removing them from the original expression
@@ -227,6 +231,12 @@ macro benchmarkable(args...)
             setup = Expr(:block, setup, quote_vars...)
         end
     end
+
+    return core, setup, teardown, params
+end
+
+macro benchmarkable(args...)
+    core, setup, teardown, params = benchmarkable_parts(args)
 
     # extract any variable bindings shared between the core and setup expressions
     setup_vars = isa(setup, Expr) ? collectvars(setup) : []
@@ -278,7 +288,8 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
             __evals = __params.evals
             __gc_start = Base.gc_num()
             __start_time = time_ns()
-            for __iter in 1:__evals
+            __return_val = $(invocation)
+            for __iter in 2:__evals
                 $(invocation)
             end
             __sample_time = time_ns() - __start_time
@@ -290,7 +301,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
             __allocs = Int(fld(__gcdiff.malloc + __gcdiff.realloc +
                                __gcdiff.poolalloc + __gcdiff.bigalloc,
                                __evals))
-            return __time, __gctime, __memory, __allocs
+            return __time, __gctime, __memory, __allocs, __return_val
         end
         function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)},
                                        p::BenchmarkTools.Parameters = b.params)
@@ -304,15 +315,72 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
             params.gctrial && BenchmarkTools.gcscrub()
             start_time = time()
             trial = BenchmarkTools.Trial(params)
-            iters = 1
-            while (time() - start_time) < params.seconds
-                params.gcsample && BenchmarkTools.gcscrub()
-                push!(trial, $(samplefunc)(params)...)
-                iters += 1
-                iters > params.samples && break
+            params.gcsample && BenchmarkTools.gcscrub()
+            s = $(samplefunc)(params)
+            push!(trial, s[1:end-1]...)
+            return_val = s[end]
+            iters = 2
+            while (time() - start_time) < params.seconds && iters ≤ params.samples
+                 params.gcsample && BenchmarkTools.gcscrub()
+                 push!(trial, $(samplefunc)(params)[1:end-1]...)
+                 iters += 1
             end
-            return sort!(trial)
+            return sort!(trial), return_val
         end
         BenchmarkTools.Benchmark{$(id)}($(params))
+    end)
+end
+
+######################
+# convenience macros #
+######################
+
+# These macros provide drop-in replacements for the
+# Base.@time and Base.@elapsed macros, which use
+# @benchmark but yield only the minimum time.
+
+"""
+    @belapsed expression [other parameters...]
+
+Similar to the `@elapsed` macro included with Julia,
+this returns the elapsed time (in seconds) to
+execute a given expression.   It uses the `@benchmark`
+macro, however, and accepts all of the same additional
+parameters as `@benchmark`.  The returned time
+is the *minimum* elapsed time measured during the benchmark.
+"""
+macro belapsed(args...)
+    b = Expr(:macrocall, Symbol("@benchmark"), map(esc, args)...)
+    :(time(minimum($b))/1e9)
+end
+
+"""
+    @btime expression [other parameters...]
+
+Similar to the `@time` macro included with Julia,
+this executes an expression, printing the time
+it took to execute and the memory allocated before
+returning the value of the expression.
+
+Unlike `@time`, it uses the `@benchmark`
+macro, and accepts all of the same additional
+parameters as `@benchmark`.  The printed time
+is the *minimum* elapsed time measured during the benchmark.
+"""
+macro btime(args...)
+    tmp = gensym()
+    _, params = prunekwargs(args...)
+    tune_expr = hasevals(params) ? :() : :(BenchmarkTools.tune!($(tmp)))
+    return esc(quote
+        $(tmp) = BenchmarkTools.@benchmarkable $(args...)
+        BenchmarkTools.warmup($(tmp))
+        $(tune_expr)
+        b, val = BenchmarkTools.run_result($(tmp))
+        bmin = minimum(b)
+        a = allocs(bmin)
+        println("  ", BenchmarkTools.prettytime(BenchmarkTools.time(bmin)),
+                " ($a allocation", a == 1 ? "" : "s", ": ",
+                BenchmarkTools.prettymemory(BenchmarkTools.memory(bmin)), ")")
+        val
     end)
 end
