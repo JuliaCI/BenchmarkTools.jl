@@ -203,14 +203,22 @@ Run a single evaluation of `x`. This can be useful if you think JIT overhead is 
 
 # Macros
 
+##### `@belapsed(expr, kwargs...)`
+
+Analogous to `Base.@elapsed expr`, but uses BenchmarkTools's execution framework to run the benchmark. The returned runtime is
+calculated via the minimum estimator. Valid `kwargs` are [listed here](manual.md#benchmark-parameters).
+
 ##### `@benchmarkable(expr, kwargs...)`
 
-Define and return, but do not tune or run, a `Benchmark` that can be used to test the performance of `expr`. Relevant manual documentation can be found [here](manual.md#benchmarking-basics) (for valid `kwargs` values, see [here](manual.md#benchmark-parameters) specifically). If used in local scope, all
-external local variables must be interpolated.
+Define and return, but do not tune or run, a `Benchmark` that can be used to test the performance of `expr`. Relevant manual documentation can be found [here](manual.md#benchmarking-basics) (for valid `kwargs` values, see [here](manual.md#benchmark-parameters) specifically). If used in local scope, all external local variables must be interpolated.
 
 ##### `@benchmark(expr, kwargs...)`
 
 Define, tune, and run the `Benchmark` generated from `expr`. Relevant manual documentation can be found [here](manual.md#benchmarking-basics) (for valid `kwargs` values, see [here](manual.md#benchmark-parameters) specifically). If used in local scope, all external local variables must be interpolated.
+
+##### `@btime(expr, kwargs...)`
+
+Analogous to `Base.@time expr`, but uses BenchmarkTools's execution framework to run the benchmark. The printed runtime is calculated via the minimum estimator. Valid `kwargs` are [listed here](manual.md#benchmark-parameters).
 
 ##### `@tagged(expr)`
 

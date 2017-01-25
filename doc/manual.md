@@ -98,7 +98,7 @@ Julia: `@btime` prints the minimum time and memory allocation
 before returning the value of the expression, while `@elapsed`
 returns the minimum time in seconds.
 
-```
+```julia
 julia> @btime sin(1)
   11.410 ns (0 allocations: 0 bytes)
 0.8414709848078965
