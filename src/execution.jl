@@ -195,15 +195,13 @@ function quasiquote!(ex::Expr, vars::Vector{Expr})
 end
 
 macro benchmark(args...)
-    tmp = gensym()
     _, params = prunekwargs(args...)
-    tune_expr = hasevals(params) ? :() : :(BenchmarkTools.tune!($(tmp)))
-    return esc(quote
-        $(tmp) = BenchmarkTools.@benchmarkable $(args...)
-        BenchmarkTools.warmup($(tmp))
-        $(tune_expr)
-        BenchmarkTools.Base.run($(tmp))
-    end)
+    quote
+        tmp = @benchmarkable $(map(esc,args)...)
+        warmup(tmp)
+        $(hasevals(params) ? :() : :(tune!(tmp)))
+        run(tmp)
+    end
 end
 
 function benchmarkable_parts(args)
@@ -251,7 +249,7 @@ macro benchmarkable(args...)
                                                      $(Expr(:quote, core)),
                                                      $(Expr(:quote, setup)),
                                                      $(Expr(:quote, teardown)),
-                                                     BenchmarkTools.Parameters($(params...)))
+                                                     $Parameters($(params...)))
     end)
 end
 
@@ -368,19 +366,17 @@ parameters as `@benchmark`.  The printed time
 is the *minimum* elapsed time measured during the benchmark.
 """
 macro btime(args...)
-    tmp = gensym()
     _, params = prunekwargs(args...)
-    tune_expr = hasevals(params) ? :() : :(BenchmarkTools.tune!($(tmp)))
-    return esc(quote
-        $(tmp) = BenchmarkTools.@benchmarkable $(args...)
-        BenchmarkTools.warmup($(tmp))
-        $(tune_expr)
-        b, val = BenchmarkTools.run_result($(tmp))
+    quote
+        tmp = @benchmarkable $(map(esc,args)...)
+        warmup(tmp)
+        $(hasevals(params) ? :() : :(tune!(tmp)))
+        b, val = run_result(tmp)
         bmin = minimum(b)
         a = allocs(bmin)
-        println("  ", BenchmarkTools.prettytime(BenchmarkTools.time(bmin)),
+        println("  ", prettytime(time(bmin)),
                 " ($a allocation", a == 1 ? "" : "s", ": ",
-                BenchmarkTools.prettymemory(BenchmarkTools.memory(bmin)), ")")
+                prettymemory(memory(bmin)), ")")
         val
-    end)
+    end
 end

@@ -161,8 +161,10 @@ let fname = tempname()
         ret = open(fname, "w") do f
             redirect_stdout(f) do
                 x = 1
+                a = nothing
                 y = @btime(sin($x))
                 @test y == sin(1)
+                @test a === nothing
             end
         end
         s = readstring(fname)
