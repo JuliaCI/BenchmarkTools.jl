@@ -183,6 +183,14 @@ end
 
 Return an iterator over `x`'s leaf index/value pairs. Relevant manual documentation can be found [here](manual.md#indexing-into-a-benchmarkgroup-using-a-vector).
 
+##### `save(filename, args...)`
+
+Not exported. This function is a thin wrapper around a call to `JLD.save(filename, args...)` that maintains compatibility between BenchmarkTools versions.
+
+##### `load(filename, args...)`
+
+Not exported. This function is a thin wrapper around a call to `JLD.load(filename, args...)` that maintains compatibility between BenchmarkTools versions.
+
 ##### `loadparams!(x::Parameters, y::Parameters, fields...)`
 ##### `loadparams!(x::Benchmark, y::Parameters, fields...)`
 ##### `loadparams!(x::BenchmarkGroup, y::BenchmarkGroup, fields...)`
