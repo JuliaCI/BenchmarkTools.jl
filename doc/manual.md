@@ -918,17 +918,17 @@ BenchmarkTools.BenchmarkGroup:
 # tune the suite to configure benchmark parameters
 julia> tune!(suite);
 
-julia> using JLD
-
-# save the suite's parameters using JLD
-julia> JLD.save("params.jld", "suite", params(suite));
+# save the suite's parameters using a thin wrapper
+# over JLD (this wrapper maintains compatibility
+# across BenchmarkTools versions)
+julia> BenchmarkTools.save("params.jld", "suite", params(suite));
 ```
 
 Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadparams!` function:
 
 ```julia
 # syntax is loadparams!(group, paramsgroup, fields...)
-julia> loadparams!(suite, JLD.load("params.jld", "suite"), :evals, :samples);
+julia> loadparams!(suite, BenchmarkTools.load("params.jld", "suite"), :evals, :samples);
 ```
 
 Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.
