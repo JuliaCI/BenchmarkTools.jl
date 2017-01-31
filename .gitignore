@@ -1,3 +1,4 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
+benchmark/params.jld
