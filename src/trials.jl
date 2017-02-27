@@ -297,9 +297,7 @@ Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(t
     println(io, "  maximum time:     ", meanstr)
     println(io, "  --------------")
     println(io, "  samples:          ", length(t))
-    println(io, "  evals/sample:     ", t.params.evals)
-    println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-    print(io, "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
+    print(io,   "  evals/sample:     ", t.params.evals)
 end
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
@@ -307,9 +305,7 @@ end
     println(io, "  time:             ", prettytime(time(t)))
     println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
     println(io, "  memory:           ", prettymemory(memory(t)))
-    println(io, "  allocs:           ", allocs(t))
-    println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-    print(io,   "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
+    print(io,   "  allocs:           ", allocs(t))
 end
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
@@ -317,9 +313,7 @@ end
     println(io, "  time:             ", time(t))
     println(io, "  gctime:           ", gctime(t))
     println(io, "  memory:           ", memory(t))
-    println(io, "  allocs:           ", allocs(t))
-    println(io, "  time tolerance:   ", prettypercent(params(t).time_tolerance))
-    print(io,   "  memory tolerance: ", prettypercent(params(t).memory_tolerance))
+    print(io,   "  allocs:           ", allocs(t))
 end
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
