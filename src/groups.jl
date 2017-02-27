@@ -190,13 +190,12 @@ end
 
 function loadtagged!(f::TagFilter, dest::BenchmarkGroup, src::BenchmarkGroup,
                      group::BenchmarkGroup, keys::Vector, tags::Vector)
-    ismatch = f.predicate(tags)
-    if ismatch
+    if f.predicate(tags)
         child_dest = createchild!(dest, src, keys)
         for (k, v) in group
             if isa(v, BenchmarkGroup)
                 loadtagged!(f, dest, src, v, keyunion(keys, k), tagunion(tags, k, v.tags))
-            else
+            elseif isa(child_dest, BenchmarkGroup)
                 child_dest[k] = v
             end
         end
@@ -222,7 +221,7 @@ function createchild!(dest, src, keys)
             isgroup = isa(src_child, BenchmarkGroup)
             dest_child = isgroup ? similar(src_child) : src_child
             dest[k] = dest_child
-            isgroup && return
+            !(isgroup) && return
         else
             dest_child = dest[k]
         end

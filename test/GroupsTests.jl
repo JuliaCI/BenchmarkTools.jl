@@ -181,12 +181,17 @@ gnest = BenchmarkGroup(["1"],
                        "2" => BenchmarkGroup(["3"], 1 => 1),
                        4 => BenchmarkGroup(["3"], 5 => 6),
                        7 => 8,
-                       "a" => BenchmarkGroup(["3"], "a" => :a),
+                       "a" => BenchmarkGroup(["3"], "a" => :a, (11, "b") => :b),
                        9 => BenchmarkGroup(["2"],
                                            10 => BenchmarkGroup(["3"]),
                                            11 => BenchmarkGroup()))
 
-@test leaves(gnest) == [([7],8), ([4,5],6), (["2",1],1), (["a","a"], :a)]
+@test leaves(gnest) == [([7],8), ([4,5],6), (["2",1],1), (["a", (11, "b")], :b), (["a","a"], :a)]
+
+@test gnest[@tagged 11 || 10] == BenchmarkGroup(["1"],
+                                                "a" => BenchmarkGroup(["3"],
+                                                                      (11, "b") => :b),
+                                                9 => gnest[9])
 
 @test gnest[@tagged "3"] == BenchmarkGroup(["1"], "2" => gnest["2"], 4 => gnest[4], "a" => gnest["a"],
                                            9 => BenchmarkGroup(["2"], 10 => BenchmarkGroup(["3"])))
