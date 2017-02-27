@@ -264,7 +264,7 @@ julia> x = rand(100000);
 # For each sample, bind a variable `y` to a fresh copy of `x`. As you
 # can see, `y` is accessible within the scope of the core expression.
 julia> b = @benchmarkable sort!(y) setup=(y = copy($x))
-BenchmarkTools.Benchmark{symbol("##benchmark#7556")}(BenchmarkTools.Parameters(5.0,1000,1,true,false,0.05,0.05))
+Benchmark(evals=1, seconds=5.0, samples=10000)
 
 julia> run(b)
 BenchmarkTools.Trial:
@@ -544,17 +544,17 @@ suite = BenchmarkGroup()
 # for this case is BenchmarkGroup(tags::Vector). These tags are useful for
 # filtering benchmarks by topic, which we'll cover in a later section.
 suite["utf8"] = BenchmarkGroup(["string", "unicode"])
-suite["trigonometry"] = BenchmarkGroup(["math", "triangles"])
+suite["trig"] = BenchmarkGroup(["math", "triangles"])
 
 # Add some benchmarks to the "utf8" group
-teststr = UTF8String(join(rand(MersenneTwister(1), 'a':'d', 10^4)))
+teststr = join(rand(MersenneTwister(1), 'a':'d', 10^4))
 suite["utf8"]["replace"] = @benchmarkable replace($teststr, "a", "b")
 suite["utf8"]["join"] = @benchmarkable join($teststr, $teststr)
 
 # Add some benchmarks to the "trigonometry" group
 for f in (sin, cos, tan)
     for x in (0.0, pi)
-        suite["trigonometry"][string(f), x] = @benchmarkable $(f)($x)
+        suite["trig"][string(f), x] = @benchmarkable $(f)($x)
     end
 end
 ```
@@ -562,27 +562,21 @@ end
 Let's look at our newly defined suite in the REPL:
 
 ```julia
-julia> suite
-BenchmarkTools.BenchmarkGroup:
+julia> showall(suite)
+2-element BenchmarkTools.BenchmarkGroup:
   tags: []
-  "utf8" => BenchmarkGroup(["string", "unicode"])
-  "trigonometry" => BenchmarkGroup(["math", "triangles"])
-
-julia> suite["utf8"]
-BenchmarkTools.BenchmarkGroup:
-  tags: ["string", "unicode"]
-  "join" => BenchmarkTools.Benchmark{symbol("##benchmark#7184")}(...)
-  "replace" => BenchmarkTools.Benchmark{symbol("##benchmark#7165")}(...)
-
-julia> suite["trigonometry"]
-BenchmarkTools.BenchmarkGroup:
-  tags: ["math", "triangles"]
-  ("tan",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7233")}(...)
-  ("cos",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7218")}(...)
-  ("cos",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7223")}(...)
-  ("sin",π = 3.1415926535897...) => BenchmarkTools.Benchmark{symbol("##benchmark#7209")}(...)
-  ("sin",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7201")}(...)
-  ("tan",0.0) => BenchmarkTools.Benchmark{symbol("##benchmark#7228")}(...)
+  "utf8" => 2-element BenchmarkTools.BenchmarkGroup:
+	  tags: ["string", "unicode"]
+	  "join" => Benchmark(evals=1, seconds=5.0, samples=10000)
+	  "replace" => Benchmark(evals=1, seconds=5.0, samples=10000)
+  "trig" => 6-element BenchmarkTools.BenchmarkGroup:
+	  tags: ["math", "triangles"]
+	  ("cos", 0.0) => Benchmark(evals=1, seconds=5.0, samples=10000)
+	  ("sin", π = 3.1415926535897...) => Benchmark(evals=1, seconds=5.0, samples=10000)
+	  ("tan", π = 3.1415926535897...) => Benchmark(evals=1, seconds=5.0, samples=10000)
+	  ("cos", π = 3.1415926535897...) => Benchmark(evals=1, seconds=5.0, samples=10000)
+	  ("sin", 0.0) => Benchmark(evals=1, seconds=5.0, samples=10000)
+	  ("tan", 0.0) => Benchmark(evals=1, seconds=5.0, samples=10000)
 ```
 
 As you might imagine, `BenchmarkGroup` supports a subset of Julia's `Associative` interface. A full list of
