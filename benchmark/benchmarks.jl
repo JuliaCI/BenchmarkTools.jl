@@ -5,19 +5,21 @@ const suite = BenchmarkGroup()
 
 # Add some child groups to our benchmark suite.
 suite["string"] = BenchmarkGroup(["unicode"])
-suite["trigonometry"] = BenchmarkGroup(["math", "triangles"])
+suite["trig"] = BenchmarkGroup(["math", "triangles"])
+suite["dot"] = BenchmarkGroup(["broadcast", "elementwise"])
 
 # This string will be the same every time because we're seeding the RNG
 teststr = join(rand(MersenneTwister(1), 'a':'d', 10^4))
 
 # Add some benchmarks to the "utf8" group
-suite["string"]["replace"] = @benchmarkable replace($teststr, "a", "b")
-suite["string"]["join"] = @benchmarkable join($teststr, $teststr)
+suite["string"]["replace"] = @benchmarkable replace($teststr, "a", "b") seconds=Float64(π)
+suite["string"]["join"] = @benchmarkable join($teststr, $teststr) samples=42
 
-# Add some benchmarks to the "trigonometry" group
+# Add some benchmarks to the "trig"/"dot" group
 for f in (sin, cos, tan)
     for x in (0.0, pi)
-        suite["trigonometry"][string(f), x] = @benchmarkable $(f)($x)
+        suite["trig"][string(f), x] = @benchmarkable $(f)($x)
+        suite["dot"][string(f), x] = @benchmarkable $(f).([$x, $x, $x])
     end
 end
 
@@ -27,7 +29,7 @@ end
 paramspath = joinpath(dirname(@__FILE__), "params.jld")
 
 if isfile(paramspath)
-    loadparams!(suite, BenchmarkTools.load(paramspath, "suite"), :evals, :samples);
+    loadparams!(suite, BenchmarkTools.load(paramspath, "suite"), :evals);
 else
     tune!(suite)
     BenchmarkTools.save(paramspath, "suite", params(suite));
