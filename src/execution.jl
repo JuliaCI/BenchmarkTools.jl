@@ -18,6 +18,13 @@ function loadparams!(b::Benchmark, params::Parameters, fields...)
     return b
 end
 
+function Base.show(io::IO, b::Benchmark)
+    str = string("Benchmark(evals=", params(b).evals,
+                 ", seconds=", params(b).seconds,
+                 ", samples=", params(b).samples, ")")
+    print(io, str)
+end
+
 #############
 # execution #
 #############
