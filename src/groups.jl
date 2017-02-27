@@ -171,24 +171,40 @@ end
 
 # normal union doesn't have the behavior we want
 # (e.g. union(["1"], "2") === ["1", '2'])
-vcatunion(args...) = unique(vcat(args...))
+keyunion(args...) = unique(vcat(args...))
+
+function tagunion(args...)
+    unflattened = keyunion(args...)
+    result = Any[]
+    for i in unflattened
+        if isa(i, Tuple)
+            for j in i
+                push!(result, j)
+            end
+        else
+            push!(result, i)
+        end
+    end
+    return result
+end
 
 function loadtagged!(f::TagFilter, dest::BenchmarkGroup, src::BenchmarkGroup,
                      group::BenchmarkGroup, keys::Vector, tags::Vector)
-    ismatch = f.predicate(tags)
-    if ismatch
+    if f.predicate(tags)
         child_dest = createchild!(dest, src, keys)
         for (k, v) in group
             if isa(v, BenchmarkGroup)
-                loadtagged!(f, dest, src, v, vcatunion(keys, k), vcatunion(tags, k, v.tags))
-            else
+                loadtagged!(f, dest, src, v, keyunion(keys, k), tagunion(tags, k, v.tags))
+            elseif isa(child_dest, BenchmarkGroup)
                 child_dest[k] = v
             end
         end
     else
         for (k, v) in group
             if isa(v, BenchmarkGroup)
-                loadtagged!(f, dest, src, v, vcatunion(keys, k), vcatunion(tags, k, v.tags))
+                loadtagged!(f, dest, src, v, keyunion(keys, k), tagunion(tags, k, v.tags))
+            elseif f.predicate(tagunion(tags, k))
+                createchild!(dest, src, keyunion(keys, k))
             end
         end
     end
@@ -202,8 +218,10 @@ function createchild!(dest, src, keys)
         k = first(keys)
         src_child = src[k]
         if !(haskey(dest, k))
-            dest_child = similar(src_child)
+            isgroup = isa(src_child, BenchmarkGroup)
+            dest_child = isgroup ? similar(src_child) : src_child
             dest[k] = dest_child
+            !(isgroup) && return
         else
             dest_child = dest[k]
         end
