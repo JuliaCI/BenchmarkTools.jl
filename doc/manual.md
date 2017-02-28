@@ -56,15 +56,13 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     13.00 ns (0.00% GC)
-  median time:      13.00 ns (0.00% GC)
-  mean time:        13.02 ns (0.00% GC)
-  maximum time:     36.00 ns (0.00% GC)
+  minimum time:     13.610 ns (0.00% GC)
+  median time:      13.622 ns (0.00% GC)
+  mean time:        13.638 ns (0.00% GC)
+  maximum time:     21.084 ns (0.00% GC)
   --------------
   samples:          10000
-  evals/sample:     1000
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  evals/sample:     998
 ```
 
 The `@benchmark` macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark's configuration parameters, and running the benchmark. These three steps can be done explicitly using `@benchmarkable`, `tune!` and `run`:
@@ -80,15 +78,13 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     13.00 ns (0.00% GC)
-  median time:      13.00 ns (0.00% GC)
-  mean time:        13.10 ns (0.00% GC)
-  maximum time:     25.00 ns (0.00% GC)
+  minimum time:     13.605 ns (0.00% GC)
+  median time:      13.618 ns (0.00% GC)
+  mean time:        13.631 ns (0.00% GC)
+  maximum time:     22.383 ns (0.00% GC)
   --------------
   samples:          10000
-  evals/sample:     1000
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  evals/sample:     998
 ```
 
 Alternatively, you can use the `@btime` or `@belapsed` macros.
@@ -100,11 +96,11 @@ returns the minimum time in seconds.
 
 ```julia
 julia> @btime sin(1)
-  11.410 ns (0 allocations: 0 bytes)
+  13.612 ns (0 allocations: 0 bytes)
 0.8414709848078965
 
 julia> @belapsed sin(1)
-1.1412412412412412e-8
+1.3614228456913828e-8
 ```
 
 ### Benchmark `Parameters`
@@ -144,18 +140,16 @@ You can interpolate values into `@benchmark` and `@benchmarkable` expressions:
 # rand(1000) is executed for each evaluation
 julia> @benchmark sum(rand(1000))
 BenchmarkTools.Trial:
-  memory estimate:  7.92 KiB
-  allocs estimate:  3
+  memory estimate:  7.94 KiB
+  allocs estimate:  1
   --------------
-  minimum time:     1.68 μs (0.00% GC)
-  median time:      2.10 μs (0.00% GC)
-  mean time:        3.03 μs (25.09% GC)
-  maximum time:     720.40 μs (99.23% GC)
+  minimum time:     1.566 μs (0.00% GC)
+  median time:      2.135 μs (0.00% GC)
+  mean time:        3.071 μs (25.06% GC)
+  maximum time:     296.818 μs (95.91% GC)
   --------------
   samples:          10000
-  evals/sample:     4
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  evals/sample:     10
 
 # rand(1000) is evaluated at definition time, and the resulting
 # value is interpolated into the benchmark expression
@@ -164,15 +158,13 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     185.00 ns (0.00% GC)
-  median time:      186.00 ns (0.00% GC)
-  mean time:        188.95 ns (0.00% GC)
-  maximum time:     264.00 ns (0.00% GC)
+  minimum time:     101.627 ns (0.00% GC)
+  median time:      101.909 ns (0.00% GC)
+  mean time:        103.834 ns (0.00% GC)
+  maximum time:     276.033 ns (0.00% GC)
   --------------
   samples:          10000
-  evals/sample:     153
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  evals/sample:     935
 ```
 
 A good rule of thumb is that **external variables should be explicitly interpolated into the benchmark expression**:
@@ -183,34 +175,30 @@ julia> A = rand(1000);
 # BAD: A is a global variable in the benchmarking context
 julia> @benchmark [i*i for i in A]
 BenchmarkTools.Trial:
-  memory estimate:  241.63 KiB
-  allocs estimate:  9960
+  memory estimate:  7.95 KiB
+  allocs estimate:  2
   --------------
-  minimum time:     856.66 μs (0.00% GC)
-  median time:      867.32 μs (0.00% GC)
-  mean time:        903.11 μs (3.83% GC)
-  maximum time:     4.26 ms (78.46% GC)
+  minimum time:     13.154 μs (0.00% GC)
+  median time:      13.806 μs (0.00% GC)
+  mean time:        14.071 μs (0.00% GC)
+  maximum time:     337.462 μs (0.00% GC)
   --------------
-  samples:          5528
+  samples:          10000
   evals/sample:     1
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
 
 # GOOD: A is a constant value in the benchmarking context
 julia> @benchmark [i*i for i in $A]
 BenchmarkTools.Trial:
-  memory estimate:  7.89 KiB
-  allocs estimate:  1
+  memory estimate:  7.95 KiB
+  allocs estimate:  2
   --------------
-  minimum time:     1.12 μs (0.00% GC)
-  median time:      1.54 μs (0.00% GC)
-  mean time:        2.94 μs (33.45% GC)
-  maximum time:     1.13 ms (99.59% GC)
+  minimum time:     929.375 ns (0.00% GC)
+  median time:      1.348 μs (0.00% GC)
+  mean time:        2.405 μs (36.64% GC)
+  maximum time:     91.481 μs (95.46% GC)
   --------------
   samples:          10000
-  evals/sample:     7
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  evals/sample:     32
 ```
 
 (Note that "KiB" is the SI prefix for a [kibibyte](https://en.wikipedia.org/wiki/Kibibyte): 1024 bytes.)
@@ -271,15 +259,13 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     6.76 ms (0.0% GC)
-  median time:      6.81 ms (0.0% GC)
-  mean time:        6.82 ms (0.0% GC)
-  maximum time:     6.96 ms (0.0% GC)
+  minimum time:     5.739 ms (0.00% GC)
+  median time:      5.757 ms (0.00% GC)
+  mean time:        5.871 ms (0.00% GC)
+  maximum time:     62.138 ms (0.00% GC)
   --------------
-  samples:          1000
+  samples:          805
   evals/sample:     1
-  time tolerance:   5.0%
-  memory tolerance: 5.0%
 ```
 
 In the above example, we wish to benchmark Julia's in-place sorting method. Without a setup phase, we'd have to either allocate a new input vector for each sample (such that the allocation time would pollute our results) or use the same input vector every sample (such that all samples but the first would benchmark the wrong thing - sorting an already sorted vector). The setup phase solves the problem by allowing us to do some work that can be utilized by the core expression, without that work being erroneously included in our performance results.
@@ -296,15 +282,14 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     2.537 ns (0.00% GC)
-  median time:      2.548 ns (0.00% GC)
-  mean time:        2.563 ns (0.00% GC)
-  maximum time:     12.567 ns (0.00% GC)
+  minimum time:     2.293 ns (0.00% GC)
+  median time:      2.302 ns (0.00% GC)
+  mean time:        2.330 ns (0.00% GC)
+  maximum time:     6.441 ns (0.00% GC)
   --------------
   samples:          10000
   evals/sample:     1000
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+
 ```
 
 Note, however, that this does not mean that `view(a, 1:2, 1:2)` is non-allocating:
@@ -315,15 +300,13 @@ BenchmarkTools.Trial:
   memory estimate:  64 bytes
   allocs estimate:  1
   --------------
-  minimum time:     17.079 ns (0.00% GC)
-  median time:      19.489 ns (0.00% GC)
-  mean time:        21.523 ns (7.58% GC)
-  maximum time:     757.319 ns (81.70% GC)
+  minimum time:     15.613 ns (0.00% GC)
+  median time:      17.825 ns (0.00% GC)
+  mean time:        23.358 ns (17.46% GC)
+  maximum time:     1.725 μs (95.12% GC)
   --------------
   samples:          10000
   evals/sample:     998
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
 ```
 
 The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away `view(a, 1:2, 1:2)` because it could prove that the value wasn't being returned and `a` wasn't being mutated. In the second example, the optimization is not performed because `view(a, 1:2, 1:2)` is a return value of the benchmark expression.
@@ -348,33 +331,32 @@ Running a benchmark produces an instance of the `Trial` type:
 ```julia
 julia> t = @benchmark eig(rand(10, 10))
 BenchmarkTools.Trial:
-  memory estimate:  18.84 KiB
-  allocs estimate:  70
+  memory estimate:  9.30 KiB
+  allocs estimate:  28
   --------------
-  minimum time:     167.17 μs (0.00% GC)
-  median time:      180.65 μs (0.00% GC)
-  mean time:        202.64 μs (1.00% GC)
-  maximum time:     3.00 ms (88.78% GC)
+  minimum time:     33.262 μs (0.00% GC)
+  median time:      38.618 μs (0.00% GC)
+  mean time:        39.981 μs (2.65% GC)
+  maximum time:     2.814 ms (95.07% GC)
   --------------
   samples:          10000
   evals/sample:     1
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
 
 julia> dump(t) # here's what's actually stored in a Trial
-BenchmarkTools.Trial
-  params: BenchmarkTools.Parameters # Trials store the parameters of their parent process
-    seconds: Float64 5.0
-    samples: Int64 10000
-    evals: Int64 1
-    gctrial: Bool true
-    gcsample: Bool false
-    time_tolerance: Float64 0.05
-    memory_tolerance: Float64 0.01
-  times: Array(Int64,(10000,)) [169647,169740, … 2555138,2980840] # every sample is stored in the Trial
-  gctimes: Array(Int64,(10000,)) [0,0, … 2265900,2663014]
-  memory: Int64 14416
-  allocs: Int64 38
+  BenchmarkTools.Trial
+    params: BenchmarkTools.Parameters # Trials store the parameters of their parent process
+      seconds: Float64 5.0
+      samples: Int64 10000
+      evals: Int64 1
+      overhead: Float64 0.0
+      gctrial: Bool true
+      gcsample: Bool false
+      time_tolerance: Float64 0.05
+      memory_tolerance: Float64 0.01
+    times: Array{Float64}((10000,)) [33262.0, 33793.0, … 2.77342e6, 2.81368e6] # every sample is stored in the Trial
+    gctimes: Array{Float64}((10000,)) [0.0, 0.0, … 2.66614e6, 2.67486e6]
+    memory: Int64 9520
+    allocs: Int64 28
 ```
 
 As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `median`, `mean`, and `maximum` functions:
@@ -382,39 +364,31 @@ As you can see from the above, a couple of different timing estimates are pretty
 ```julia
 julia> minimum(t)
 BenchmarkTools.TrialEstimate:
-  time:             169.65 μs
-  gctime:           0.00 ns (0.00%)
-  memory:           14.08 kb
-  allocs:           38
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  time:             33.262 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
 
 julia> median(t)
 BenchmarkTools.TrialEstimate:
-  time:             180.08 μs
-  gctime:           0.00 ns (0.00%)
-  memory:           14.08 kb
-  allocs:           38
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  time:             38.618 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
 
 julia> mean(t)
 BenchmarkTools.TrialEstimate:
-  time:             195.42 μs
-  gctime:           1.93 μs (0.99%)
-  memory:           14.08 kb
-  allocs:           38
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  time:             39.981 μs
+  gctime:           1.058 μs (2.65%)
+  memory:           9.30 KiB
+  allocs:           28
 
 julia> maximum(t)
 BenchmarkTools.TrialEstimate:
-  time:             2.98 ms
-  gctime:           2.66 ms (89.34%)
-  memory:           14.08 kb
-  allocs:           38
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  time:             2.814 ms
+  gctime:           2.675 ms (95.07%)
+  memory:           9.30 KiB
+  allocs:           28
 ```
 
 ### Which estimator should I use?
@@ -456,30 +430,24 @@ julia> tune!(b);
 
 julia> m1 = median(run(b))
 BenchmarkTools.TrialEstimate:
-  time:             181.64 μs
-  gctime:           0.00 ns (0.00%)
-  memory:           18.84 kb
-  allocs:           70
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  time:             38.638 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
 
 julia> m2 = median(run(b))
 BenchmarkTools.TrialEstimate:
-  time:             180.73 μs
-  gctime:           0.00 ns (0.00%)
-  memory:           18.84 kb
-  allocs:           70
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
+  time:             38.723 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
 
 julia> ratio(m1, m2)
 BenchmarkTools.TrialRatio:
-  time:             1.0050434628642886
+  time:             0.997792009916587
   gctime:           1.0
   memory:           1.0
   allocs:           1.0
-  time tolerance:   5.00%
-  memory tolerance: 1.00%
 ```
 
 Use the `judge` function to decide if one estimate represents a regression versus another estimate:
@@ -487,38 +455,34 @@ Use the `judge` function to decide if one estimate represents a regression versu
 ```julia
 julia> m1 = median(@benchmark eig(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
-  time:             182.28 μs
-  gctime:           0.0 ns (0.0%)
-  memory:           20.27 kb
-  allocs:           81
-  time tolerance:   5.0%
-  memory tolerance: 5.0%
+  time:             38.745 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
 
 julia> m2 = median(@benchmark eig(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
-  time:             182.36 μs
-  gctime:           0.0 ns (0.0%)
-  memory:           20.67 kb
-  allocs:           85
-  time tolerance:   5.0%
-  memory tolerance: 5.0%
+  time:             38.611 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
 
 # percent change falls within noise tolerance for all fields
 julia> judge(m1, m2)
 BenchmarkTools.TrialJudgement:
-  time:   -0.08% => invariant (5.00% tolerance)
+  time:   +0.35% => invariant (5.00% tolerance)
   memory: +0.00% => invariant (1.00% tolerance)
 
-# changing time_tolerance causes it to be marked as an improvement
+# changing time_tolerance causes it to be marked as a regression
 julia> judge(m1, m2; time_tolerance = 0.0001)
 BenchmarkTools.TrialJudgement:
-  time:   -0.08% => improvement (0.01% tolerance)
+  time:   +0.35% => regression (0.01% tolerance)
   memory: +0.00% => invariant (1.00% tolerance)
 
-# switch m1 & m2; from this perspective, the difference is a regression
+# switch m1 & m2; from this perspective, the difference is an improvement
 julia> judge(m2, m1; time_tolerance = 0.0001)
 BenchmarkTools.TrialJudgement:
-  time:   +0.08% => regression (0.01% tolerance)
+  time:   -0.35% => improvement (0.01% tolerance)
   memory: +0.00% => invariant (1.00% tolerance)
 
 # you can pass in TrialRatios as well
@@ -551,7 +515,7 @@ teststr = join(rand(MersenneTwister(1), 'a':'d', 10^4))
 suite["utf8"]["replace"] = @benchmarkable replace($teststr, "a", "b")
 suite["utf8"]["join"] = @benchmarkable join($teststr, $teststr)
 
-# Add some benchmarks to the "trigonometry" group
+# Add some benchmarks to the "trig" group
 for f in (sin, cos, tan)
     for x in (0.0, pi)
         suite["trig"][string(f), x] = @benchmarkable $(f)($x)
@@ -598,7 +562,7 @@ julia> results = run(suite, verbose = true, seconds = 1)
   (2/2) benchmarking "replace"...
   done (took 0.47660775 seconds)
 done (took 1.697970114 seconds)
-(2/2) benchmarking "trigonometry"...
+(2/2) benchmarking "trig"...
   (1/6) benchmarking ("tan",π = 3.1415926535897...)...
   done (took 0.371586549 seconds)
   (2/6) benchmarking ("cos",0.0)...
@@ -615,7 +579,7 @@ done (took 2.022673065 seconds)
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "utf8" => BenchmarkGroup(["string", "unicode"])
-  "trigonometry" => BenchmarkGroup(["math", "triangles"])
+  "trig" => BenchmarkGroup(["math", "triangles"])
 ```
 
 ### Working with trial data in a `BenchmarkGroup`
@@ -630,7 +594,7 @@ BenchmarkTools.BenchmarkGroup:
   "join" => Trial(133.84 ms) # showcompact for Trial displays the minimum time estimate
   "replace" => Trial(202.3 μs)
 
-julia> results["trigonometry"]
+julia> results["trig"]
 BenchmarkTools.BenchmarkGroup:
   tags: ["math", "triangles"]
   ("tan",π = 3.1415926535897...) => Trial(28.0 ns)
@@ -907,7 +871,7 @@ julia> suite
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "utf8" => BenchmarkGroup(["string", "unicode"])
-  "trigonometry" => BenchmarkGroup(["math", "triangles"])
+  "trig" => BenchmarkGroup(["math", "triangles"])
 
 # tune the suite to configure benchmark parameters
 julia> tune!(suite);
