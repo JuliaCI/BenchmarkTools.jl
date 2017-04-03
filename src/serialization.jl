@@ -34,6 +34,9 @@ end
 
 function save(filename, args...)
     JLD.save(filename, VERSION_KEY, VERSIONS, args...)
+    JLD.jldopen(filename, "r+") do io
+        JLD.addrequire(io, BenchmarkTools)
+    end
     return nothing
 end
 
