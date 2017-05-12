@@ -127,7 +127,7 @@ end
 
 function tune!(b::Benchmark, p::Parameters = b.params;
                verbose::Bool = false, pad = "", kwargs...)
-    warmup(b, false)
+    warmup(b; verbose = false)
     estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
     b.params.evals = guessevals(estimate)
     return b
