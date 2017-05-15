@@ -75,7 +75,7 @@ function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
     return eval(current_module(), :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
 end
 
-warmup(item, verbose = true) = run(item; verbose = verbose, samples = 1, evals = 1,
+warmup(item; verbose::Bool = true) = run(item; verbose = verbose, samples = 1, evals = 1,
                                    gctrial = false, gcsample = false)
 
 ####################
@@ -127,7 +127,7 @@ end
 
 function tune!(b::Benchmark, p::Parameters = b.params;
                verbose::Bool = false, pad = "", kwargs...)
-    warmup(b, false)
+    warmup(b, verbose = false)
     estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
     b.params.evals = guessevals(estimate)
     return b
