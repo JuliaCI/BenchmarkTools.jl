@@ -205,7 +205,7 @@ Run the specified benchmark(s), returning a `Trial` or a `BenchmarkGroup` with `
 
 Tune the `evals` parameter (evaluations per sample) of the specified benchmark(s). Valid `kwargs` match those of `run`. Relevant manual documentation can be found [here](manual.md#defining-and-executing-benchmarks).
 
-##### `warmup(x::Union{Benchmark, BenchmarkGroup} [, verbose = true])`
+##### `warmup(x::Union{Benchmark, BenchmarkGroup}; verbose = true)`
 
 Run a single evaluation of `x`. This can be useful if you think JIT overhead is being incorporated into your results (which is rarely the case, unless very few samples are taken).
 
