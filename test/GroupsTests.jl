@@ -3,6 +3,7 @@
 using Base.Test
 using BenchmarkTools
 using BenchmarkTools: TrialEstimate, Parameters
+using DataStructures
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
@@ -37,12 +38,16 @@ g2["c"] = tc
 
 trial = BenchmarkTools.Trial(Parameters(), [1, 2, 5], [0, 1, 1], 3, 56)
 
-gtrial = BenchmarkGroup([], Dict("t" => trial))
+gtrial = BenchmarkGroup([], "t" => trial)
 
 # tests #
 #-------#
 
 @test BenchmarkGroup() == BenchmarkGroup([], Dict())
+@test BenchmarkGroup([]) == BenchmarkGroup([], Dict())
+@test BenchmarkGroup([], Dict(1=>2)).data == Dict(1=>2)
+@test typeof(BenchmarkGroup([], OrderedDict(1=>1, 2=>1)).data) == OrderedDict{Int,Int}
+@test BenchmarkGroup([], OrderedDict(1=>1, 2=>1)).data == OrderedDict(1=>1,2=>1)
 @test length(g1) == 3
 @test g1["a"] == t1a
 @test g1["b"] == t1b

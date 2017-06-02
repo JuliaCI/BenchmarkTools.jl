@@ -4,10 +4,10 @@
 
 immutable BenchmarkGroup
     tags::Vector{Any}
-    data::Dict{Any,Any}
+    data::Associative
 end
 
-BenchmarkGroup(tags::Vector, args::Pair...) = BenchmarkGroup(tags, Dict(args...))
+BenchmarkGroup(tags::Vector, args::Pair...) = BenchmarkGroup(tags, Dict{Any,Any}(args...))
 BenchmarkGroup(args::Pair...) = BenchmarkGroup([], args...)
 
 function addgroup!(suite::BenchmarkGroup, id, args...)
