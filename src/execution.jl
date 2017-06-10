@@ -29,7 +29,7 @@ end
 # execution #
 #############
 # Note that trials executed via `run` and `lineartrial` are always executed at the top-level
-# scope of the module returned by `current_module()`. This is to avoid any weird quirks
+# scope of the module returned by `@__MODULE__`. This is to avoid any weird quirks
 # when calling the experiment from within other contexts.
 
 sample(b::Benchmark, args...) = error("no execution method defined on type $(typeof(b))")
@@ -37,7 +37,7 @@ _run(b::Benchmark, args...; kwargs...) = error("no execution method defined on t
 
 # return (Trial, result) tuple, where result is the result of the benchmarked expression
 function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
-    return eval(current_module(), :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
+    return eval(@__MODULE__, :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
 end
 
 Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) =
@@ -72,7 +72,7 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
 end
 
 function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
-    return eval(current_module(), :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
+    return eval(@__MODULE__, :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
 end
 
 warmup(item; verbose::Bool = true) = run(item; verbose = verbose, samples = 1, evals = 1,
@@ -250,7 +250,7 @@ macro benchmarkable(args...)
 
     # generate the benchmark definition
     return esc(quote
-        BenchmarkTools.generate_benchmark_definition(current_module(),
+        BenchmarkTools.generate_benchmark_definition(@__MODULE__,
                                                      $(Expr(:quote, out_vars)),
                                                      $(Expr(:quote, setup_vars)),
                                                      $(Expr(:quote, core)),
