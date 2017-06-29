@@ -2,7 +2,7 @@
 # BenchmarkGroup #
 ##################
 
-immutable BenchmarkGroup
+struct BenchmarkGroup
     tags::Vector{Any}
     data::Dict{Any,Any}
 end
@@ -138,7 +138,7 @@ end
 # tagging #
 #---------#
 
-immutable TagFilter{P}
+struct TagFilter{P}
     predicate::P
 end
 

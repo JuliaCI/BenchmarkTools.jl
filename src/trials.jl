@@ -2,7 +2,7 @@
 # Trial #
 #########
 
-type Trial
+mutable struct Trial
     params::Parameters
     times::Vector{Float64}
     gctimes::Vector{Float64}
@@ -86,7 +86,7 @@ trim(t::Trial, percentage = 0.1) = t[1:max(1, floor(Int, length(t) - (length(t) 
 # TrialEstimate #
 #################
 
-type TrialEstimate
+mutable struct TrialEstimate
     params::Parameters
     time::Float64
     gctime::Float64
@@ -133,7 +133,7 @@ params(t::TrialEstimate) = t.params
 # TrialRatio #
 ##############
 
-type TrialRatio
+mutable struct TrialRatio
     params::Parameters
     time::Float64
     gctime::Float64
@@ -178,7 +178,7 @@ gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
 # TrialJudgement #
 ##################
 
-immutable TrialJudgement
+struct TrialJudgement
     ratio::TrialRatio
     time::Symbol
     memory::Symbol

@@ -2,7 +2,7 @@ const VERSION_KEY = "__versions__"
 
 const VERSIONS = Dict("Julia" => string(VERSION), "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))
 
-type ParametersPreV006
+mutable struct ParametersPreV006
     seconds::Float64
     samples::Int
     evals::Int
@@ -13,7 +13,7 @@ type ParametersPreV006
     memory_tolerance::Float64
 end
 
-type TrialPreV006
+mutable struct TrialPreV006
     params::Parameters
     times::Vector{Int}
     gctimes::Vector{Int}
