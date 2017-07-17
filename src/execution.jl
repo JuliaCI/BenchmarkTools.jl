@@ -7,7 +7,7 @@ gcscrub() = (gc(); gc(); gc(); gc())
 # Benchmark #
 #############
 
-type Benchmark{id}
+mutable struct Benchmark{id}
     params::Parameters
 end
 

@@ -5,7 +5,7 @@ const RESOLUTION = 1000 # 1 μs = 1000 ns
 # Parameters #
 ##############
 
-type Parameters
+mutable struct Parameters
     seconds::Float64
     samples::Int
     evals::Int

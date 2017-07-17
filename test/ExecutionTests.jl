@@ -98,7 +98,7 @@ p = params(warmup(@benchmarkable sin(1)))
 # @benchmark #
 ##############
 
-type Foo
+mutable struct Foo
     x::Int
 end
 
