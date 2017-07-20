@@ -1,6 +1,7 @@
 module BenchmarkTools
 
 using Compat
+using ProgressMeter
 import JLD
 
 # `show` compatibility for pre-JuliaLang/julia#16354 builds

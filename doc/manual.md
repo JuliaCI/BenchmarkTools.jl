@@ -116,6 +116,11 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
 - `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
 
+The following two keyword arguments can be used to change the output from `run`:
+
+- `verbose::Bool` - Print the name of the benchmarks and the time it takes to run them, as they are being run.
+- `progress::Bool` - Show a progress meter of the benchmarking process
+
 To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 
 ```julia

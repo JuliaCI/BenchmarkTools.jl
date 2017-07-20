@@ -40,17 +40,30 @@ function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
     return eval(@__MODULE__, :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
 end
 
-Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) =
-    run_result(b, p; kwargs...)[1]
+function Base.run(b::Benchmark, p::Parameters = b.params;
+                  verbose::Bool = false, pad = "", _prog = nothing, _hierarchy = [], kwargs...)
+    r = run_result(b, p; kwargs...)[1]
+    if _prog != nothing
+        indent = 0
+        ProgressMeter.next!(_prog; showvalues = [map(id -> ("  "^(indent += 1) * "[$(id[2])/$(id[3])]", id[1]), _hierarchy)...])
+    end
+    return r
+end
 
-function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
+function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "",
+                  progress::Bool = false, _prog = nothing, _hierarchy = [], kwargs...)
     result = similar(group)
     gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
+    if _prog == nothing && progress
+        _prog = Progress(length(leaves(group)); desc = "Benchmarking: ")
+    end
     i = 1
     for id in keys(group)
-        verbose && (println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "..."); tic())
-        result[id] = run(group[id], args...; verbose = verbose, pad = pad*"  ", kwargs...)
-        verbose && (println(pad, "done (took ", toq(), " seconds)"); i += 1)
+        verbose && !progress && (println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "..."); tic())
+        result[id] = run(group[id], args...; verbose = verbose, _hierarchy = push!(copy(_hierarchy), (repr(id), i, length(keys(group)))),
+              _prog = _prog, kwargs...)
+        verbose && !progress && println(pad, "done (took ", toq(), " seconds)")
+         i += 1
     end
     return result
 end
@@ -114,22 +127,33 @@ for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] = 11 - i)      end # linearl
 
 guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
 
-function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
+function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "",
+               progress::Bool = false, _prog = nothing, _hierarchy = [], kwargs...)
     gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
+    if _prog == nothing && progress
+        _prog = Progress(length(leaves(group)); desc = "Tuning: ")
+    end
     i = 1
     for id in keys(group)
-        verbose && (println(pad, "($(i)/$(length(group))) tuning ", repr(id), "..."); tic())
-        tune!(group[id]; verbose = verbose, pad = pad*"  ", kwargs...)
-        verbose && (println(pad, "done (took ", toq(), " seconds)"); i += 1)
+        verbose && !progress && (println(pad, "($(i)/$(length(group))) tuning ", repr(id), "..."); tic())
+        tune!(group[id]; verbose = verbose, _hierarchy = push!(copy(_hierarchy), (repr(id), i, length(keys(group)))),
+              _prog = _prog, kwargs...)
+        verbose && !progress && (println(pad, "done (took ", toq(), " seconds)"))
+        i += 1
     end
     return group
 end
 
 function tune!(b::Benchmark, p::Parameters = b.params;
-               verbose::Bool = false, pad = "", kwargs...)
+               verbose::Bool = false, pad = "", _prog = nothing, _hierarchy = [], kwargs...)
     warmup(b, verbose = false)
     estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
     b.params.evals = guessevals(estimate)
+    if _prog != nothing
+        indent = 0
+        ProgressMeter.next!(_prog; showvalues = [map(id -> ("  "^(indent += 1) * "[$(id[2])/$(id[3])]", id[1]), _hierarchy)...])
+    end
+
     return b
 end
 
