@@ -171,6 +171,7 @@ function ratio(a::TrialEstimate, b::TrialEstimate)
     return TrialRatio(p, ratio(time(a), time(b)), ratio(gctime(a), gctime(b)),
                       ratio(memory(a), memory(b)), ratio(allocs(a), allocs(b)))
 end
+Base.:/(a::TrialEstimate, b::TrialEstimate) = ratio(a, b)
 
 gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
 
