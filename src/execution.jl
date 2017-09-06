@@ -201,16 +201,6 @@ function quasiquote!(ex::Expr, vars::Vector{Expr})
     return ex
 end
 
-macro benchmark(args...)
-    _, params = prunekwargs(args...)
-    quote
-        tmp = @benchmarkable $(map(esc,args)...)
-        warmup(tmp)
-        $(hasevals(params) ? :() : :(tune!(tmp)))
-        run(tmp)
-    end
-end
-
 function benchmarkable_parts(args)
     core, params = prunekwargs(args...)
 
@@ -259,6 +249,19 @@ macro benchmarkable(args...)
                                                      $Parameters($(params...)))
     end)
 end
+
+function _benchmark(args...)
+    _, params = prunekwargs(args...)
+    tmp = @benchmarkable $(args...)
+    warmup(tmp)
+    hasevals(params) && tune!(tmp)
+    run(tmp)
+end
+
+macro benchmark(args...)
+    _benchmark(args...)
+end
+
 
 # `eval` an expression that forcibly defines the specified benchmark at
 # top-level of `eval_module`, hopefully ensuring that the "location" of the benchmark's
