@@ -206,7 +206,7 @@ macro benchmark(args...)
     esc(quote
         $tmp = $BenchmarkTools.@benchmarkable $(args...)
         $BenchmarkTools.warmup($tmp)
-        $(hasevals(params) ? :() : :(tune!($tmp)))
+        $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
         $BenchmarkTools.run($tmp)
     end)
 end
@@ -250,12 +250,12 @@ macro benchmarkable(args...)
 
     # generate the benchmark definition
     return esc(quote
-        BenchmarkTools.generate_benchmark_definition($(Expr(:quote, out_vars)),
-                                                     $(Expr(:quote, setup_vars)),
-                                                     $(Expr(:quote, core)),
-                                                     $(Expr(:quote, setup)),
-                                                     $(Expr(:quote, teardown)),
-                                                     $Parameters($(params...)))
+        $BenchmarkTools.generate_benchmark_definition($(Expr(:quote, out_vars)),
+                                                      $(Expr(:quote, setup_vars)),
+                                                      $(Expr(:quote, core)),
+                                                      $(Expr(:quote, setup)),
+                                                      $(Expr(:quote, teardown)),
+                                                      $Parameters($(params...)))
     end)
 end
 
