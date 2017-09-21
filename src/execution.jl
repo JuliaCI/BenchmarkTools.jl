@@ -28,16 +28,15 @@ end
 #############
 # execution #
 #############
-# Note that trials executed via `run` and `lineartrial` are always executed at the top-level
-# scope of the module returned by `@__MODULE__`. This is to avoid any weird quirks
-# when calling the experiment from within other contexts.
+# Note that trials executed via `run` and `lineartrial` are always executed at top-level
+# scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
 sample(b::Benchmark, args...) = error("no execution method defined on type $(typeof(b))")
 _run(b::Benchmark, args...; kwargs...) = error("no execution method defined on type $(typeof(b))")
 
 # return (Trial, result) tuple, where result is the result of the benchmarked expression
 function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
-    return eval(@__MODULE__, :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
+    return eval(:($BenchmarkTools._run($(b), $(p); $(kwargs...))))
 end
 
 Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) =
@@ -72,7 +71,7 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
 end
 
 function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
-    return eval(@__MODULE__, :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
+    return eval(:($BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
 end
 
 warmup(item; verbose::Bool = true) = run(item; verbose = verbose, samples = 1, evals = 1,
@@ -203,12 +202,13 @@ end
 
 macro benchmark(args...)
     _, params = prunekwargs(args...)
-    quote
-        tmp = @benchmarkable $(map(esc,args)...)
-        warmup(tmp)
-        $(hasevals(params) ? :() : :(tune!(tmp)))
-        run(tmp)
-    end
+    tmp = gensym()
+    esc(quote
+        $tmp = $BenchmarkTools.@benchmarkable $(args...)
+        $BenchmarkTools.warmup($tmp)
+        $(hasevals(params) ? :() : :(tune!($tmp)))
+        $BenchmarkTools.run($tmp)
+    end)
 end
 
 function benchmarkable_parts(args)
@@ -250,8 +250,7 @@ macro benchmarkable(args...)
 
     # generate the benchmark definition
     return esc(quote
-        BenchmarkTools.generate_benchmark_definition(@__MODULE__,
-                                                     $(Expr(:quote, out_vars)),
+        BenchmarkTools.generate_benchmark_definition($(Expr(:quote, out_vars)),
                                                      $(Expr(:quote, setup_vars)),
                                                      $(Expr(:quote, core)),
                                                      $(Expr(:quote, setup)),
@@ -261,14 +260,13 @@ macro benchmarkable(args...)
 end
 
 # `eval` an expression that forcibly defines the specified benchmark at
-# top-level of `eval_module`, hopefully ensuring that the "location" of the benchmark's
-# definition will not be a factor for the sake of performance testing.
+# top-level in order to allow transfer of locally-scoped variables into
+# benchmark scope.
 #
 # The double-underscore-prefixed variable names are not particularly hygienic - it's
 # possible for them to conflict with names used in the setup or teardown expressions.
 # A more robust solution would be preferable.
-function generate_benchmark_definition(eval_module, out_vars, setup_vars,
-                                       core, setup, teardown, params)
+function generate_benchmark_definition(out_vars, setup_vars, core, setup, teardown, params)
     id = Expr(:quote, gensym("benchmark"))
     corefunc = gensym("core")
     samplefunc = gensym("sample")
@@ -286,9 +284,9 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
         invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
         core_body = :($(core); $(returns))
     end
-    eval(eval_module, quote
+    eval(quote
         @noinline $(signature) = begin $(core_body) end
-        @noinline function $(samplefunc)(__params::BenchmarkTools.Parameters)
+        @noinline function $(samplefunc)(__params::$BenchmarkTools.Parameters)
             $(setup)
             __evals = __params.evals
             __gc_start = Base.gc_num()
@@ -308,31 +306,31 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars,
                                __evals))
             return __time, __gctime, __memory, __allocs, __return_val
         end
-        function BenchmarkTools.sample(b::BenchmarkTools.Benchmark{$(id)},
-                                       p::BenchmarkTools.Parameters = b.params)
+        function $BenchmarkTools.sample(b::$BenchmarkTools.Benchmark{$(id)},
+                                        p::$BenchmarkTools.Parameters = b.params)
             return $(samplefunc)(p)
         end
-        function BenchmarkTools._run(b::BenchmarkTools.Benchmark{$(id)},
-                                     p::BenchmarkTools.Parameters;
-                                     verbose = false, pad = "", kwargs...)
-            params = BenchmarkTools.Parameters(p; kwargs...)
+        function $BenchmarkTools._run(b::$BenchmarkTools.Benchmark{$(id)},
+                                      p::$BenchmarkTools.Parameters;
+                                      verbose = false, pad = "", kwargs...)
+            params = $BenchmarkTools.Parameters(p; kwargs...)
             @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-            params.gctrial && BenchmarkTools.gcscrub()
+            params.gctrial && $BenchmarkTools.gcscrub()
             start_time = time()
-            trial = BenchmarkTools.Trial(params)
-            params.gcsample && BenchmarkTools.gcscrub()
+            trial = $BenchmarkTools.Trial(params)
+            params.gcsample && $BenchmarkTools.gcscrub()
             s = $(samplefunc)(params)
             push!(trial, s[1:end-1]...)
             return_val = s[end]
             iters = 2
             while (time() - start_time) < params.seconds && iters ≤ params.samples
-                 params.gcsample && BenchmarkTools.gcscrub()
+                 params.gcsample && $BenchmarkTools.gcscrub()
                  push!(trial, $(samplefunc)(params)[1:end-1]...)
                  iters += 1
             end
             return sort!(trial), return_val
         end
-        BenchmarkTools.Benchmark{$(id)}($(params))
+        $BenchmarkTools.Benchmark{$(id)}($(params))
     end)
 end
 
