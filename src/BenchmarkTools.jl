@@ -1,3 +1,5 @@
+__precompile__()
+
 module BenchmarkTools
 
 using Compat
@@ -67,12 +69,6 @@ export tune!,
        @benchmarkable,
        @belapsed,
        @btime
-
-##########################################
-# Plotting Facilities (loaded on demand) #
-##########################################
-
-loadplotting() = include(joinpath(dirname(@__FILE__), "plotting.jl"))
 
 #################
 # Serialization #
