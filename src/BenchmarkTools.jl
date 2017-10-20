@@ -68,12 +68,6 @@ export tune!,
        @belapsed,
        @btime
 
-##########################################
-# Plotting Facilities (loaded on demand) #
-##########################################
-
-loadplotting() = include(joinpath(dirname(@__FILE__), "plotting.jl"))
-
 #################
 # Serialization #
 #################
