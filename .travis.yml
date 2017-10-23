@@ -3,6 +3,10 @@ language: julia
 os:
   - linux
   - osx
+addons:
+  apt:
+    packages:
+      - hdf5-tools
 julia:
   - 0.6
   - nightly
