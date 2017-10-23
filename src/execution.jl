@@ -203,12 +203,12 @@ end
 
 macro benchmark(args...)
     _, params = prunekwargs(args...)
-    quote
-        tmp = @benchmarkable $(map(esc,args)...)
+    esc(quote
+        tmp = @benchmarkable $(args...)
         warmup(tmp)
         $(hasevals(params) ? :() : :(tune!(tmp)))
         run(tmp)
-    end
+    end)
 end
 
 function benchmarkable_parts(args)
@@ -355,8 +355,10 @@ parameters as `@benchmark`.  The returned time
 is the *minimum* elapsed time measured during the benchmark.
 """
 macro belapsed(args...)
-    b = Expr(:macrocall, Symbol("@benchmark"), map(esc, args)...)
-    :(time(minimum($b))/1e9)
+    esc(quote
+        b = @benchmark $(args...)
+        time(minimum(b)) / 1e9
+    end)
 end
 
 """
