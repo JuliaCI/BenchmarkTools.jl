@@ -73,8 +73,7 @@ end
             BenchmarkTools.load(tmp)
             error("madness")
         catch err
-            # This function thows a bunch of ArgumentErrors, so test for this specifically
-            @test err isa ArgumentError
+            # This function thows a bunch of errors, so test for this specifically
             @test contains(err.msg, "Unexpected JSON format")
         end
     end
