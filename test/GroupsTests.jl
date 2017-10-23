@@ -1,8 +1,9 @@
 # module GroupsTests
 
-using Base.Test
 using BenchmarkTools
 using BenchmarkTools: TrialEstimate, Parameters
+using Compat
+using Compat.Test
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 

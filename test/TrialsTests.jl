@@ -1,7 +1,8 @@
 module TrialsTests
 
-using Base.Test
 using BenchmarkTools
+using Compat
+using Compat.Test
 
 #########
 # Trial #
