@@ -19,7 +19,7 @@ Pkg.add("BenchmarkTools")
 
 ## Quick Start
 
-The simplest usage is via the `@btime` macro, which is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time) but is often more accurate (by collecting results over multiple runs):
+The simplest usage is via the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time) but is often more accurate (by collecting results over multiple runs):
 
 ```julia
 julia> using BenchmarkTools, Compat   # you need to use both modules
@@ -29,7 +29,7 @@ julia> @btime sin(1)
 0.8414709848078965
 ```
 
-If the expression you want to benchmark depends on global variables, you should use `$` to "interpolate" them into the benchmark expression to [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/stable/manual/performance-tips/#Avoid-global-variables-1).  Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
+If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/stable/manual/performance-tips/#Avoid-global-variables-1).  Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
 
 ```julia
 julia> A = rand(3,3);
