@@ -17,6 +17,18 @@ To install BenchmarkTools, you can run the following:
 Pkg.add("BenchmarkTools")
 ```
 
+## Documentation
+
+If you're just getting started, check out the [manual](doc/manual.md) for a thorough explanation of BenchmarkTools.
+
+If you want to explore the BenchmarkTools API, see the [reference document](doc/reference.md).
+
+If you want a short example of a toy benchmark suite, see the sample file in this repo ([benchmark/benchmarks.jl](benchmark/benchmarks.jl)).
+
+If you want an extensive example of a benchmark suite being used in the real world, you can look at the source code of [BaseBenchmarks.jl](https://github.com/JuliaCI/BaseBenchmarks.jl/tree/nanosoldier).
+
+If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/linuxtips.md) to help eliminate noise during performance tests.
+
 ## Quick Start
 
 The simplest usage is via the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time) but is often more accurate (by collecting results over multiple runs):
@@ -45,18 +57,6 @@ julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchm
 ```
 
 As described the [manual](doc/manual.md), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
-
-## Documentation
-
-If you're just getting started, check out the [manual](doc/manual.md) for a thorough explanation of BenchmarkTools.
-
-If you want to explore the BenchmarkTools API, see the [reference document](doc/reference.md).
-
-If you want a short example of a toy benchmark suite, see the sample file in this repo ([benchmark/benchmarks.jl](benchmark/benchmarks.jl)).
-
-If you want an extensive example of a benchmark suite being used in the real world, you can look at the source code of [BaseBenchmarks.jl](https://github.com/JuliaCI/BaseBenchmarks.jl/tree/nanosoldier).
-
-If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/linuxtips.md) to help eliminate noise during performance tests.
 
 ## Why does this package exist?
 
