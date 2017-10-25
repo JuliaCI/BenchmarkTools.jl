@@ -1,56 +1,87 @@
-const VERSION_KEY = "__versions__"
+const VERSIONS = Dict("Julia" => string(VERSION),
+                      "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))
 
-const VERSIONS = Dict("Julia" => string(VERSION), "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))
+# TODO: Add any new types as they're added
+const SUPPORTED_TYPES = [Benchmark, BenchmarkGroup, Parameters, TagFilter, Trial,
+                         TrialEstimate, TrialJudgement, TrialRatio]
 
-mutable struct ParametersPreV006
-    seconds::Float64
-    samples::Int
-    evals::Int
-    overhead::Int
-    gctrial::Bool
-    gcsample::Bool
-    time_tolerance::Float64
-    memory_tolerance::Float64
-end
-
-mutable struct TrialPreV006
-    params::Parameters
-    times::Vector{Int}
-    gctimes::Vector{Int}
-    memory::Int
-    allocs::Int
-end
-
-function JLD.readas(p::ParametersPreV006)
-    return Parameters(p.seconds, p.samples, p.evals, Float64(p.overhead), p.gctrial,
-                      p.gcsample, p.time_tolerance, p.memory_tolerance)
-end
-
-function JLD.readas(t::TrialPreV006)
-    new_times = convert(Vector{Float64}, t.times)
-    new_gctimes = convert(Vector{Float64}, t.gctimes)
-    return Trial(t.params, new_times, new_gctimes, t.memory, t.allocs)
-end
-
-function save(filename, args...)
-    JLD.save(filename, VERSION_KEY, VERSIONS, args...)
-    JLD.jldopen(filename, "r+") do io
-        JLD.addrequire(io, BenchmarkTools)
+for T in SUPPORTED_TYPES
+    @eval function JSON.lower(x::$T)
+        d = Dict{String,Any}()
+        for i = 1:nfields(x)
+            name = String(fieldname($T, i))
+            field = getfield(x, i)
+            value = typeof(field) in SUPPORTED_TYPES ? JSON.lower(field) : field
+            push!(d, name => value)
+        end
+        [string(typeof(x)), d]
     end
-    return nothing
 end
 
-@inline function load(filename, args...)
-    # no version-based rules are needed for now, we just need
-    # to check that version information exists in the file.
-    if JLD.jldopen(file -> JLD.exists(file, VERSION_KEY), filename, "r")
-        result = JLD.load(filename, args...)
+function recover(x::Vector)
+    length(x) == 2 || throw(ArgumentError("Expecting a vector of length 2"))
+    typename = x[1]::String
+    fields = x[2]::Dict
+    T = eval(parse(typename))::Type
+    fc = fieldcount(T)
+    xs = Vector{Any}(fc)
+    for i = 1:fc
+        ft = fieldtype(T, i)
+        fn = String(fieldname(T, i))
+        xs[i] = if ft in SUPPORTED_TYPES
+            recover(fields[fn])
+        else
+            convert(ft, fields[fn])
+        end
+    end
+    T(xs...)
+end
+
+function badext(filename)
+    noext, ext = splitext(filename)
+    msg = if ext == ".jld"
+        "JLD serialization is no longer supported. Benchmarks should now be saved in\n" *
+        "JSON format using `save(\"$noext\".json, args...)` and loaded from JSON using\n" *
+        "using `load(\"$noext\".json, args...)`. You will need to convert existing\n" *
+        "saved benchmarks to JSON in order to use them with this version of BenchmarkTools."
     else
-        JLD.translate("BenchmarkTools.Parameters", "BenchmarkTools.ParametersPreV006")
-        JLD.translate("BenchmarkTools.Trial", "BenchmarkTools.TrialPreV006")
-        result = JLD.load(filename, args...)
-        JLD.translate("BenchmarkTools.Parameters", "BenchmarkTools.Parameters")
-        JLD.translate("BenchmarkTools.Trial", "BenchmarkTools.Trial")
+        "Only JSON serialization is supported."
     end
-    return result
+    throw(ArgumentError(msg))
+end
+
+function save(filename::AbstractString, args...)
+    endswith(filename, ".json") || badext(filename)
+    isempty(args) && throw(ArgumentError("Nothing to save"))
+    goodargs = Any[]
+    for arg in args
+        if arg isa String
+            warn("Naming variables in serialization is no longer supported.\nThe name " *
+                 "will be ignored and the object will be serialized in the order it appears " *
+                 "in the input.")
+            continue
+        elseif !any(T->arg isa T, SUPPORTED_TYPES)
+            throw(ArgumentError("Only BenchmarkTools types can be serialized."))
+        end
+        push!(goodargs, arg)
+    end
+    isempty(goodargs) && error("Nothing to save")
+    open(filename, "w") do io
+        JSON.print(io, [VERSIONS, goodargs])
+    end
+end
+
+function load(filename::AbstractString, args...)
+    endswith(filename, ".json") || badext(filename)
+    if !isempty(args)
+        throw(ArgumentError("Looking up deserialized values by name is no longer supported, " *
+                            "as names are no longer saved."))
+    end
+    parsed = open(JSON.parse, filename, "r")
+    if !isa(parsed, Vector) || length(parsed) != 2 || !isa(parsed[1], Dict) || !isa(parsed[2], Vector)
+        error("Unexpected JSON format. Was this file originally written by BenchmarkTools?")
+    end
+    versions = parsed[1]::Dict
+    values = parsed[2]::Vector
+    map!(recover, values, values)
 end
