@@ -29,6 +29,35 @@ If you want an extensive example of a benchmark suite being used in the real wor
 
 If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/linuxtips.md) to help eliminate noise during performance tests.
 
+## Quick Start
+
+The simplest usage is via the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time) but is often more accurate (by collecting results over multiple runs):
+
+```julia
+julia> using BenchmarkTools, Compat   # you need to use both modules
+
+julia> @btime sin(1)
+  15.081 ns (0 allocations: 0 bytes)
+0.8414709848078965
+```
+
+If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/stable/manual/performance-tips/#Avoid-global-variables-1).  Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
+
+```julia
+julia> A = rand(3,3);
+
+julia> @btime inv($A);            # we interpolate the global variable A with $A
+  1.191 μs (10 allocations: 2.31 KiB)
+  
+julia> @btime inv($(rand(3,3)));  # interpolation: the rand(3,3) call occurs before benchmarking
+  1.192 μs (10 allocations: 2.31 KiB)
+  
+julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchmark time
+  1.295 μs (11 allocations: 2.47 KiB)
+```
+
+As described the [manual](doc/manual.md), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
+
 ## Why does this package exist?
 
 Our story begins with two packages, "Benchmarks" and "BenchmarkTrackers". The Benchmarks package implemented an execution strategy for collecting and summarizing individual benchmark results, while BenchmarkTrackers implemented a framework for organizing, running, and determining regressions of groups of benchmarks. Under the hood, BenchmarkTrackers relied on Benchmarks for actual benchmark execution.
