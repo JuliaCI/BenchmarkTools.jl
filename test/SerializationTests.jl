@@ -35,6 +35,21 @@ end
         @test eq(results[1], b)
         @test eq(results[2], bb)
     end
+
+    # Nested BenchmarkGroups
+    withtempdir() do
+        tmp = joinpath(pwd(), "tmp.json")
+
+        g = BenchmarkGroup()
+        g["a"] = BenchmarkGroup()
+        g["b"] = BenchmarkGroup()
+        g["c"] = BenchmarkGroup()
+        BenchmarkTools.save(tmp, g)
+
+        results = BenchmarkTools.load(tmp)[1]
+        @test results isa BenchmarkGroup
+        @test all(v->v isa BenchmarkGroup, values(results.data))
+    end
 end
 
 @testset "Deprecated behaviors" begin

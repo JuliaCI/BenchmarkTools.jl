@@ -33,6 +33,13 @@ function recover(x::Vector)
         else
             convert(ft, fields[fn])
         end
+        if T == BenchmarkGroup && xs[i] isa Dict
+            for (k, v) in xs[i]
+                if v isa Vector && length(v) == 2 && v[1] isa String
+                    xs[i][k] = recover(v)
+                end
+            end
+        end
     end
     T(xs...)
 end
