@@ -185,11 +185,11 @@ Return an iterator over `x`'s leaf index/value pairs. Relevant manual documentat
 
 ##### `save(filename, args...)`
 
-Not exported. This function is a thin wrapper around a call to `JLD.save(filename, args...)` that maintains compatibility between BenchmarkTools versions.
+Not exported. This function calls `JSON.print` with custom serialization to write benchmarking data in a custom JSON format.
 
 ##### `load(filename, args...)`
 
-Not exported. This function is a thin wrapper around a call to `JLD.load(filename, args...)` that maintains compatibility between BenchmarkTools versions.
+Not exported. This function calls `JSON.parse` with custom deserialization to read back benchmarking data written from `save`.
 
 ##### `loadparams!(x::Parameters, y::Parameters, fields...)`
 ##### `loadparams!(x::Benchmark, y::Parameters, fields...)`

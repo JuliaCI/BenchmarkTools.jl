@@ -853,7 +853,7 @@ A common workflow used in BenchmarkTools is the following:
 
 1. Start a Julia session
 2. Execute a benchmark suite using an old version of your package
-3. Save the results somehow (e.g. in a JLD file)
+3. Save the results somehow (e.g. in a JSON file)
 4. Start a new Julia session
 5. Execute a benchmark suite using a new version of your package
 6. Compare the new results with the results saved in step 3 to determine regression status
@@ -877,16 +877,16 @@ BenchmarkTools.BenchmarkGroup:
 julia> tune!(suite);
 
 # save the suite's parameters using a thin wrapper
-# over JLD (this wrapper maintains compatibility
+# over JSON (this wrapper maintains compatibility
 # across BenchmarkTools versions)
-julia> BenchmarkTools.save("params.jld", "suite", params(suite));
+julia> BenchmarkTools.save("params.json", params(suite));
 ```
 
-Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JLD file using the `loadparams!` function:
+Now, instead of tuning `suite` every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JSON file using the `loadparams!` function. The `[1]` on the `load` call gets the first value that was serialized into the JSON file, which in this case is the parameters.
 
 ```julia
 # syntax is loadparams!(group, paramsgroup, fields...)
-julia> loadparams!(suite, BenchmarkTools.load("params.jld", "suite"), :evals, :samples);
+julia> loadparams!(suite, BenchmarkTools.load("params.json")[1], :evals, :samples);
 ```
 
 Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.
