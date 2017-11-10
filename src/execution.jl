@@ -28,19 +28,18 @@ end
 #############
 # execution #
 #############
+
 # Note that trials executed via `run` and `lineartrial` are always executed at top-level
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
-sample(b::Benchmark, args...) = error("no execution method defined on type $(typeof(b))")
-_run(b::Benchmark, args...; kwargs...) = error("no execution method defined on type $(typeof(b))")
+# these stubs get overloaded by @benchmarkable
+function sample end
+function _run end
 
 # return (Trial, result) tuple, where result is the result of the benchmarked expression
-function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
-    return eval(:($BenchmarkTools._run($(b), $(p); $(kwargs...))))
-end
+run_result(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_run, b, p; kwargs...)
 
-Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) =
-    run_result(b, p; kwargs...)[1]
+Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) = run_result(b, p; kwargs...)[1]
 
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
     result = similar(group)
@@ -70,12 +69,14 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
     return estimates[1:completed]
 end
 
-function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
-    return eval(:($BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
-end
+lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_lineartrial, b, p; kwargs...)
 
-warmup(item; verbose::Bool = true) = run(item; verbose = verbose, samples = 1, evals = 1,
-                                   gctrial = false, gcsample = false)
+function warmup(item; verbose::Bool = true)
+    return run(item;
+               verbose = verbose, samples = 1,
+               evals = 1, gctrial = false,
+               gcsample = false)
+end
 
 ####################
 # parameter tuning #
@@ -203,7 +204,7 @@ end
 macro benchmark(args...)
     _, params = prunekwargs(args...)
     tmp = gensym()
-    esc(quote
+    return esc(quote
         $tmp = $BenchmarkTools.@benchmarkable $(args...)
         $BenchmarkTools.warmup($tmp)
         $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
@@ -250,7 +251,8 @@ macro benchmarkable(args...)
 
     # generate the benchmark definition
     return esc(quote
-        $BenchmarkTools.generate_benchmark_definition($(Expr(:quote, out_vars)),
+        $BenchmarkTools.generate_benchmark_definition($(__module__),
+                                                      $(Expr(:quote, out_vars)),
                                                       $(Expr(:quote, setup_vars)),
                                                       $(Expr(:quote, core)),
                                                       $(Expr(:quote, setup)),
@@ -266,13 +268,12 @@ end
 # The double-underscore-prefixed variable names are not particularly hygienic - it's
 # possible for them to conflict with names used in the setup or teardown expressions.
 # A more robust solution would be preferable.
-function generate_benchmark_definition(out_vars, setup_vars, core, setup, teardown, params)
+function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, setup, teardown, params)
     id = Expr(:quote, gensym("benchmark"))
     corefunc = gensym("core")
     samplefunc = gensym("sample")
     signature = Expr(:call, corefunc, setup_vars...)
     if length(out_vars) == 0
-        #returns = :(return $(Expr(:tuple, setup_vars...)))
         invocation = signature
         core_body = core
     elseif length(out_vars) == 1
@@ -284,7 +285,7 @@ function generate_benchmark_definition(out_vars, setup_vars, core, setup, teardo
         invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
         core_body = :($(core); $(returns))
     end
-    eval(quote
+    return eval(eval_module, quote
         @noinline $(signature) = begin $(core_body) end
         @noinline function $(samplefunc)(__params::$BenchmarkTools.Parameters)
             $(setup)
@@ -354,7 +355,9 @@ is the *minimum* elapsed time measured during the benchmark.
 """
 macro belapsed(args...)
     b = Expr(:macrocall, Symbol("@benchmark"), map(esc, args)...)
-    :(time(minimum($b))/1e9)
+    return esc(quote
+        $BenchmarkTools.time($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))/1e9
+    end)
 end
 
 """
@@ -372,16 +375,21 @@ is the *minimum* elapsed time measured during the benchmark.
 """
 macro btime(args...)
     _, params = prunekwargs(args...)
-    quote
-        tmp = @benchmarkable $(map(esc,args)...)
-        warmup(tmp)
-        $(hasevals(params) ? :() : :(tune!(tmp)))
-        b, val = run_result(tmp)
-        bmin = minimum(b)
-        a = allocs(bmin)
-        println("  ", prettytime(time(bmin)),
-                " ($a allocation", a == 1 ? "" : "s", ": ",
-                prettymemory(memory(bmin)), ")")
-        val
-    end
+    bench, trial, result = gensym(), gensym(), gensym()
+    trialmin, trialallocs = gensym(), gensym()
+    tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
+    return esc(quote
+        $bench = $BenchmarkTools.@benchmarkable $(args...)
+        $BenchmarkTools.warmup($bench)
+        $tune_phase
+        $trial, $result = $BenchmarkTools.run_result($bench)
+        $trialmin = $BenchmarkTools.minimum($trial)
+        $trialallocs = $BenchmarkTools.allocs($trialmin)
+        println("  ",
+                $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
+                " (", $trialallocs , " allocation",
+                $trialallocs == 1 ? "" : "s", ": ",
+                $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)), ")")
+        $results
+    end)
 end
