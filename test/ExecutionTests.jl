@@ -1,9 +1,8 @@
 module ExecutionTests
 
-using Base.Test
 using BenchmarkTools
 using Compat
-import Compat.String
+using Compat.Test
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 

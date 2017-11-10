@@ -6,7 +6,7 @@ using Compat
 using JSON
 using Base.Iterators
 
-const BENCHMARKTOOLS_VERSION = v"0.0.6"
+const BENCHMARKTOOLS_VERSION = v"0.2.2"
 
 ##############
 # Parameters #
