@@ -6,10 +6,6 @@ os:
 julia:
   - 0.6
   - nightly
-addons:
-  apt:
-    packages:
-      - hdf5-tools
 notifications:
   email: false
 script:
