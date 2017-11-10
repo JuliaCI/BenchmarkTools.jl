@@ -251,9 +251,11 @@ macro benchmarkable(args...)
     core_vars = isa(core, Expr) ? collectvars(core) : []
     out_vars = filter(var -> var in setup_vars, core_vars)
 
+    eval_module = VERSION >= v"0.7.0-DEV.484" ? __module__ : current_module()
+
     # generate the benchmark definition
     return esc(quote
-        $BenchmarkTools.generate_benchmark_definition($(__module__),
+        $BenchmarkTools.generate_benchmark_definition($(eval_module),
                                                       $(Expr(:quote, out_vars)),
                                                       $(Expr(:quote, setup_vars)),
                                                       $(Expr(:quote, core)),
