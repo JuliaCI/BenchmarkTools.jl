@@ -154,6 +154,7 @@ tune!(b)
 
 # this should take < 1 s on any sane machine
 @test @belapsed(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) < 1
+@test @belapsed(sin(0)) < 1
 
 let fname = tempname()
     try
