@@ -25,6 +25,30 @@ function Base.show(io::IO, b::Benchmark)
     print(io, str)
 end
 
+######################
+# compatiblity hacks #
+######################
+
+if VERSION >= v"0.7.0-DEV.1139"
+    run_result(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_run, b, p; kwargs...)
+    lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_lineartrial, b, p; kwargs...)
+elseif VERSION < v"0.7.0-DEV.484"
+    # `invokelatest` on v0.6 doesn't take keyword arguments, so we fall back
+    # to the `current_module` approach if we're on a Julia version where that's
+    # still possible.
+    function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
+        return eval(current_module(), :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
+    end
+    function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
+        return eval(@__MODULE__, :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
+    end
+else
+    # There's a commit gap between `current_module` deprecation and `invokelatest` keyword
+    # argument support.  I could try to hack something together just for that gap, but it's
+    # probably not worth it.
+    error("Congratulations, you've found the obscure range of Julia v0.7-dev commits where BenchmarkTools is really, really broken. Sorry about that :(")
+end
+
 #############
 # execution #
 #############
@@ -35,9 +59,6 @@ end
 # these stubs get overloaded by @benchmarkable
 function sample end
 function _run end
-
-# return (Trial, result) tuple, where result is the result of the benchmarked expression
-run_result(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_run, b, p; kwargs...)
 
 Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) = run_result(b, p; kwargs...)[1]
 
@@ -70,8 +91,6 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
     end
     return estimates[1:completed]
 end
-
-lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_lineartrial, b, p; kwargs...)
 
 function warmup(item; verbose::Bool = true)
     return run(item;
