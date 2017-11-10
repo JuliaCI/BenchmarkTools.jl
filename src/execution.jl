@@ -390,6 +390,6 @@ macro btime(args...)
                 " (", $trialallocs , " allocation",
                 $trialallocs == 1 ? "" : "s", ": ",
                 $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)), ")")
-        $results
+        $result
     end)
 end
