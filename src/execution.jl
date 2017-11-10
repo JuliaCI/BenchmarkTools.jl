@@ -46,9 +46,11 @@ function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "
     gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
     for id in keys(group)
-        verbose && (println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "..."); tic())
-        result[id] = run(group[id], args...; verbose = verbose, pad = pad*"  ", kwargs...)
-        verbose && (println(pad, "done (took ", toq(), " seconds)"); i += 1)
+        verbose && println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "...")
+        took_seconds = @elapsed begin
+            result[id] = run(group[id], args...; verbose = verbose, pad = pad*"  ", kwargs...)
+        end
+        verbose && (println(pad, "done (took ", took_seconds, " seconds)"); i += 1)
     end
     return result
 end
@@ -118,9 +120,9 @@ function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...
     gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
     i = 1
     for id in keys(group)
-        verbose && (println(pad, "($(i)/$(length(group))) tuning ", repr(id), "..."); tic())
-        tune!(group[id]; verbose = verbose, pad = pad*"  ", kwargs...)
-        verbose && (println(pad, "done (took ", toq(), " seconds)"); i += 1)
+        verbose && println(pad, "($(i)/$(length(group))) tuning ", repr(id), "...")
+        took_seconds = @elapsed tune!(group[id]; verbose = verbose, pad = pad*"  ", kwargs...)
+        verbose && (println(pad, "done (took ", took_seconds, " seconds)"); i += 1)
     end
     return group
 end
