@@ -56,7 +56,12 @@ end
 mapvals!(f, group::BenchmarkGroup) = mapvals!(f, similar(group), group)
 mapvals(f, groups::BenchmarkGroup...) = mapvals!(f, similar(first(groups)), groups...)
 
-filtervals!(f, group::BenchmarkGroup) = (filter!((k, v) -> f(v), group.data); return group)
+if VERSION >= v"0.7.0-DEV.1393"
+    filtervals!(f, group::BenchmarkGroup) = (filter!(kv -> f(kv[2]), group.data); return group)
+else
+    filtervals!(f, group::BenchmarkGroup) = (filter!((k, v) -> f(v), group.data); return group)
+end
+
 filtervals(f, group::BenchmarkGroup) = filtervals!(f, copy(group))
 
 Base.filter!(f, group::BenchmarkGroup) = (filter!(f, group.data); return group)
