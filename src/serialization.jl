@@ -28,7 +28,7 @@ function recover(x::Vector)
     fields = x[2]::Dict
     T = eval(parse(typename))::Type
     fc = fieldcount(T)
-    xs = Vector{Any}(fc)
+    xs = Vector{Any}(uninitialized, fc)
     for i = 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
