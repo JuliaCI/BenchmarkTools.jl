@@ -3,6 +3,9 @@ module ExecutionTests
 using BenchmarkTools
 using Compat
 using Compat.Test
+@static if VERSION >= v"0.7.0-DEV.2655" # IterativeEigenSolvers to stdlib
+    using IterativeEigenSolvers
+end
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
