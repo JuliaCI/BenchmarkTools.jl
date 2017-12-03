@@ -128,7 +128,7 @@ end
 # the logistic function is useful for determining `evals` for `1 < t < RESOLUTION`
 logistic(u, l, k, t, t0) = round(Int, ((u - l) / (1 + exp(-k * (t - t0)))) + l)
 
-const EVALS = Vector{Int}(9000) # any `t > length(EVALS)` should get an `evals` of 1
+const EVALS = Vector{Int}(uninitialized, 9000) # any `t > length(EVALS)` should get an `evals` of 1
 for t in 1:400    (EVALS[t] = logistic(1006, 195, -0.025, t, 200)) end # EVALS[1] == 1000, EVALS[400] == 200
 for t in 401:1000 (EVALS[t] = logistic(204, -16, -0.01, t, 800))   end # EVALS[401] == 200, EVALS[1000] == 10
 for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] = 11 - i)      end # linearly decrease from EVALS[1000]
