@@ -49,6 +49,14 @@ export BenchmarkGroup,
        addgroup!,
        leaves
 
+##########################
+# Low-level benchmarking #
+##########################
+
+include("lowlevel.jl")
+export clobber,
+       escape
+
 ######################
 # Execution Strategy #
 ######################
