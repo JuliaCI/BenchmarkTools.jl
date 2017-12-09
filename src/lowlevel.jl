@@ -62,3 +62,57 @@ See: https://youtu.be/nXaxk27zwlk?t=2441
         end
     end
 end
+
+################
+# Count cycles #
+################
+
+# Only implemented on x86_64 and needs cpuflags:
+# rdtscp, tsc, nonstop_tsc, tsc_known_freq, constant_tsc
+# See https://github.com/dterei/gotsc for a good discussion.
+
+"""
+    bench_start()
+
+Issues the instructions `cpuid,rdtsc` to get a precise cycle counter at the beginning of a code segment.
+"""
+@inline function bench_start()
+    llvmcall("""
+        %a = call {i32, i32} asm sideeffect "CPUID\nRDTSC\nMOV %edx, \$0\nMOV %eax, \$1", "=r,=r,~{rax},~{rbx},~{rcx},~{rdx}"()
+        %a.0 = extractvalue { i32, i32 } %a, 0
+        %a.1 = extractvalue { i32, i32 } %a, 1
+        %b0 = insertvalue [2 x i32] undef, i32 %a.0, 0
+        %b  = insertvalue [2 x i32] %b0  , i32 %a.1, 1
+        ret [2 x i32] %b
+    """, Tuple{UInt32, UInt32}, Tuple{})
+end
+
+"""
+    bench_end()
+
+Issues the instructions `rdtscp,cpuid` to get a precise cycle counter at the end of a code segment.
+"""
+@inline function bench_end()
+    llvmcall("""
+        %a = call {i32, i32} asm sideeffect "RDTSCP\nMOV %edx, \$0\nMOV %eax, \$1\nCPUID", "=r,=r,~{rax},~{rbx},~{rcx},~{rdx}"()
+        %a.0 = extractvalue { i32, i32 } %a, 0
+        %a.1 = extractvalue { i32, i32 } %a, 1
+        %b0 = insertvalue [2 x i32] undef, i32 %a.0, 0
+        %b  = insertvalue [2 x i32] %b0  , i32 %a.1, 1
+        ret [2 x i32] %b
+    """, Tuple{UInt32, UInt32}, Tuple{})
+end
+
+function cyc_convert(c::Tuple{UInt32, UInt32})
+    a, b = c
+    ((a % UInt64) << 32) | b
+end
+
+macro elapsed_cyc(ex)
+    quote
+        local c0 = bench_start()
+        escape($(esc(ex)))
+        local c1 = bench_end()
+        cyc_convert(c1)-cyc_convert(c0)
+    end
+end
