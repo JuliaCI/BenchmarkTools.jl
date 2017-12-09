@@ -124,6 +124,7 @@ struct TimeSpec
     tv_sec  :: UInt64 # time_t
     tv_nsec :: UInt64
 end
+maketime(ts) = ts.tv_sec + ts.tv_nsec * 1e-9
 
 const CLOCK_PROCESS_CPUTIME_ID = Cint(2)
 const CLOCK_THREAD_CPUTIME_ID  = Cint(3)
@@ -131,7 +132,7 @@ const CLOCK_THREAD_CPUTIME_ID  = Cint(3)
 @inline function clock_gettime(cid)
     ts = Ref{TimeSpec}()
     ccall(:clock_gettime, Cint, (Cint, Ref{TimeSpec}), cid, ts)
-    return ts[].tv_nsec
+    return ts[]
 end
 
 """
@@ -141,7 +142,7 @@ Per-process  CPU-time  clock  (measures CPU time consumed by all
 threads in the process).
 """
 @inline function getProcessTime()
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID)
+    maketime(clock_gettime(CLOCK_PROCESS_CPUTIME_ID))
 end
 
 """
@@ -150,5 +151,5 @@ end
 Thread-specific CPU-time clock.
 """
 @inline function getThreadTime()
-    clock_gettime(CLOCK_THREAD_CPUTIME_ID)
+    maketime(clock_gettime(CLOCK_THREAD_CPUTIME_ID))
 end
