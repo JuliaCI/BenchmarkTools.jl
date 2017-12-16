@@ -12,6 +12,12 @@ end
 
 const BENCHMARKTOOLS_VERSION = v"0.2.2"
 
+##########
+# Timers #
+##########
+
+include("timers/timers.jl")
+
 ##############
 # Parameters #
 ##############
@@ -26,7 +32,9 @@ export loadparams!
 
 include("trials.jl")
 
-export gctime,
+export realtime,
+       cputime,
+       gctime,
        memory,
        allocs,
        params,
