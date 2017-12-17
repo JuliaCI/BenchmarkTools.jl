@@ -3,7 +3,9 @@ module ExecutionTests
 using BenchmarkTools
 using Compat
 using Compat.Test
-@static if VERSION >= v"0.7.0-DEV.2655" # IterativeEigenSolvers to stdlib
+if VERSION >= v"0.7.0-DEV.3019"
+    using IterativeEigensolvers
+elseif VERSION >= v"0.7.0-DEV.2655"
     using IterativeEigenSolvers
 end
 
@@ -170,7 +172,7 @@ let fname = tempname()
                 @test a === nothing
             end
         end
-        s = readstring(fname)
+        s = read(fname, String)
         try
             @test ismatch(r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)", s)
         catch

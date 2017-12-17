@@ -19,9 +19,13 @@ end
 # Dict-like methods #
 #-------------------#
 
+if VERSION < v"0.7.0-DEV.2731"
+    const empty = similar
+end
+
 @compat Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.data))
-Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), similar(group.data))
+Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), empty(group.data))
 Base.isempty(group::BenchmarkGroup) = isempty(group.data)
 Base.length(group::BenchmarkGroup) = length(group.data)
 Base.getindex(group::BenchmarkGroup, i...) = getindex(group.data, i...)

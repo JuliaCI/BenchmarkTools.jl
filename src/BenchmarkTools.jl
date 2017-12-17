@@ -6,6 +6,10 @@ using Compat
 using JSON
 using Base.Iterators
 
+if VERSION >= v"0.7.0-DEV.3052"
+    using Printf
+end
+
 const BENCHMARKTOOLS_VERSION = v"0.2.2"
 
 ##############
