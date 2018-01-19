@@ -37,7 +37,7 @@ The simplest usage is via the [`@btime` macro](https://github.com/JuliaCI/Benchm
 julia> using BenchmarkTools, Compat   # you need to use both modules
 
 julia> @btime sin(1)
-  15.081 ns (0 allocations: 0 bytes)
+  7.317 ns [100.10% CPU, 0.00% GC] (0 allocations: 0 bytes)
 0.8414709848078965
 ```
 
@@ -47,13 +47,13 @@ If the expression you want to benchmark depends on external variables, you shoul
 julia> A = rand(3,3);
 
 julia> @btime inv($A);            # we interpolate the global variable A with $A
-  1.191 μs (10 allocations: 2.31 KiB)
+  545.840 ns [100.02% CPU, 0.00% GC] (5 allocations: 1.98 KiB)
   
 julia> @btime inv($(rand(3,3)));  # interpolation: the rand(3,3) call occurs before benchmarking
-  1.192 μs (10 allocations: 2.31 KiB)
+  547.738 ns [100.03% CPU, 0.00% GC] (5 allocations: 1.98 KiB)
   
 julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchmark time
-  1.295 μs (11 allocations: 2.47 KiB)
+  621.614 ns [100.03% CPU, 0.00% GC] (6 allocations: 2.14 KiB)
 ```
 
 As described the [manual](doc/manual.md), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.

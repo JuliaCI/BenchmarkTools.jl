@@ -44,6 +44,20 @@ Before we get too far, let's define some of the terminology used in this documen
 The reasoning behind our definition of "sample" may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must approximate a valid sample by
 recording the total time `t` it takes to record `n` evaluations, and estimating the sample's time per evaluation as `t/n`. For example, if a sample takes 1 second for 1 million evaluations, the approximate time per evaluation for that sample is 1 microsecond. It's not obvious what the right number of evaluations per sample should be for any given benchmark, so BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure it out for you.
 
+## The difference between real-time and cpu-time
+BenchmarkTools measures both real-time and cpu-time. Real-time is the time that has passed while running your program and cpu-time is the time
+that a processor has spend executing your program. As an example when the operating system deschedules your program, real-time is still passing,
+but cpu-time is paused, this is also the case when your program spends time in the kernel or is blocked waiting. As an example take a program that
+is doing `sleep(1)`.
+
+```julia
+julia> @btime sleep(1)
+  1.001 s [0.01% CPU, 0.00% GC] (5 allocations: 192 bytes)
+```
+
+As we can see, when we call sleep our program is not using CPU cycles and thus cpu-time is `0.01%` of our actual runtime. Do to sligh differences
+in accounting cpu-time can sometimes exceed `100%`.
+
 # Benchmarking basics
 
 ### Defining and executing benchmarks
@@ -56,13 +70,13 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     13.610 ns (0.00% GC)
-  median time:      13.622 ns (0.00% GC)
-  mean time:        13.638 ns (0.00% GC)
-  maximum time:     21.084 ns (0.00% GC)
+  minimum time:     7.561 ns (100.15% CPU, 0.00% GC)
+  median time:      8.205 ns (100.10% CPU, 0.00% GC)
+  mean time:        9.499 ns (99.98% CPU, 0.00% GC)
+  maximum time:     37.434 ns (85.45% CPU, 0.00% GC)
   --------------
   samples:          10000
-  evals/sample:     998
+  evals/sample:     999
 ```
 
 The `@benchmark` macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark's configuration parameters, and running the benchmark. These three steps can be done explicitly using `@benchmarkable`, `tune!` and `run`:
@@ -78,13 +92,13 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     13.605 ns (0.00% GC)
-  median time:      13.618 ns (0.00% GC)
-  mean time:        13.631 ns (0.00% GC)
-  maximum time:     22.383 ns (0.00% GC)
+  minimum time:     7.803 ns (99.97% CPU, 0.00% GC)
+  median time:      7.843 ns (100.00% CPU, 0.00% GC)
+  mean time:        8.266 ns (100.00% CPU, 0.00% GC)
+  maximum time:     40.949 ns (100.07% CPU, 0.00% GC)
   --------------
   samples:          10000
-  evals/sample:     998
+  evals/sample:     999
 ```
 
 Alternatively, you can use the `@btime` or `@belapsed` macros.
@@ -96,11 +110,11 @@ returns the minimum time in seconds.
 
 ```julia
 julia> @btime sin(1)
-  13.612 ns (0 allocations: 0 bytes)
+  7.812 ns [100.01% CPU, 0.00% GC] (0 allocations: 0 bytes)
 0.8414709848078965
 
 julia> @belapsed sin(1)
-1.3614228456913828e-8
+7.801801801801802e-9
 ```
 
 ### Benchmark `Parameters`
@@ -143,10 +157,10 @@ BenchmarkTools.Trial:
   memory estimate:  7.94 KiB
   allocs estimate:  1
   --------------
-  minimum time:     1.566 μs (0.00% GC)
-  median time:      2.135 μs (0.00% GC)
-  mean time:        3.071 μs (25.06% GC)
-  maximum time:     296.818 μs (95.91% GC)
+  minimum time:     1.089 μs (100.17% CPU, 0.00% GC)
+  median time:      1.217 μs (100.12% CPU, 0.00% GC)
+  mean time:        2.109 μs (100.08% CPU, 23.86% GC)
+  maximum time:     2.878 ms (100.00% CPU, 99.83% GC)
   --------------
   samples:          10000
   evals/sample:     10
@@ -158,13 +172,13 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     101.627 ns (0.00% GC)
-  median time:      101.909 ns (0.00% GC)
-  mean time:        103.834 ns (0.00% GC)
-  maximum time:     276.033 ns (0.00% GC)
+  minimum time:     69.214 ns (100.00% CPU, 0.00% GC)
+  median time:      69.240 ns (100.00% CPU, 0.00% GC)
+  mean time:        74.160 ns (99.99% CPU, 0.00% GC)
+  maximum time:     285.691 ns (28.64% CPU, 0.00% GC)
   --------------
   samples:          10000
-  evals/sample:     935
+  evals/sample:     976
 ```
 
 A good rule of thumb is that **external variables should be explicitly interpolated into the benchmark expression**:
@@ -178,27 +192,28 @@ BenchmarkTools.Trial:
   memory estimate:  7.95 KiB
   allocs estimate:  2
   --------------
-  minimum time:     13.154 μs (0.00% GC)
-  median time:      13.806 μs (0.00% GC)
-  mean time:        14.071 μs (0.00% GC)
-  maximum time:     337.462 μs (0.00% GC)
+  minimum time:     744.123 ns (100.05% CPU, 0.00% GC)
+  median time:      796.974 ns (100.04% CPU, 0.00% GC)
+  mean time:        1.014 μs (100.02% CPU, 14.78% GC)
+  maximum time:     249.740 μs (100.00% CPU, 99.39% GC)
   --------------
   samples:          10000
-  evals/sample:     1
+  evals/sample:     114
 
 # GOOD: A is a constant value in the benchmarking context
 julia> @benchmark [i*i for i in $A]
 BenchmarkTools.Trial:
+BenchmarkTools.Trial:
   memory estimate:  7.95 KiB
   allocs estimate:  2
   --------------
-  minimum time:     929.375 ns (0.00% GC)
-  median time:      1.348 μs (0.00% GC)
-  mean time:        2.405 μs (36.64% GC)
-  maximum time:     91.481 μs (95.46% GC)
+  minimum time:     684.689 ns (100.05% CPU, 0.00% GC)
+  median time:      731.242 ns (100.04% CPU, 0.00% GC)
+  mean time:        890.597 ns (100.05% CPU, 14.26% GC)
+  maximum time:     190.899 μs (100.00% CPU, 99.30% GC)
   --------------
   samples:          10000
-  evals/sample:     32
+  evals/sample:     151
 ```
 
 (Note that "KiB" is the SI prefix for a [kibibyte](https://en.wikipedia.org/wiki/Kibibyte): 1024 bytes.)
@@ -259,12 +274,12 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     5.739 ms (0.00% GC)
-  median time:      5.757 ms (0.00% GC)
-  mean time:        5.871 ms (0.00% GC)
-  maximum time:     62.138 ms (0.00% GC)
+  minimum time:     4.943 ms (100.00% CPU, 0.00% GC)
+  median time:      5.232 ms (99.85% CPU, 0.00% GC)
+  mean time:        5.299 ms (99.92% CPU, 0.00% GC)
+  maximum time:     6.979 ms (100.05% CPU, 0.00% GC)
   --------------
-  samples:          805
+  samples:          919
   evals/sample:     1
 ```
 
@@ -282,10 +297,10 @@ BenchmarkTools.Trial:
   memory estimate:  0 bytes
   allocs estimate:  0
   --------------
-  minimum time:     2.293 ns (0.00% GC)
-  median time:      2.302 ns (0.00% GC)
-  mean time:        2.330 ns (0.00% GC)
-  maximum time:     6.441 ns (0.00% GC)
+  minimum time:     1.799 ns (100.00% CPU, 0.00% GC)
+  median time:      1.909 ns (99.95% CPU, 0.00% GC)
+  mean time:        1.971 ns (99.86% CPU, 0.00% GC)
+  maximum time:     15.005 ns (13.95% CPU, 0.00% GC)
   --------------
   samples:          10000
   evals/sample:     1000
@@ -300,13 +315,13 @@ BenchmarkTools.Trial:
   memory estimate:  64 bytes
   allocs estimate:  1
   --------------
-  minimum time:     15.613 ns (0.00% GC)
-  median time:      17.825 ns (0.00% GC)
-  mean time:        23.358 ns (17.46% GC)
-  maximum time:     1.725 μs (95.12% GC)
+  minimum time:     7.364 ns (100.12% CPU, 0.00% GC)
+  median time:      11.302 ns (100.05% CPU, 0.00% GC)
+  mean time:        16.692 ns (100.04% CPU, 27.54% GC)
+  maximum time:     27.181 μs (100.00% CPU, 99.89% GC)
   --------------
   samples:          10000
-  evals/sample:     998
+  evals/sample:     999
 ```
 
 The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away `view(a, 1:2, 1:2)` because it could prove that the value wasn't being returned and `a` wasn't being mutated. In the second example, the optimization is not performed because `view(a, 1:2, 1:2)` is a return value of the benchmark expression.
@@ -331,32 +346,33 @@ Running a benchmark produces an instance of the `Trial` type:
 ```julia
 julia> t = @benchmark eig(rand(10, 10))
 BenchmarkTools.Trial:
-  memory estimate:  9.30 KiB
-  allocs estimate:  28
+  memory estimate:  16.25 KiB
+  allocs estimate:  20
   --------------
-  minimum time:     33.262 μs (0.00% GC)
-  median time:      38.618 μs (0.00% GC)
-  mean time:        39.981 μs (2.65% GC)
-  maximum time:     2.814 ms (95.07% GC)
+  minimum time:     20.802 μs (100.19% CPU, 0.00% GC)
+  median time:      24.214 μs (100.19% CPU, 0.00% GC)
+  mean time:        29.984 μs (100.12% CPU, 13.96% GC)
+  maximum time:     29.755 ms (99.91% CPU, 99.75% GC)
   --------------
   samples:          10000
   evals/sample:     1
 
 julia> dump(t) # here's what's actually stored in a Trial
-  BenchmarkTools.Trial
-    params: BenchmarkTools.Parameters # Trials store the parameters of their parent process
-      seconds: Float64 5.0
-      samples: Int64 10000
-      evals: Int64 1
-      overhead: Float64 0.0
-      gctrial: Bool true
-      gcsample: Bool false
-      time_tolerance: Float64 0.05
-      memory_tolerance: Float64 0.01
-    times: Array{Float64}((10000,)) [33262.0, 33793.0, … 2.77342e6, 2.81368e6] # every sample is stored in the Trial
-    gctimes: Array{Float64}((10000,)) [0.0, 0.0, … 2.66614e6, 2.67486e6]
-    memory: Int64 9520
-    allocs: Int64 28
+BenchmarkTools.Trial
+  params: BenchmarkTools.Parameters
+    seconds: Float64 5.0
+    samples: Int64 10000
+    evals: Int64 1
+    overhead: Float64 0.0
+    gctrial: Bool true
+    gcsample: Bool false
+    time_tolerance: Float64 0.05
+    memory_tolerance: Float64 0.01
+  realtimes: Array{Float64}((10000,)) [20802.0, 20831.0, 20854.0  …  702013.0, 9.4493e6, 2.97552e7]
+  cputimes: Array{Float64}((10000,)) [20841.0, 20872.0, 20888.0  …  702130.0, 9.44345e6, 2.97287e7]
+  gctimes: Array{Float64}((10000,)) [0.0, 0.0, 0.0  …   661810.0, 9.39459e6, 2.9682e7]
+  memory: Int64 16640
+  allocs: Int64 20
 ```
 
 As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `median`, `mean`, and `maximum` functions:
@@ -364,31 +380,35 @@ As you can see from the above, a couple of different timing estimates are pretty
 ```julia
 julia> minimum(t)
 BenchmarkTools.TrialEstimate:
-  time:             33.262 μs
+  realtime:         20.802 μs
+  cputime:          20.841 μs (100.19%)
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           16.25 KiB
+  allocs:           20
 
 julia> median(t)
 BenchmarkTools.TrialEstimate:
-  time:             38.618 μs
+  realtime:         24.214 μs
+  cputime:          24.261 μs (100.19%)
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           16.25 KiB
+  allocs:           20
 
 julia> mean(t)
 BenchmarkTools.TrialEstimate:
-  time:             39.981 μs
-  gctime:           1.058 μs (2.65%)
-  memory:           9.30 KiB
-  allocs:           28
+  realtime:         29.984 μs
+  cputime:          30.020 μs (100.12%)
+  gctime:           4.185 μs (13.96%)
+  memory:           16.25 KiB
+  allocs:           20
 
 julia> maximum(t)
 BenchmarkTools.TrialEstimate:
-  time:             2.814 ms
-  gctime:           2.675 ms (95.07%)
-  memory:           9.30 KiB
-  allocs:           28
+  realtime:         29.755 ms
+  cputime:          29.729 ms (99.91%)
+  gctime:           29.682 ms (99.75%)
+  memory:           16.25 KiB
+  allocs:           20
 ```
 
 ### Which estimator should I use?
@@ -430,21 +450,24 @@ julia> tune!(b);
 
 julia> m1 = median(run(b))
 BenchmarkTools.TrialEstimate:
-  time:             38.638 μs
+  realtime:         24.119 μs
+  cputime:          24.165 μs (100.19%)
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           16.25 KiB
+  allocs:           20
 
 julia> m2 = median(run(b))
 BenchmarkTools.TrialEstimate:
-  time:             38.723 μs
+  realtime:         24.563 μs
+  cputime:          24.611 μs (100.20%)
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           16.25 KiB
+  allocs:           20
 
 julia> ratio(m1, m2)
 BenchmarkTools.TrialRatio:
-  time:             0.997792009916587
+  realtime:         0.981924032080772
+  cputime:          0.9818780220226728
   gctime:           1.0
   memory:           1.0
   allocs:           1.0
@@ -455,35 +478,40 @@ Use the `judge` function to decide if one estimate represents a regression versu
 ```julia
 julia> m1 = median(@benchmark eig(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
-  time:             38.745 μs
+  realtime:         24.541 μs
+  cputime:          24.595 μs (100.22%)
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           14.16 KiB
+  allocs:           16
 
 julia> m2 = median(@benchmark eig(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
-  time:             38.611 μs
+  realtime:         25.065 μs
+  cputime:          25.127 μs (100.25%)
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           16.25 KiB
+  allocs:           20
 
 # percent change falls within noise tolerance for all fields
 julia> judge(m1, m2)
 BenchmarkTools.TrialJudgement:
-  time:   +0.35% => invariant (5.00% tolerance)
-  memory: +0.00% => invariant (1.00% tolerance)
+  realtime: -2.09% => invariant (5.00% tolerance)
+  cputime:  -2.12% => invariant (5.00% tolerance)
+  memory:   -12.88% => improvement (1.00% tolerance)
 
 # changing time_tolerance causes it to be marked as a regression
 julia> judge(m1, m2; time_tolerance = 0.0001)
 BenchmarkTools.TrialJudgement:
-  time:   +0.35% => regression (0.01% tolerance)
-  memory: +0.00% => invariant (1.00% tolerance)
+  realtime: -2.09% => improvement (0.01% tolerance)
+  cputime:  -2.12% => improvement (0.01% tolerance)
+  memory:   -12.88% => improvement (1.00% tolerance)
 
 # switch m1 & m2; from this perspective, the difference is an improvement
 julia> judge(m2, m1; time_tolerance = 0.0001)
 BenchmarkTools.TrialJudgement:
-  time:   -0.35% => improvement (0.01% tolerance)
-  memory: +0.00% => invariant (1.00% tolerance)
+  realtime: +2.14% => regression (0.01% tolerance)
+  cputime:  +2.16% => regression (0.01% tolerance)
+  memory:   +14.79% => regression (1.00% tolerance)
 
 # you can pass in TrialRatios as well
 julia> judge(ratio(m1, m2)) == judge(m1, m2)

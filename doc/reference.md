@@ -65,9 +65,13 @@ Not exported. A type that stores a classification of a `TrialRatio`'s time and m
 
 ## Accessor Functions
 
-##### `time(x::Union{Trial, TrialEstimate, TrialRatio, TrialJudgement, BenchmarkGroup})`
+##### `realtime(x::Union{Trial, TrialEstimate, TrialRatio, TrialJudgement, BenchmarkGroup})`
 
-Returns the time value (in nanoseconds) associated with `x`. If `isa(x, TrialJudgement)`, the value will not be a number, but a `Symbol` (`:regression`, `:invariant`, or `:improvement`). If `isa(x, BenchmarkGroup)`, return a `BenchmarkGroup` where `time` has been applied to the values of `x`.
+Returns the real-time value (in nanoseconds) associated with `x`. If `isa(x, TrialJudgement)`, the value will not be a number, but a `Symbol` (`:regression`, `:invariant`, or `:improvement`). If `isa(x, BenchmarkGroup)`, return a `BenchmarkGroup` where `time` has been applied to the values of `x`.
+
+##### `cputime(x::Union{Trial, TrialEstimate, TrialRatio, TrialJudgement, BenchmarkGroup})`
+
+Returns the cpu-time value (in nanoseconds) associated with `x`. If `isa(x, TrialJudgement)`, the value will not be a number, but a `Symbol` (`:regression`, `:invariant`, or `:improvement`). If `isa(x, BenchmarkGroup)`, return a `BenchmarkGroup` where `time` has been applied to the values of `x`.
 
 ##### `memory(x::Union{Trial, TrialEstimate, TrialRatio, TrialJudgement, BenchmarkGroup})`
 
