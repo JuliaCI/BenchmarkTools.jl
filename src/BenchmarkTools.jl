@@ -10,7 +10,7 @@ if VERSION >= v"0.7.0-DEV.3052"
     using Printf
 end
 
-const BENCHMARKTOOLS_VERSION = v"0.2.2"
+const BENCHMARKTOOLS_VERSION = v"0.3.0"
 
 ##########
 # Timers #
