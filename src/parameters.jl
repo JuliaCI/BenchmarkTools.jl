@@ -1,3 +1,5 @@
+# This file is a part of BenchmarkTools.jl. License is MIT
+
 # most machines will be higher resolution than this, but we're playing it safe
 const RESOLUTION = 1000 # 1 μs = 1000 ns
 

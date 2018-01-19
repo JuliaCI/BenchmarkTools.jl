@@ -1,3 +1,5 @@
+# This file is a part of BenchmarkTools.jl. License is MIT
+
 ##################
 # BenchmarkGroup #
 ##################
