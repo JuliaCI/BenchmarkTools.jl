@@ -16,9 +16,9 @@ seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
 g1 = BenchmarkGroup(["1", "2"])
 
-t1a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 32, 1, 2, 3)
-t1b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 4123, 123, 43, 9)
-tc = TrialEstimate(Parameters(time_tolerance = 1.0, memory_tolerance = 1.0), 1, 1, 1, 1)
+t1a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 32, 32, 1, 2, 3)
+t1b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 4123, 4123, 123, 43, 9)
+tc = TrialEstimate(Parameters(time_tolerance = 1.0, memory_tolerance = 1.0), 1, 1, 1, 1, 1)
 
 g1["a"] = t1a
 g1["b"] = t1b
@@ -29,14 +29,14 @@ g1similar = similar(g1)
 
 g2 = BenchmarkGroup(["2", "3"])
 
-t2a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 323, 1, 2, 3)
-t2b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 1002, 123, 43, 9)
+t2a = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 323, 323, 1, 2, 3)
+t2b = TrialEstimate(Parameters(time_tolerance = .40, memory_tolerance = .40), 1002, 1002, 123, 43, 9)
 
 g2["a"] = t2a
 g2["b"] = t2b
 g2["c"] = tc
 
-trial = BenchmarkTools.Trial(Parameters(), [1, 2, 5], [0, 1, 1], 3, 56)
+trial = BenchmarkTools.Trial(Parameters(), [1, 2, 5], [1, 2, 5], [0, 1, 1], 3, 56)
 
 gtrial = BenchmarkGroup([], Dict("t" => trial))
 
@@ -63,7 +63,8 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 @test isempty(g1similar)
 @test g1similar.tags == g1.tags
 
-@test time(g1).data == Dict("a" => time(t1a), "b" => time(t1b), "c" => time(tc))
+@test realtime(g1).data == Dict("a" => realtime(t1a), "b" => realtime(t1b), "c" => realtime(tc))
+@test cputime(g1).data == Dict("a" => cputime(t1a), "b" => cputime(t1b), "c" => cputime(tc))
 @test gctime(g1).data == Dict("a" => gctime(t1a), "b" => gctime(t1b), "c" => gctime(tc))
 @test memory(g1).data == Dict("a" => memory(t1a), "b" => memory(t1b), "c" => memory(tc))
 @test allocs(g1).data == Dict("a" => allocs(t1a), "b" => allocs(t1b), "c" => allocs(tc))
@@ -107,8 +108,8 @@ groupsa = BenchmarkGroup()
 groupsa["g1"] = g1
 groupsa["g2"] = g2
 g3a = addgroup!(groupsa, "g3", ["3", "4"])
-g3a["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 6341, 23, 41, 536)
-g3a["d"] = TrialEstimate(Parameters(time_tolerance = .13, memory_tolerance = .13), 12341, 3013, 2, 150)
+g3a["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 6341, 6341, 23, 41, 536)
+g3a["d"] = TrialEstimate(Parameters(time_tolerance = .13, memory_tolerance = .13), 12341, 12341, 3013, 2, 150)
 
 groups_copy = copy(groupsa)
 groups_similar = similar(groupsa)
@@ -117,8 +118,8 @@ groupsb = BenchmarkGroup()
 groupsb["g1"] = g1
 groupsb["g2"] = g2
 g3b = addgroup!(groupsb, "g3", ["3", "4"])
-g3b["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 1003, 23, 41, 536)
-g3b["d"] = TrialEstimate(Parameters(time_tolerance = .23, memory_tolerance = .23), 25341, 3013, 2, 150)
+g3b["c"] = TrialEstimate(Parameters(time_tolerance = .05, memory_tolerance = .05), 1003, 1003, 23, 41, 536)
+g3b["d"] = TrialEstimate(Parameters(time_tolerance = .23, memory_tolerance = .23), 25341, 25341, 3013, 2, 150)
 
 groupstrial = BenchmarkGroup()
 groupstrial["g"] = gtrial
@@ -126,7 +127,8 @@ groupstrial["g"] = gtrial
 # tests #
 #-------#
 
-@test time(groupsa).data == Dict("g1" => time(g1), "g2" => time(g2), "g3" => time(g3a))
+@test realtime(groupsa).data == Dict("g1" => realtime(g1), "g2" => realtime(g2), "g3" => realtime(g3a))
+@test cputime(groupsa).data == Dict("g1" => cputime(g1), "g2" => cputime(g2), "g3" => cputime(g3a))
 @test gctime(groupsa).data == Dict("g1" => gctime(g1), "g2" => gctime(g2), "g3" => gctime(g3a))
 @test memory(groupsa).data == Dict("g1" => memory(g1), "g2" => memory(g2), "g3" => memory(g3a))
 @test allocs(groupsa).data == Dict("g1" => allocs(g1), "g2" => allocs(g2), "g3" => allocs(g3a))

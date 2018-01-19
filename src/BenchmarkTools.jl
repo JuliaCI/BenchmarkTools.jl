@@ -80,4 +80,14 @@ export tune!,
 
 include("serialization.jl")
 
+#################
+# Deprecations  #
+#################
+import Base: time
+@deprecate time(t::Trial) realtime(t)
+@deprecate time(t::TrialJudgement) realtime(t)
+@deprecate time(t::TrialEstimate) realtime(t)
+@deprecate time(t::TrialRatio) realtime(t)
+@deprecate time(group::BenchmarkGroup) realtime(group)
+
 end # module BenchmarkTools

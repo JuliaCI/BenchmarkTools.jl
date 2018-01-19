@@ -75,12 +75,14 @@ end
 @noinline nullfunc() = nothing
 
 @noinline function overhead_sample(evals)
-    start_time = time_ns()
+    start_realtime = Timers.realtime()
+    start_cputime = Timers.cputime()
     for _ in 1:evals
         nullfunc()
     end
-    sample_time = time_ns() - start_time
-    return (sample_time / evals)
+    sample_realtime = Timers.realtime() - start_realtime
+    sample_cputime = Timers.cputtime() - start_cputime
+    return (sample_realtime / evals, sample_cputime / evals)
 end
 
 function estimate_overhead()

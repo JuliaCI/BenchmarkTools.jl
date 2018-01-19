@@ -314,21 +314,24 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
             $(setup)
             __evals = __params.evals
             __gc_start = Base.gc_num()
-            __start_time = time_ns()
+            __start_realtime = $BenchmarkTools.Timers.realtime()
+            __start_cputime = $BenchmarkTools.Timers.cputime()
             __return_val = $(invocation)
             for __iter in 2:__evals
                 $(invocation)
             end
-            __sample_time = time_ns() - __start_time
+            __sample_realtime = $BenchmarkTools.Timers.realtime() - __start_realtime
+            __sample_cputime = $BenchmarkTools.Timers.cputime() - __start_cputime
             __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
             $(teardown)
-            __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+            __realtime = max((__sample_realtime / __evals) - __params.overhead, 0.001)
+            __cputime = max((__sample_cputime / __evals) - __params.overhead, 0.001)
             __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
             __memory = Int(fld(__gcdiff.allocd, __evals))
             __allocs = Int(fld(__gcdiff.malloc + __gcdiff.realloc +
                                __gcdiff.poolalloc + __gcdiff.bigalloc,
                                __evals))
-            return __time, __gctime, __memory, __allocs, __return_val
+            return __realtime, __cputime, __gctime, __memory, __allocs, __return_val
         end
         function $BenchmarkTools.sample(b::$BenchmarkTools.Benchmark{$(id)},
                                         p::$BenchmarkTools.Parameters = b.params)
@@ -379,7 +382,7 @@ is the *minimum* elapsed time measured during the benchmark.
 macro belapsed(args...)
     b = Expr(:macrocall, Symbol("@benchmark"), map(esc, args)...)
     return esc(quote
-        $BenchmarkTools.time($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))/1e9
+        $BenchmarkTools.realtime($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))/1e9
     end)
 end
 
@@ -409,7 +412,9 @@ macro btime(args...)
         $trialmin = $BenchmarkTools.minimum($trial)
         $trialallocs = $BenchmarkTools.allocs($trialmin)
         println("  ",
-                $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
+                $BenchmarkTools.prettytime($BenchmarkTools.realtime($trialmin)), " [",
+                $BenchmarkTools.prettypercent($BenchmarkTools.cpuratio($trialmin)), " CPU, ",
+                $BenchmarkTools.prettypercent($BenchmarkTools.gcratio($trialmin)), " GC]",
                 " (", $trialallocs , " allocation",
                 $trialallocs == 1 ? "" : "s", ": ",
                 $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)), ")")

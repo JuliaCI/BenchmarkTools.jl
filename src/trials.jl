@@ -4,26 +4,29 @@
 
 mutable struct Trial
     params::Parameters
-    times::Vector{Float64}
+    realtimes::Vector{Float64}
+    cputimes::Vector{Float64}
     gctimes::Vector{Float64}
     memory::Int
     allocs::Int
 end
 
-Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
+Trial(params::Parameters) = Trial(params, Float64[], Float64[], Float64[], typemax(Int), typemax(Int))
 
 @compat function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
-           a.times == b.times &&
+           a.realtimes == b.realtimes &&
+           a.cputimes == b.cputimes &&
            a.gctimes == b.gctimes &&
            a.memory == b.memory &&
            a.allocs == b.allocs
 end
 
-Base.copy(t::Trial) = Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+Base.copy(t::Trial) = Trial(copy(t.params), copy(t.realtimes), copy(t.cputimes), copy(t.gctimes), t.memory, t.allocs)
 
-function Base.push!(t::Trial, time, gctime, memory, allocs)
-    push!(t.times, time)
+function Base.push!(t::Trial, realtime, cputime, gctime, memory, allocs)
+    push!(t.realtimes, realtime)
+    push!(t.cputimes, cputime)
     push!(t.gctimes, gctime)
     memory < t.memory && (t.memory = memory)
     allocs < t.allocs && (t.allocs = allocs)
@@ -31,26 +34,29 @@ function Base.push!(t::Trial, time, gctime, memory, allocs)
 end
 
 function Base.deleteat!(t::Trial, i)
-    deleteat!(t.times, i)
+    deleteat!(t.realtimes, i)
+    deleteat!(t.cputimes, i)
     deleteat!(t.gctimes, i)
     return t
 end
 
-Base.length(t::Trial) = length(t.times)
-Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
-Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
+Base.length(t::Trial) = length(t.realtimes)
+Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.realtimes[i], t.cputimes[i], t.gctimes[i], t.memory, t.allocs)
+Base.getindex(t::Trial, i) = Trial(t.params, t.realtimes[i], t.cputimes[i], t.gctimes[i], t.memory, t.allocs)
 Base.endof(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
-    inds = sortperm(t.times)
-    t.times = t.times[inds]
+    inds = sortperm(t.realtimes)
+    t.realtimes = t.realtimes[inds]
+    t.cputimes = t.cputimes[inds]
     t.gctimes = t.gctimes[inds]
     return t
 end
 
 Base.sort(t::Trial) = sort!(copy(t))
 
-Base.time(t::Trial) = time(minimum(t))
+realtime(t::Trial) = realtime(minimum(t))
+cputime(t::Trial) = cputime(minimum(t))
 gctime(t::Trial) = gctime(minimum(t))
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
@@ -66,7 +72,7 @@ function skewcutoff(values)
     return length(current_values) + 1
 end
 
-skewcutoff(t::Trial) = skewcutoff(t.times)
+skewcutoff(t::Trial) = skewcutoff(t.realtimes)
 
 function rmskew!(t::Trial)
     sort!(t)
@@ -88,19 +94,21 @@ trim(t::Trial, percentage = 0.1) = t[1:max(1, floor(Int, length(t) - (length(t) 
 
 mutable struct TrialEstimate
     params::Parameters
-    time::Float64
+    realtime::Float64
+    cputime::Float64
     gctime::Float64
     memory::Int
     allocs::Int
 end
 
-function TrialEstimate(trial::Trial, t, gct)
-    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial))
+function TrialEstimate(trial::Trial, realtime, cputime, gctime)
+    return TrialEstimate(params(trial), realtime, cputime, gctime, memory(trial), allocs(trial))
 end
 
 @compat function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
     return a.params == b.params &&
-           a.time == b.time &&
+           a.realtime == b.realtime &&
+           a.cputime == b.cputime &&
            a.gctime == b.gctime &&
            a.memory == b.memory &&
            a.allocs == b.allocs
@@ -109,21 +117,22 @@ end
 Base.copy(t::TrialEstimate) = TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
 
 function Base.minimum(trial::Trial)
-    i = indmin(trial.times)
-    return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
+    i = indmin(trial.realtimes)
+    return TrialEstimate(trial, trial.realtimes[i], trial.cputimes[i], trial.gctimes[i])
 end
 
 function Base.maximum(trial::Trial)
-    i = indmax(trial.times)
-    return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
+    i = indmax(trial.realtimes)
+    return TrialEstimate(trial, trial.realtimes[i], trial.cputimes[i], trial.gctimes[i])
 end
 
-Base.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
-Base.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
+Base.median(trial::Trial) = TrialEstimate(trial, median(trial.realtimes), median(trial.cputimes), median(trial.gctimes))
+Base.mean(trial::Trial) = TrialEstimate(trial, mean(trial.realtimes), mean(trial.cputimes), mean(trial.gctimes))
 
-Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
+Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(realtime(a), realtime(b))
 
-Base.time(t::TrialEstimate) = t.time
+realtime(t::TrialEstimate) = t.realtime
+cputime(t::TrialEstimate) = t.cputime
 gctime(t::TrialEstimate) = t.gctime
 memory(t::TrialEstimate) = t.memory
 allocs(t::TrialEstimate) = t.allocs
@@ -135,7 +144,8 @@ params(t::TrialEstimate) = t.params
 
 mutable struct TrialRatio
     params::Parameters
-    time::Float64
+    realtime::Float64
+    cputime::Float64
     gctime::Float64
     memory::Float64
     allocs::Float64
@@ -143,15 +153,17 @@ end
 
 @compat function Base.:(==)(a::TrialRatio, b::TrialRatio)
     return a.params == b.params &&
-           a.time == b.time &&
+           a.realtime == b.realtime &&
+           a.cputime == b.cputime &&
            a.gctime == b.gctime &&
            a.memory == b.memory &&
            a.allocs == b.allocs
 end
 
-Base.copy(t::TrialRatio) = TrialRatio(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
+Base.copy(t::TrialRatio) = TrialRatio(copy(t.params), t.realtime, t.cputime, t.gctime, t.memory, t.allocs)
 
-Base.time(t::TrialRatio) = t.time
+realtime(t::TrialRatio) = t.realtime
+cputime(t::TrialRatio) = t.cputime
 gctime(t::TrialRatio) = t.gctime
 memory(t::TrialRatio) = t.memory
 allocs(t::TrialRatio) = t.allocs
@@ -168,11 +180,13 @@ function ratio(a::TrialEstimate, b::TrialEstimate)
     ttol = max(params(a).time_tolerance, params(b).time_tolerance)
     mtol = max(params(a).memory_tolerance, params(b).memory_tolerance)
     p = Parameters(params(a); time_tolerance = ttol, memory_tolerance = mtol)
-    return TrialRatio(p, ratio(time(a), time(b)), ratio(gctime(a), gctime(b)),
-                      ratio(memory(a), memory(b)), ratio(allocs(a), allocs(b)))
+    return TrialRatio(p, ratio(realtime(a), realtime(b)), ratio(cputime(a), cputime(b)),
+                      ratio(gctime(a), gctime(b)), ratio(memory(a), memory(b)),
+                      ratio(allocs(a), allocs(b)))
 end
 
-gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
+gcratio(t::TrialEstimate) =  ratio(gctime(t), realtime(t))
+cpuratio(t::TrialEstimate) =  ratio(cputime(t), realtime(t))
 
 ##################
 # TrialJudgement #
@@ -180,25 +194,28 @@ gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
 
 struct TrialJudgement
     ratio::TrialRatio
-    time::Symbol
+    realtime::Symbol
+    cputime::Symbol
     memory::Symbol
 end
 
 function TrialJudgement(r::TrialRatio)
     ttol = params(r).time_tolerance
     mtol = params(r).memory_tolerance
-    return TrialJudgement(r, judge(time(r), ttol), judge(memory(r), mtol))
+    return TrialJudgement(r, judge(realtime(r), ttol), judge(cputime(r), ttol), judge(memory(r), mtol))
 end
 
 @compat function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
     return a.ratio == b.ratio &&
-           a.time == b.time &&
+           a.realtime == b.realtime &&
+           a.cputime == b.cputime &&
            a.memory == b.memory
 end
 
-Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.params), t.time, t.memory)
+Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.params), t.realtime, t.cputime, t.memory)
 
-Base.time(t::TrialJudgement) = t.time
+realtime(t::TrialJudgement) = t.realtime
+cputime(t::TrialJudgement) = t.cputime
 memory(t::TrialJudgement) = t.memory
 ratio(t::TrialJudgement) = t.ratio
 params(t::TrialJudgement) = params(ratio(t))
@@ -221,9 +238,9 @@ function judge(ratio::Real, tolerance::Float64)
     end
 end
 
-isimprovement(t::TrialJudgement) = time(t) == :improvement || memory(t) == :improvement
-isregression(t::TrialJudgement) = time(t) == :regression || memory(t) == :regression
-isinvariant(t::TrialJudgement) = time(t) == :invariant && memory(t) == :invariant
+isimprovement(t::TrialJudgement) = realtime(t) == :improvement || cputime(t) == :improvement || memory(t) == :improvement
+isregression(t::TrialJudgement) = realtime(t) == :regression || cputime(t) == :regression || memory(t) == :regression
+isinvariant(t::TrialJudgement) = realtime(t) == :invariant && cputime(t) == :invariant && memory(t) == :invariant
 
 ###################
 # Pretty Printing #
@@ -262,10 +279,10 @@ function prettymemory(b)
     return string(@sprintf("%.2f", value), " ", units)
 end
 
-Base.show(io::IO, t::Trial) = print(io, "Trial(", prettytime(time(t)), ")")
-Base.show(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(time(t)), ")")
-Base.show(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(time(t)), ")")
-Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
+Base.show(io::IO, t::Trial) = print(io, "Trial(", prettytime(realtime(t)), ")")
+Base.show(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(realtime(t)), ")")
+Base.show(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(realtime(t)), ")")
+Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(realtime(ratio(t))), " => ", realtime(t), ")")
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     if length(t) > 0
@@ -275,10 +292,10 @@ Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(t
         avg = mean(t)
         memorystr = string(prettymemory(memory(min)))
         allocsstr = string(allocs(min))
-        minstr = string(prettytime(time(min)), " (", prettypercent(gcratio(min)), " GC)")
-        maxstr = string(prettytime(time(med)), " (", prettypercent(gcratio(med)), " GC)")
-        medstr = string(prettytime(time(avg)), " (", prettypercent(gcratio(avg)), " GC)")
-        meanstr = string(prettytime(time(max)), " (", prettypercent(gcratio(max)), " GC)")
+        minstr = string(prettytime(realtime(min)), " (", prettypercent(cpuratio(min)) ," CPU, ", prettypercent(gcratio(min)), " GC)")
+        maxstr = string(prettytime(realtime(med)), " (", prettypercent(cpuratio(med)) ," CPU, ", prettypercent(gcratio(med)), " GC)")
+        medstr = string(prettytime(realtime(avg)), " (", prettypercent(cpuratio(avg)) ," CPU, ", prettypercent(gcratio(avg)), " GC)")
+        meanstr = string(prettytime(realtime(max)), " (", prettypercent(cpuratio(max)) ," CPU, ", prettypercent(gcratio(max)), " GC)")
     else
         memorystr = "N/A"
         allocsstr = "N/A"
@@ -302,15 +319,17 @@ end
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
     println(io, "BenchmarkTools.TrialEstimate: ")
-    println(io, "  time:             ", prettytime(time(t)))
-    println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
+    println(io, "  realtime:         ", prettytime(realtime(t)))
+    println(io, "  cputime:          ", prettytime(cputime(t)), " (", prettypercent(cputime(t) / realtime(t)),")")
+    println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / realtime(t)),")")
     println(io, "  memory:           ", prettymemory(memory(t)))
     print(io,   "  allocs:           ", allocs(t))
 end
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
     println(io, "BenchmarkTools.TrialRatio: ")
-    println(io, "  time:             ", time(t))
+    println(io, "  realtime:         ", realtime(t))
+    println(io, "  cputime:          ", cputime(t))
     println(io, "  gctime:           ", gctime(t))
     println(io, "  memory:           ", memory(t))
     print(io,   "  allocs:           ", allocs(t))
@@ -318,6 +337,7 @@ end
 
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
     println(io, "BenchmarkTools.TrialJudgement: ")
-    println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
-    print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
+    println(io, "  realtime: ", prettydiff(realtime(ratio(t))), " => ", realtime(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
+    println(io, "  cputime:  ", prettydiff(cputime(ratio(t))), " => ", cputime(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
+    print(io,   "  memory:   ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
 end
