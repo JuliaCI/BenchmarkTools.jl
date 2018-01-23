@@ -188,7 +188,7 @@ function ratio(a::TrialEstimate, b::TrialEstimate)
 end
 
 gcratio(t::TrialEstimate) =  ratio(gctime(t), realtime(t))
-cpuratio(t::TrialEstimate) =  ratio(cputime(t), realtime(t))
+cpuratio(t::TrialEstimate) =  Timers.ACCURATE_CPUTIME ? ratio(cputime(t), realtime(t)) : NaN
 
 ##################
 # TrialJudgement #
@@ -322,8 +322,12 @@ end
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
     println(io, "BenchmarkTools.TrialEstimate: ")
     println(io, "  realtime:         ", prettytime(realtime(t)))
-    println(io, "  cputime:          ", prettytime(cputime(t)), " (", prettypercent(cputime(t) / realtime(t)),")")
-    println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / realtime(t)),")")
+    if Timers.ACCURATE_CPUTIME
+        println(io, "  cputime:          ", prettytime(cputime(t)), " (", prettypercent(cpuratio(t)),")")
+    else
+        println(io, "  cputime:          ", "NA on Windows, see docs")
+    end
+    println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gcratio(t)),")")
     println(io, "  memory:           ", prettymemory(memory(t)))
     print(io,   "  allocs:           ", allocs(t))
 end
@@ -331,7 +335,11 @@ end
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
     println(io, "BenchmarkTools.TrialRatio: ")
     println(io, "  realtime:         ", realtime(t))
-    println(io, "  cputime:          ", cputime(t))
+    if Timers.ACCURATE_CPUTIME
+        println(io, "  cputime:          ", cputime(t))
+    else
+        println(io, "  cputime:          ", "NA on Windows, see docs")
+    end
     println(io, "  gctime:           ", gctime(t))
     println(io, "  memory:           ", memory(t))
     print(io,   "  allocs:           ", allocs(t))
@@ -340,6 +348,10 @@ end
 @compat function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
     println(io, "BenchmarkTools.TrialJudgement: ")
     println(io, "  realtime: ", prettydiff(realtime(ratio(t))), " => ", realtime(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
-    println(io, "  cputime:  ", prettydiff(cputime(ratio(t))), " => ", cputime(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
+    if Timers.ACCURATE_CPUTIME
+        println(io, "  cputime:  ", prettydiff(cputime(ratio(t))), " => ", cputime(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
+    else
+        println(io, "  cputime:  ", "NA on Windows, see docs")
+    end
     print(io,   "  memory:   ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
 end

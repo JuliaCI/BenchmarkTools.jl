@@ -3,6 +3,8 @@
 module Timers
 import Compat
 
+const ACCURATE_CPUTIME = Compat.Sys.iswindows() ? haskey(ENV, "BT_FORCE_CPUTIME") : true
+
 """
     realtime()
 

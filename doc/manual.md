@@ -46,8 +46,7 @@ recording the total time `t` it takes to record `n` evaluations, and estimating 
 
 ## The difference between real-time and cpu-time
 BenchmarkTools measures both real-time and cpu-time. Real-time is the time that has passed while running your program and cpu-time is the time
-that a processor has spend executing your program. As an example when the operating system deschedules your program, real-time is still passing,
-but cpu-time is paused, this is also the case when your program spends time in the kernel or is blocked waiting. As an example take a program that
+that a processor has spend executing your program. Real-time is often also referred to as wall-time. As an example take a program that
 is doing `sleep(1)`.
 
 ```julia
@@ -55,8 +54,14 @@ julia> @btime sleep(1)
   1.001 s [0.01% CPU, 0.00% GC] (5 allocations: 192 bytes)
 ```
 
-As we can see, when we call sleep our program is not using CPU cycles and thus cpu-time is `0.01%` of our actual runtime. Do to sligh differences
-in accounting cpu-time can sometimes exceed `100%`.
+As we can see, when we call sleep our program is not using CPU cycles and thus cpu-time is `0.01%` of our actual runtime.
+Sometimes cpu-time can exceed `100%`, this is either due to slight differences in accounting or because your process is
+using multiple cpus.
+
+### Windows
+Cpu-time measurments on Windows have a low resolution (in comparision to real-time) and are as such less useful. To avoid confusion
+printing of cpu-time is disabled by default. If you are benchmarking code that runs in the `ms` range you can set the environment variable
+`BT_FORCE_CPUTIME` to enable printing of cpu-time results (Remeber to evict your cached version of BenchmarkTools).
 
 # Benchmarking basics
 
