@@ -184,4 +184,16 @@ let fname = tempname()
     end
 end
 
+############
+# cpu-time #
+############
+
+# some simple sanity checks
+t = @benchmark sleep(1)
+@test cputime(t) < 1e9
+t = @benchmark sin(1)
+if BenchmarkTools.Timers.ACCURATE_CPUTIME
+    @test cputime(t) > 5e8 # 50% cputime
+end
+
 end # module
