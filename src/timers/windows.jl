@@ -41,3 +41,52 @@ end
                                 proc, creation_time, exit_time, kernel_time, user_time)
     return maketime(kernel_time[], user_time[])
 end
+
+@inline function frequency()
+    freq = Ref{UInt64}()
+    ccall(:QueryPerformanceFrequency, Cint, (Ref{UInt64},), freq)
+    return freq[]
+end
+
+@inline function currentprocess()
+    return ccall(:GetCurrentProcess, HANDLE, ())
+end
+
+@inline function cpucycles(proc::HANDLE)
+    cycles = Ref{UInt64}()
+    ccall(:QueryProcessCycleTime, Cint, (HANDLE, Ref{UInt64}), proc, cycles)
+    return cycles[]
+end
+
+@inline function perfcounter()
+    counter = Ref{UInt64}()
+    ccall(:QueryPerformanceCounter, Cint, (Ref{UInt64},), counter)
+    return counter[]
+end
+
+struct Measurement
+    time::UInt64
+    cpu::UInt64
+    function Measurement()
+        proc = currentprocess()
+        time = perfcounter()
+        cpu = cpucycles()
+        return new(time, cnu)
+    end
+end
+
+struct MeasurementDelta
+    realtime::Float64
+    cpuratio::Float64
+    function MeasurementDelta(t1::Measurement, t0::Measurement)
+        freq = frequency()
+        rt0 = t0.time
+        ct0 = t0.cpu
+        rt1 = t1.time
+        ct1 = t1.cpu
+        realcycles = rt1 - rt0
+        realtime = realcycles / freq
+        cpucycles = ct1 - ct0
+        new(realtime, cpucycles/realcycles)
+    end
+end
