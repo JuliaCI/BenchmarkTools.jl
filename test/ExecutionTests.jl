@@ -147,7 +147,7 @@ tune!(b)
 
 # This test is volatile in nonquiescent environments (e.g. Travis)
 # BenchmarkTools.DEFAULT_PARAMETERS.overhead = BenchmarkTools.estimate_overhead()
-# @test time(minimum(@benchmark nothing)) == 1
+# @test realtime(minimum(@benchmark nothing)) == 1
 
 @test [:x, :y, :z, :v, :w] == BenchmarkTools.collectvars(quote
            x = 1 + 3
@@ -174,7 +174,7 @@ let fname = tempname()
         end
         s = read(fname, String)
         try
-            @test ismatch(r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)", s)
+            @test ismatch(r"[0-9.]+ \w*s \[[0-9.]+\% CPU, [0-9.]+\% GC\] \([0-9]* allocations?: [0-9]+ bytes\)", s)
         catch
             println(STDERR, "@btime output didn't match ", repr(s))
             rethrow()
@@ -182,6 +182,18 @@ let fname = tempname()
     finally
         isfile(fname) && rm(fname)
     end
+end
+
+############
+# cpu-time #
+############
+
+# some simple sanity checks
+t = @benchmark sleep(1)
+@test cputime(t) < 1e9
+t = @benchmark sin(1)
+if BenchmarkTools.Timers.ACCURATE_CPUTIME
+    @test cputime(t) > 5e8 # 50% cputime
 end
 
 end # module

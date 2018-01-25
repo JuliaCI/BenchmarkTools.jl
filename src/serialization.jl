@@ -1,5 +1,7 @@
+# This file is a part of BenchmarkTools.jl. License is MIT
+
 if VERSION >= v"0.7.0-DEV.2437"
-    using Base.Meta.parse
+    using Base.Meta: parse
 end
 
 const VERSIONS = Dict("Julia" => string(VERSION),

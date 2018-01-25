@@ -1,3 +1,5 @@
+# This file is a part of BenchmarkTools.jl. License is MIT
+
 __precompile__()
 
 module BenchmarkTools
@@ -10,7 +12,13 @@ if VERSION >= v"0.7.0-DEV.3052"
     using Printf
 end
 
-const BENCHMARKTOOLS_VERSION = v"0.2.2"
+const BENCHMARKTOOLS_VERSION = v"0.3.0"
+
+##########
+# Timers #
+##########
+
+include("timers/timers.jl")
 
 ##############
 # Parameters #
@@ -26,7 +34,9 @@ export loadparams!
 
 include("trials.jl")
 
-export gctime,
+export realtime,
+       cputime,
+       gctime,
        memory,
        allocs,
        params,
@@ -71,5 +81,15 @@ export tune!,
 #################
 
 include("serialization.jl")
+
+#################
+# Deprecations  #
+#################
+import Base: time
+@deprecate time(t::Trial) realtime(t)
+@deprecate time(t::TrialJudgement) realtime(t)
+@deprecate time(t::TrialEstimate) realtime(t)
+@deprecate time(t::TrialRatio) realtime(t)
+@deprecate time(group::BenchmarkGroup) realtime(group)
 
 end # module BenchmarkTools

@@ -1,3 +1,5 @@
+# This file is a part of BenchmarkTools.jl. License is MIT
+
 ##################
 # BenchmarkGroup #
 ##################
@@ -81,7 +83,8 @@ Base.median(group::BenchmarkGroup) = mapvals(median, group)
 Base.min(groups::BenchmarkGroup...) = mapvals(min, groups...)
 Base.max(groups::BenchmarkGroup...) = mapvals(max, groups...)
 
-Base.time(group::BenchmarkGroup) = mapvals(time, group)
+realtime(group::BenchmarkGroup) = mapvals(realtime, group)
+cputime(group::BenchmarkGroup) = mapvals(cputime, group)
 gctime(group::BenchmarkGroup) = mapvals(gctime, group)
 memory(group::BenchmarkGroup) = mapvals(memory, group)
 allocs(group::BenchmarkGroup) = mapvals(allocs, group)
