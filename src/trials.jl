@@ -39,7 +39,7 @@ end
 Base.length(t::Trial) = length(t.times)
 Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
-Base.endof(t::Trial) = length(t)
+Compat.lastindex(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
     inds = sortperm(t.times)
