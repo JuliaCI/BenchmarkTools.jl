@@ -174,7 +174,7 @@ let fname = tempname()
         end
         s = read(fname, String)
         try
-            @test ismatch(r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)", s)
+            @test contains(s, r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)")
         catch
             println(STDERR, "@btime output didn't match ", repr(s))
             rethrow()
