@@ -63,6 +63,12 @@ end
 
 function save(filename::AbstractString, args...)
     endswith(filename, ".json") || badext(filename)
+    open(filename, "w") do io
+        save(io, args...)
+    end
+end
+
+function save(io::IO, args...)
     isempty(args) && throw(ArgumentError("Nothing to save"))
     goodargs = Any[]
     for arg in args
@@ -77,18 +83,22 @@ function save(filename::AbstractString, args...)
         push!(goodargs, arg)
     end
     isempty(goodargs) && error("Nothing to save")
-    open(filename, "w") do io
-        JSON.print(io, [VERSIONS, goodargs])
-    end
+    JSON.print(io, [VERSIONS, goodargs])
 end
 
 function load(filename::AbstractString, args...)
     endswith(filename, ".json") || badext(filename)
+    open(filename, "r") do f
+        load(f, args...)
+    end
+end
+
+function load(io::IO, args...)
     if !isempty(args)
         throw(ArgumentError("Looking up deserialized values by name is no longer supported, " *
                             "as names are no longer saved."))
     end
-    parsed = open(JSON.parse, filename, "r")
+    parsed = JSON.parse(io)
     if !isa(parsed, Vector) || length(parsed) != 2 || !isa(parsed[1], Dict) || !isa(parsed[2], Vector)
         error("Unexpected JSON format. Was this file originally written by BenchmarkTools?")
     end
