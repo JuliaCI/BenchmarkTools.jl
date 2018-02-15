@@ -235,4 +235,18 @@ gx["e"] = BenchmarkGroup([], "1" => g["e"]["1"][x["a"]], "3" => g["e"]["3"][x["c
 
 @test g[x] == gx
 
+# deep index assignment in BenchmarkGroup #
+#-----------------------------------------#
+
+g1 = BenchmarkGroup(1 => BenchmarkGroup("a" => BenchmarkGroup()))
+g1[[1, "a", :b]] = "hello"
+@test g1[[1, "a", :b]] == "hello"
+
+g2 = BenchmarkGroup()
+g2[[1, "a", :b]] = "hello"
+@test g2[[1, "a", :b]] == "hello"
+
+@test g1 == g2
+
+
 # end # module
