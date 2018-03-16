@@ -827,6 +827,27 @@ BenchmarkTools.BenchmarkGroup:
 		  :b => "hello"
 ```
 
+Assigning into a `BenchmarkGroup` with a `Vector` creates sub-groups as necessary:
+
+```julia
+julia>  g[[2, "a", :b]] = "hello again"
+"hello again"
+
+julia>  showall(g)
+2-element BenchmarkTools.BenchmarkGroup:
+  tags: []
+  2 => 1-element BenchmarkTools.BenchmarkGroup:
+          tags: []
+          "a" => 1-element BenchmarkTools.BenchmarkGroup:
+                  tags: []
+                  :b => "hello again"
+  1 => 1-element BenchmarkTools.BenchmarkGroup:
+          tags: []
+          "a" => 1-element BenchmarkTools.BenchmarkGroup:
+                  tags: []
+                  :b => "hello"
+```
+
 You can use the `leaves` function to construct an iterator over a group's leaf index/value pairs:
 
 ```julia
