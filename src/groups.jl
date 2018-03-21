@@ -140,6 +140,9 @@ function Base.setindex!(group::BenchmarkGroup, x, keys::Vector)
         group[k] = x
         return x
     else
+        if !haskey(group, k)
+            group[k] = BenchmarkGroup()
+        end
         return setindex!(group[k], x, keys[2:end])
     end
 end
