@@ -1,6 +1,4 @@
-if VERSION >= v"0.7.0-DEV.2437"
-    using Base.Meta: parse
-end
+using Base.Meta: parse
 
 const VERSIONS = Dict("Julia" => string(VERSION),
                       "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))

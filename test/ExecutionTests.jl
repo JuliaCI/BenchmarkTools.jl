@@ -3,11 +3,8 @@ module ExecutionTests
 using BenchmarkTools
 using Compat
 using Compat.Test
-if VERSION >= v"0.7.0-DEV.3019"
-    using IterativeEigensolvers
-elseif VERSION >= v"0.7.0-DEV.2655"
-    using IterativeEigenSolvers
-end
+
+using Compat.IterativeEigensolvers
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
