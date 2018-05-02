@@ -3,11 +3,8 @@ module ExecutionTests
 using BenchmarkTools
 using Compat
 using Compat.Test
-if VERSION >= v"0.7.0-DEV.3019"
-    using IterativeEigensolvers
-elseif VERSION >= v"0.7.0-DEV.2655"
-    using IterativeEigenSolvers
-end
+
+using Compat.IterativeEigensolvers
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
@@ -174,9 +171,9 @@ let fname = tempname()
         end
         s = read(fname, String)
         try
-            @test contains(s, r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)")
+            @test occursin(r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)", s)
         catch
-            println(STDERR, "@btime output didn't match ", repr(s))
+            println(stderr, "@btime output didn't match ", repr(s))
             rethrow()
         end
     finally

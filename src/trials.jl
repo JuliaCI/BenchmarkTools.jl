@@ -109,12 +109,12 @@ end
 Base.copy(t::TrialEstimate) = TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
 
 function Base.minimum(trial::Trial)
-    i = indmin(trial.times)
+    i = argmin(trial.times)
     return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
 end
 
 function Base.maximum(trial::Trial)
-    i = indmax(trial.times)
+    i = argmax(trial.times)
     return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
 end
 
