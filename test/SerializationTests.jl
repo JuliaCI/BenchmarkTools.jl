@@ -89,7 +89,7 @@ end
             error("madness")
         catch err
             # This function thows a bunch of errors, so test for this specifically
-            @test contains(err.msg, "Unexpected JSON format")
+            @test occursin("Unexpected JSON format", err.msg)
         end
     end
 
