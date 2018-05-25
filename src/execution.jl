@@ -312,7 +312,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
         invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
         core_body = :($(core); $(returns))
     end
-    return eval(eval_module, quote
+    return Core.eval(eval_module, quote
         @noinline $(signature) = begin $(core_body) end
         @noinline function $(samplefunc)(__params::$BenchmarkTools.Parameters)
             $(setup)
