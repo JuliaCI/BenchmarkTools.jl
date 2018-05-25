@@ -41,10 +41,10 @@ elseif VERSION < v"0.7.0-DEV.484"
     # to the `current_module` approach if we're on a Julia version where that's
     # still possible.
     function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
-        return eval(current_module(), :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
+        return Core.eval(@__MODULE__, :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
     end
     function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
-        return eval(@__MODULE__, :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
+        return Core.eval(@__MODULE__, :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
     end
 else
     # There's a commit gap between `current_module` deprecation and `invokelatest` keyword
@@ -135,7 +135,7 @@ logistic(u, l, k, t, t0) = round(Int, ((u - l) / (1 + exp(-k * (t - t0)))) + l)
 const EVALS = Vector{Int}(undef, 9000) # any `t > length(EVALS)` should get an `evals` of 1
 for t in 1:400    (EVALS[t] = logistic(1006, 195, -0.025, t, 200)) end # EVALS[1] == 1000, EVALS[400] == 200
 for t in 401:1000 (EVALS[t] = logistic(204, -16, -0.01, t, 800))   end # EVALS[401] == 200, EVALS[1000] == 10
-for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] = 11 - i)      end # linearly decrease from EVALS[1000]
+for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] .= 11 - i)     end # linearly decrease from EVALS[1000]
 
 guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
 
@@ -312,7 +312,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
         invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
         core_body = :($(core); $(returns))
     end
-    return eval(eval_module, quote
+    return Core.eval(eval_module, quote
         @noinline $(signature) = begin $(core_body) end
         @noinline function $(samplefunc)(__params::$BenchmarkTools.Parameters)
             $(setup)
