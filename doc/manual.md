@@ -41,7 +41,7 @@ Before we get too far, let's define some of the terminology used in this documen
 - "trial": an experiment in which multiple samples are gathered (or the result of such an experiment).
 - "benchmark parameters": the configuration settings that determine how a benchmark trial is performed
 
-The reasoning behind our definition of "sample" may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, than a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must approximate a valid sample by
+The reasoning behind our definition of "sample" may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, then a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must approximate a valid sample by
 recording the total time `t` it takes to record `n` evaluations, and estimating the sample's time per evaluation as `t/n`. For example, if a sample takes 1 second for 1 million evaluations, the approximate time per evaluation for that sample is 1 microsecond. It's not obvious what the right number of evaluations per sample should be for any given benchmark, so BenchmarkTools provides a mechanism (the `tune!` method) to automatically figure it out for you.
 
 # Benchmarking basics
