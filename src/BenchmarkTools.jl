@@ -6,6 +6,12 @@ using Compat
 using JSON
 using Base.Iterators
 
+if VERSION >= v"0.7.0-beta.85"
+    import Statistics: mean, median
+else
+    import Base: mean, median
+end
+
 using Compat.Printf
 
 

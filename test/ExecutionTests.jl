@@ -4,8 +4,6 @@ using BenchmarkTools
 using Compat
 using Compat.Test
 
-using Compat.IterativeEigensolvers
-
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
 #########
@@ -26,7 +24,6 @@ for s in sizes
 end
 
 groups["special"]["macro"] = @benchmarkable @test(1 == 1)
-groups["special"]["kwargs"] = @benchmarkable svds(rand(2, 2), nsv = 1)
 groups["special"]["nothing"] = @benchmarkable nothing
 groups["special"]["block"] = @benchmarkable begin rand(3) end
 groups["special"]["comprehension"] = @benchmarkable [s^2 for s in sizes]
