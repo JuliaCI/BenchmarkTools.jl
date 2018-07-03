@@ -5,6 +5,7 @@ module BenchmarkTools
 using Compat
 using JSON
 using Base.Iterators
+using Statistics
 
 using Compat.Printf
 

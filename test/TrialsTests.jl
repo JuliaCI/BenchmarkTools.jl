@@ -3,6 +3,7 @@ module TrialsTests
 using BenchmarkTools
 using Compat
 using Compat.Test
+using Statistics
 
 #########
 # Trial #
