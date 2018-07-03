@@ -4,7 +4,10 @@ using BenchmarkTools
 using BenchmarkTools: TrialEstimate, Parameters
 using Compat
 using Compat.Test
-using Statistics
+
+if VERSION >= v"0.7.0-beta.85"
+    using Statistics
+end
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 

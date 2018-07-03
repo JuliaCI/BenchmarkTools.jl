@@ -118,8 +118,8 @@ function Base.maximum(trial::Trial)
     return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
 end
 
-Statistics.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
-Statistics.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
+median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
+mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
 
 Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 

@@ -3,7 +3,10 @@ module TrialsTests
 using BenchmarkTools
 using Compat
 using Compat.Test
-using Statistics
+
+if VERSION >= v"0.7.0-beta.85"
+    using Statistics
+end
 
 #########
 # Trial #
