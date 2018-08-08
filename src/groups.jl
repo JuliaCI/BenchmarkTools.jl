@@ -23,7 +23,7 @@ if VERSION < v"0.7.0-DEV.2731"
     const empty = similar
 end
 
-@compat Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
+Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.data))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), empty(group.data))
 Base.isempty(group::BenchmarkGroup) = isempty(group.data)
@@ -259,11 +259,11 @@ Base.setindex!(group::BenchmarkGroup, v, k::BenchmarkGroup) = error("A Benchmark
 
 tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
-Base.showall(io::IO, group::BenchmarkGroup) = @compat show(io, MIME"text/plain"(), group; verbose = true, limit = Inf)
+Base.showall(io::IO, group::BenchmarkGroup) = show(io, MIME"text/plain"(), group; verbose = true, limit = Inf)
 
 Base.show(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
 
-@compat function Base.show(io::IO, mime::MIME"text/plain", group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
+function Base.show(io::IO, mime::MIME"text/plain", group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
     println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
     print(io, pad, "  tags: ", tagrepr(group.tags))
     count = 1
@@ -271,7 +271,7 @@ Base.show(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element B
         println(io)
         print(io, pad, "  ", repr(k), " => ")
         if verbose && isa(v, BenchmarkGroup)
-            @compat show(io, mime, v, "\t"*pad; verbose = verbose, limit = limit)
+            show(io, mime, v, "\t"*pad; verbose = verbose, limit = limit)
         else
             show(io, v)
         end

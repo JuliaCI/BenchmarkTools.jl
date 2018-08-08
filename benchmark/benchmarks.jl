@@ -1,6 +1,3 @@
-VERSION < v"0.5" && warn("This example uses dot broadcast syntax "*
-                         "and may not work on Julia versions lower"*
-                         " than v0.5!")
 
 using BenchmarkTools
 
