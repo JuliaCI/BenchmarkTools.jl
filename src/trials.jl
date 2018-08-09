@@ -12,7 +12,7 @@ end
 
 Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
 
-@compat function Base.:(==)(a::Trial, b::Trial)
+function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
            a.times == b.times &&
            a.gctimes == b.gctimes &&
@@ -98,7 +98,7 @@ function TrialEstimate(trial::Trial, t, gct)
     return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial))
 end
 
-@compat function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
+function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
     return a.params == b.params &&
            a.time == b.time &&
            a.gctime == b.gctime &&
@@ -141,7 +141,7 @@ mutable struct TrialRatio
     allocs::Float64
 end
 
-@compat function Base.:(==)(a::TrialRatio, b::TrialRatio)
+function Base.:(==)(a::TrialRatio, b::TrialRatio)
     return a.params == b.params &&
            a.time == b.time &&
            a.gctime == b.gctime &&
@@ -190,7 +190,7 @@ function TrialJudgement(r::TrialRatio)
     return TrialJudgement(r, judge(time(r), ttol), judge(memory(r), mtol))
 end
 
-@compat function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
+function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
     return a.ratio == b.ratio &&
            a.time == b.time &&
            a.memory == b.memory
@@ -267,7 +267,7 @@ Base.show(io::IO, t::TrialEstimate) = print(io, "TrialEstimate(", prettytime(tim
 Base.show(io::IO, t::TrialRatio) = print(io, "TrialRatio(", prettypercent(time(t)), ")")
 Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(time(ratio(t))), " => ", time(t), ")")
 
-@compat function Base.show(io::IO, ::MIME"text/plain", t::Trial)
+function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     if length(t) > 0
         min = minimum(t)
         max = maximum(t)
@@ -300,7 +300,7 @@ Base.show(io::IO, t::TrialJudgement) = print(io, "TrialJudgement(", prettydiff(t
     print(io,   "  evals/sample:     ", t.params.evals)
 end
 
-@compat function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
+function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
     println(io, "BenchmarkTools.TrialEstimate: ")
     println(io, "  time:             ", prettytime(time(t)))
     println(io, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
@@ -308,7 +308,7 @@ end
     print(io,   "  allocs:           ", allocs(t))
 end
 
-@compat function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
+function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
     println(io, "BenchmarkTools.TrialRatio: ")
     println(io, "  time:             ", time(t))
     println(io, "  gctime:           ", gctime(t))
@@ -316,7 +316,7 @@ end
     print(io,   "  allocs:           ", allocs(t))
 end
 
-@compat function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
+function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
     println(io, "BenchmarkTools.TrialJudgement: ")
     println(io, "  time:   ", prettydiff(time(ratio(t))), " => ", time(t), " (", prettypercent(params(t).time_tolerance), " tolerance)")
     print(io,   "  memory: ", prettydiff(memory(ratio(t))), " => ", memory(t), " (", prettypercent(params(t).memory_tolerance), " tolerance)")
