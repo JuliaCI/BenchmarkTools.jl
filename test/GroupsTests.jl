@@ -52,9 +52,8 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 @test !(haskey(g1, "x"))
 @test seteq(keys(g1), ["a", "b", "c"])
 @test seteq(values(g1), [t1a, t1b, tc])
-@test start(g1) == start(g1.data)
-@test next(g1, start(g1)) == next(g1.data, start(g1))
-@test done(g1, start(g1)) == done(g1.data, start(g1))
+@test iterate(g1) == iterate(g1.data)
+@test iterate(g1, 1) == iterate(g1.data, 1)
 @test seteq([x for x in g1], Pair["a"=>t1a, "b"=>t1b, "c"=>tc])
 
 @test g1 == g1copy

@@ -19,10 +19,6 @@ end
 # Dict-like methods #
 #-------------------#
 
-if VERSION < v"0.7.0-DEV.2731"
-    const empty = similar
-end
-
 Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.data))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), empty(group.data))
@@ -34,9 +30,7 @@ Base.delete!(group::BenchmarkGroup, k...) = delete!(group.data, k...)
 Base.haskey(group::BenchmarkGroup, k) = haskey(group.data, k)
 Base.keys(group::BenchmarkGroup) = keys(group.data)
 Base.values(group::BenchmarkGroup) = values(group.data)
-Base.start(group::BenchmarkGroup) = start(group.data)
-Base.next(group::BenchmarkGroup, state) = next(group.data, state)
-Base.done(group::BenchmarkGroup, state) = done(group.data, state)
+Base.iterate(group::BenchmarkGroup, i=1) = iterate(group.data, i)
 
 # mapping/filtering #
 #-------------------#
@@ -60,12 +54,7 @@ end
 mapvals!(f, group::BenchmarkGroup) = mapvals!(f, similar(group), group)
 mapvals(f, groups::BenchmarkGroup...) = mapvals!(f, similar(first(groups)), groups...)
 
-if VERSION >= v"0.7.0-DEV.1393"
-    filtervals!(f, group::BenchmarkGroup) = (filter!(kv -> f(kv[2]), group.data); return group)
-else
-    filtervals!(f, group::BenchmarkGroup) = (filter!((k, v) -> f(v), group.data); return group)
-end
-
+filtervals!(f, group::BenchmarkGroup) = (filter!(kv -> f(kv[2]), group.data); return group)
 filtervals(f, group::BenchmarkGroup) = filtervals!(f, copy(group))
 
 Base.filter!(f, group::BenchmarkGroup) = (filter!(f, group.data); return group)

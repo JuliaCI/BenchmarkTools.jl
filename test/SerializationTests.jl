@@ -63,11 +63,7 @@ end
 
     withtempdir() do
         tmp = joinpath(pwd(), "tmp.json")
-        @static if VERSION >= v"0.7.0-DEV.2988"
-            @test_logs (:warn, r"Naming variables") BenchmarkTools.save(tmp, "b", b)
-        else
-            @test_warn "Naming variables" BenchmarkTools.save(tmp, "b", b)
-        end
+        @test_logs (:warn, r"Naming variables") BenchmarkTools.save(tmp, "b", b)
         @test isfile(tmp)
         results = BenchmarkTools.load(tmp)
         @test length(results) == 1
