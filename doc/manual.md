@@ -526,7 +526,7 @@ end
 Let's look at our newly defined suite in the REPL:
 
 ```julia
-julia> showall(suite)
+julia> suite
 2-element BenchmarkTools.BenchmarkGroup:
   tags: []
   "utf8" => 2-element BenchmarkTools.BenchmarkGroup:
@@ -640,7 +640,7 @@ julia> g = BenchmarkGroup([], # no tags in the parent
                           "a" => BenchmarkGroup(["1", "2", "3"],  # contains tags and child groups
                                                 "d" => BenchmarkGroup(["8"], 1 => 1),
                                                 "e" => BenchmarkGroup(["9"], 2 => 2)));
-julia> showall(g)
+julia> g
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "c" => BenchmarkTools.BenchmarkGroup:
@@ -678,7 +678,7 @@ To demonstrate the last two points:
 
 ```julia
 # also could've used `@tagged "1"`, `@tagged "a"`, `@tagged "e" || "d"`
-julia> showall(g[@tagged "8" || "9"])
+julia> g[@tagged "8" || "9"]
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "a" => BenchmarkTools.BenchmarkGroup:
@@ -690,7 +690,7 @@ BenchmarkTools.BenchmarkGroup:
 		  tags: ["8"]
 		  1 => 1
 
-julia> showall(g[@tagged "d"])
+julia> g[@tagged "d"]
 BenchmarkTools.BenchmarkGroup:
     tags: []
     "a" => BenchmarkTools.BenchmarkGroup:
@@ -699,7 +699,7 @@ BenchmarkTools.BenchmarkGroup:
 		  tags: ["8"]
 		  1 => 1
 
-julia> showall(g[@tagged "9"])
+julia> g[@tagged "9"]
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "a" => BenchmarkTools.BenchmarkGroup:
@@ -714,7 +714,7 @@ BenchmarkTools.BenchmarkGroup:
 It's sometimes useful to create `BenchmarkGroup` where the keys are drawn from one `BenchmarkGroup`, but the values are drawn from another. You can accomplish this by indexing into the latter `BenchmarkGroup` with the former:
 
 ```julia
-julia> showall(g) # leaf values are integers
+julia> g # leaf values are integers
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "c" => BenchmarkTools.BenchmarkGroup:
@@ -738,7 +738,7 @@ BenchmarkTools.BenchmarkGroup:
 	  "2" => 2
 	  "3" => 3
 
-julia> showall(x) # note that leaf values are characters
+julia> x # note that leaf values are characters
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "c" => BenchmarkTools.BenchmarkGroup:
@@ -754,7 +754,7 @@ BenchmarkTools.BenchmarkGroup:
 	  "2" => '2'
 	  "3" => '3'
 
-julia> showall(g[x]) # index into `g` with the keys of `x`
+julia> g[x] # index into `g` with the keys of `x`
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "c" => BenchmarkTools.BenchmarkGroup:
@@ -788,7 +788,7 @@ To solve this problem, BenchmarkTools allows you to uniquely index group nodes u
 ```julia
 julia> g = BenchmarkGroup([], 1 => BenchmarkGroup([], "a" => BenchmarkGroup([], :b => 1234)));
 
-julia> showall(g)
+julia> g
 BenchmarkTools.BenchmarkGroup:
   tags: []
   1 => BenchmarkTools.BenchmarkGroup:
@@ -797,17 +797,17 @@ BenchmarkTools.BenchmarkGroup:
 		  tags: []
 		  :b => 1234
 
-julia> showall(g[[1]]) # == g[1]
+julia> g[[1]] # == g[1]
 BenchmarkTools.BenchmarkGroup:
   tags: []
   "a" => BenchmarkTools.BenchmarkGroup:
 	  tags: []
 	  :b => 1234
-julia> showall(g[[1, "a"]]) # == g[1]["a"]
+julia> g[[1, "a"]] # == g[1]["a"]
 BenchmarkTools.BenchmarkGroup:
   tags: []
   :b => 1234
-julia> showall(g[[1, "a", :b]]) # == g[1]["a"][:b]
+julia> g[[1, "a", :b]] # == g[1]["a"][:b]
 1234
 ```
 
@@ -817,7 +817,7 @@ Keep in mind that this indexing scheme also works with `setindex!`:
 julia> g[[1, "a", :b]] = "hello"
 "hello"
 
-julia> showall(g)
+julia> g
 BenchmarkTools.BenchmarkGroup:
   tags: []
   1 => BenchmarkTools.BenchmarkGroup:
@@ -833,7 +833,7 @@ Assigning into a `BenchmarkGroup` with a `Vector` creates sub-groups as necessar
 julia>  g[[2, "a", :b]] = "hello again"
 "hello again"
 
-julia>  showall(g)
+julia> g
 2-element BenchmarkTools.BenchmarkGroup:
   tags: []
   2 => 1-element BenchmarkTools.BenchmarkGroup:
