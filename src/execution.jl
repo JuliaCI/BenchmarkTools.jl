@@ -255,7 +255,7 @@ macro benchmarkable(args...)
 
     # generate the benchmark definition
     return esc(quote
-        $BenchmarkTools.generate_benchmark_definition(__module__,
+        $BenchmarkTools.generate_benchmark_definition($__module__,
                                                       $(Expr(:quote, out_vars)),
                                                       $(Expr(:quote, setup_vars)),
                                                       $(Expr(:quote, core)),
