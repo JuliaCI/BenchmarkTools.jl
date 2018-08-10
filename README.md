@@ -34,7 +34,7 @@ If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https:
 The simplest usage is via the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time) but is often more accurate (by collecting results over multiple runs):
 
 ```julia
-julia> using BenchmarkTools, Compat   # you need to use both modules
+julia> using BenchmarkTools
 
 julia> @btime sin(1)
   15.081 ns (0 allocations: 0 bytes)

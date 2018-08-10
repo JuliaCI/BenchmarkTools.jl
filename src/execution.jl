@@ -1,11 +1,7 @@
 # Trigger several successive GC sweeps. This is more comprehensive than running just a
 # single sweep, since freeable objects may need more than one sweep to be appropriately
 # marked and freed.
-if VERSION >= v"0.7.0-DEV.3469"
-    gcscrub() = (GC.gc(); GC.gc(); GC.gc(); GC.gc())
-else
-    gcscrub() = (gc(); gc(); gc(); gc())
-end
+gcscrub() = (GC.gc(); GC.gc(); GC.gc(); GC.gc())
 
 #############
 # Benchmark #
@@ -33,25 +29,8 @@ end
 # compatiblity hacks #
 ######################
 
-if VERSION >= v"0.7.0-DEV.1139"
-    run_result(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_run, b, p; kwargs...)
-    lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_lineartrial, b, p; kwargs...)
-elseif VERSION < v"0.7.0-DEV.484"
-    # `invokelatest` on v0.6 doesn't take keyword arguments, so we fall back
-    # to the `current_module` approach if we're on a Julia version where that's
-    # still possible.
-    function run_result(b::Benchmark, p::Parameters = b.params; kwargs...)
-        return Core.eval(@__MODULE__, :(BenchmarkTools._run($(b), $(p); $(kwargs...))))
-    end
-    function lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...)
-        return Core.eval(@__MODULE__, :(BenchmarkTools._lineartrial($(b), $(p); $(kwargs...))))
-    end
-else
-    # There's a commit gap between `current_module` deprecation and `invokelatest` keyword
-    # argument support.  I could try to hack something together just for that gap, but it's
-    # probably not worth it.
-    error("Congratulations, you've found the obscure range of Julia v0.7-dev commits where BenchmarkTools is really, really broken. Sorry about that :(")
-end
+run_result(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_run, b, p; kwargs...)
+lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_lineartrial, b, p; kwargs...)
 
 #############
 # execution #
@@ -274,11 +253,9 @@ macro benchmarkable(args...)
     core_vars = isa(core, Expr) ? collectvars(core) : []
     out_vars = filter(var -> var in setup_vars, core_vars)
 
-    eval_module = VERSION >= v"0.7.0-DEV.484" ? __module__ : current_module()
-
     # generate the benchmark definition
     return esc(quote
-        $BenchmarkTools.generate_benchmark_definition($(eval_module),
+        $BenchmarkTools.generate_benchmark_definition($__module__,
                                                       $(Expr(:quote, out_vars)),
                                                       $(Expr(:quote, setup_vars)),
                                                       $(Expr(:quote, core)),
