@@ -39,7 +39,7 @@ end
 Base.length(t::Trial) = length(t.times)
 Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
-Compat.lastindex(t::Trial) = length(t)
+Base.lastindex(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
     inds = sortperm(t.times)
@@ -118,8 +118,8 @@ function Base.maximum(trial::Trial)
     return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
 end
 
-median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
-mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
+Statistics.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
+Statistics.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
 
 Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 

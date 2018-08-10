@@ -1,18 +1,10 @@
-__precompile__()
-
 module BenchmarkTools
 
-using Compat
 using JSON
 using Base.Iterators
 
-if VERSION >= v"0.7.0-beta.85"
-    import Statistics: mean, median
-else
-    import Base: mean, median
-end
-
-using Compat.Printf
+import Statistics: mean, median
+using Printf
 
 
 const BENCHMARKTOOLS_VERSION = v"0.2.2"

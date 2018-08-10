@@ -1,7 +1,6 @@
 module ParametersTests
 
-using Compat
-using Compat.Test
+using Test
 using BenchmarkTools
 using BenchmarkTools: Parameters
 

@@ -1,5 +1,3 @@
-using Base.Meta: parse
-
 const VERSIONS = Dict("Julia" => string(VERSION),
                       "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))
 
@@ -24,7 +22,7 @@ function recover(x::Vector)
     length(x) == 2 || throw(ArgumentError("Expecting a vector of length 2"))
     typename = x[1]::String
     fields = x[2]::Dict
-    T = Core.eval(@__MODULE__, parse(typename))::Type
+    T = Core.eval(@__MODULE__, Meta.parse(typename))::Type
     fc = fieldcount(T)
     xs = Vector{Any}(undef, fc)
     for i = 1:fc
@@ -71,9 +69,9 @@ function save(io::IO, args...)
     goodargs = Any[]
     for arg in args
         if arg isa String
-            Compat.@warn("Naming variables in serialization is no longer supported.\n" *
-                         "The name will be ignored and the object will be serialized " *
-                         "in the order it appears in the input.")
+            @warn("Naming variables in serialization is no longer supported.\n" *
+                  "The name will be ignored and the object will be serialized " *
+                  "in the order it appears in the input.")
             continue
         elseif !any(T->arg isa T, SUPPORTED_TYPES)
             throw(ArgumentError("Only BenchmarkTools types can be serialized."))

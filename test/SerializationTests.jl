@@ -1,8 +1,7 @@
 module SerializationTests
 
 using BenchmarkTools
-using Compat
-using Compat.Test
+using Test
 
 eq(x::T, y::T) where {T<:Union{BenchmarkTools.SUPPORTED_TYPES...}} =
     all(i->eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))

@@ -76,8 +76,8 @@ Base.filter(f, group::BenchmarkGroup) = filter!(f, copy(group))
 
 Base.minimum(group::BenchmarkGroup) = mapvals(minimum, group)
 Base.maximum(group::BenchmarkGroup) = mapvals(maximum, group)
-mean(group::BenchmarkGroup) = mapvals(mean, group)
-median(group::BenchmarkGroup) = mapvals(median, group)
+Statistics.mean(group::BenchmarkGroup) = mapvals(mean, group)
+Statistics.median(group::BenchmarkGroup) = mapvals(median, group)
 Base.min(groups::BenchmarkGroup...) = mapvals(min, groups...)
 Base.max(groups::BenchmarkGroup...) = mapvals(max, groups...)
 
