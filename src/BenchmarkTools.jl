@@ -3,7 +3,7 @@ module BenchmarkTools
 using JSON
 using Base.Iterators
 
-import Statistics: mean, median
+using Statistics
 using Printf
 
 
