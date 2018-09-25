@@ -209,7 +209,7 @@ macro benchmark(args...)
     _, params = prunekwargs(args...)
     tmp = gensym()
     return esc(quote
-        $tmp = $BenchmarkTools.@benchmarkable $(args...)
+        local $tmp = $BenchmarkTools.@benchmarkable $(args...)
         $BenchmarkTools.warmup($tmp)
         $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
         $BenchmarkTools.run($tmp)
@@ -358,7 +358,6 @@ parameters as `@benchmark`.  The returned time
 is the *minimum* elapsed time measured during the benchmark.
 """
 macro belapsed(args...)
-    b = Expr(:macrocall, Symbol("@benchmark"), map(esc, args)...)
     return esc(quote
         $BenchmarkTools.time($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))/1e9
     end)
@@ -383,12 +382,12 @@ macro btime(args...)
     trialmin, trialallocs = gensym(), gensym()
     tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
     return esc(quote
-        $bench = $BenchmarkTools.@benchmarkable $(args...)
+        local $bench = $BenchmarkTools.@benchmarkable $(args...)
         $BenchmarkTools.warmup($bench)
         $tune_phase
-        $trial, $result = $BenchmarkTools.run_result($bench)
-        $trialmin = $BenchmarkTools.minimum($trial)
-        $trialallocs = $BenchmarkTools.allocs($trialmin)
+        local $trial, $result = $BenchmarkTools.run_result($bench)
+        local $trialmin = $BenchmarkTools.minimum($trial)
+        local $trialallocs = $BenchmarkTools.allocs($trialmin)
         println("  ",
                 $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
                 " (", $trialallocs , " allocation",
