@@ -177,4 +177,8 @@ let fname = tempname()
     end
 end
 
+let time = 2
+    @benchmark identity(time)
+end
+
 end # module

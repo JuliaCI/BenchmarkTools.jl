@@ -321,14 +321,14 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
             params = $BenchmarkTools.Parameters(p; kwargs...)
             @assert params.seconds > 0.0 "time limit must be greater than 0.0"
             params.gctrial && $BenchmarkTools.gcscrub()
-            start_time = time()
+            start_time = Base.time()
             trial = $BenchmarkTools.Trial(params)
             params.gcsample && $BenchmarkTools.gcscrub()
             s = $(samplefunc)(params)
             push!(trial, s[1:end-1]...)
             return_val = s[end]
             iters = 2
-            while (time() - start_time) < params.seconds && iters ≤ params.samples
+            while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
                  params.gcsample && $BenchmarkTools.gcscrub()
                  push!(trial, $(samplefunc)(params)[1:end-1]...)
                  iters += 1
