@@ -177,6 +177,7 @@ let fname = tempname()
     end
 end
 
+# issue #107
 let time = 2
     @benchmark identity(time)
 end
