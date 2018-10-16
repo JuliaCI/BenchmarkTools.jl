@@ -248,21 +248,24 @@ Base.setindex!(group::BenchmarkGroup, v, k::BenchmarkGroup) = error("A Benchmark
 
 tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
-Base.show(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
+Base.summary(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
 
-function Base.show(io::IO, mime::MIME"text/plain", group::BenchmarkGroup, pad = ""; verbose = false, limit = 10)
+function Base.show(io::IO, group::BenchmarkGroup)
     println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
+    pad = get(io, :pad, "")
     print(io, pad, "  tags: ", tagrepr(group.tags))
     count = 1
     for (k, v) in group
         println(io)
         print(io, pad, "  ", repr(k), " => ")
-        if verbose && isa(v, BenchmarkGroup)
-            show(io, mime, v, "\t"*pad; verbose = verbose, limit = limit)
+        if get(io, :verbose, false) && isa(v, BenchmarkGroup)
+            show(IOContext(io, :pad => "\t"*pad), v)
+        elseif get(io, :compact, true)
+            summary(IOContext(io, :pad => "\t"*pad), v)
         else
-            show(io, v)
+            show(IOContext(io, :pad => "\t"*pad), v)
         end
-        count > limit && (println(io); print(io, pad, "  ⋮"); break)
+        count > get(io, :limit, 10) && (println(io); print(io, pad, "  ⋮"); break)
         count += 1
     end
 end
