@@ -276,7 +276,11 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
     id = Expr(:quote, gensym("benchmark"))
     corefunc = gensym("core")
     samplefunc = gensym("sample")
+    type_vars = [gensym() for i in 1:length(setup_vars)]
     signature = Expr(:call, corefunc, setup_vars...)
+    signature_def = Expr(:where, Expr(:call, corefunc,
+                                  [Expr(:(::), setup_var, type_var) for (setup_var, type_var) in zip(setup_vars, type_vars)]...)
+                    , type_vars...)
     if length(out_vars) == 0
         invocation = signature
         core_body = core
@@ -290,7 +294,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
         core_body = :($(core); $(returns))
     end
     return Core.eval(eval_module, quote
-        @noinline $(signature) = begin $(core_body) end
+        @noinline $(signature_def) = begin $(core_body) end
         @noinline function $(samplefunc)(__params::$BenchmarkTools.Parameters)
             $(setup)
             __evals = __params.evals
