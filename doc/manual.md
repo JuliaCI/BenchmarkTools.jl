@@ -591,7 +591,7 @@ Following from the previous section, we see that running our benchmark suite ret
 julia> results["utf8"]
 BenchmarkTools.BenchmarkGroup:
   tags: ["string", "unicode"]
-  "join" => Trial(133.84 ms) # showcompact for Trial displays the minimum time estimate
+  "join" => Trial(133.84 ms) # summary(::Trial) displays the minimum time estimate
   "replace" => Trial(202.3 μs)
 
 julia> results["trig"]
