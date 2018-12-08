@@ -169,4 +169,25 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 @test BenchmarkTools.prettymemory(1073741823) == "1024.00 MiB"
 @test BenchmarkTools.prettymemory(1073741824) == "1.00 GiB"
 
+@test sprint(show, "text/plain", ta) == sprint(show, ta; context=:compact => false) == """
+BenchmarkTools.TrialEstimate: 
+  time:             0.490 ns
+  gctime:           0.000 ns (0.00%)
+  memory:           2 bytes
+  allocs:           1"""
+
+@test sprint(show, ta) == "TrialEstimate(0.490 ns)"
+@test sprint(
+    show, ta;
+    context = IOContext(
+        devnull, :compact => true, :typeinfo => BenchmarkTools.TrialEstimate)
+) == "0.490 ns"
+
+@test sprint(show, [ta, tb]) == "BenchmarkTools.TrialEstimate[0.490 ns, 1.000 ns]"
+
+@test sprint(show, "text/plain", [ta, tb]) == """
+2-element Array{BenchmarkTools.TrialEstimate,1}:
+ 0.490 ns
+ 1.000 ns"""
+
 end # module
