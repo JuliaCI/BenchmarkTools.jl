@@ -295,7 +295,7 @@ Base.summary(io::IO, t::TrialJudgement) = withtypename(io, t) do
 end
 
 _show(io, t) =
-    if !(get(io, :verbose, false)) && get(io, :compact, true)
+    if get(io, :compact, true)
         summary(io, t)
     else
         show(io, MIME"text/plain"(), t)
