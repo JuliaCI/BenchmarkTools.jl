@@ -258,13 +258,7 @@ function Base.show(io::IO, group::BenchmarkGroup)
     for (k, v) in group
         println(io)
         print(io, pad, "  ", repr(k), " => ")
-        if get(io, :verbose, false) && isa(v, BenchmarkGroup)
-            show(IOContext(io, :pad => "\t"*pad), v)
-        elseif get(io, :compact, true)
-            summary(IOContext(io, :pad => "\t"*pad), v)
-        else
-            show(IOContext(io, :pad => "\t"*pad), v)
-        end
+        show(IOContext(io, :pad => "\t"*pad), v)
         count > get(io, :limit, 10) && (println(io); print(io, pad, "  ⋮"); break)
         count += 1
     end
