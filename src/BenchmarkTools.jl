@@ -63,6 +63,8 @@ export tune!,
        @belapsed,
        @btime
 
+include("diffable.jl")
+
 #################
 # Serialization #
 #################
