@@ -41,7 +41,9 @@ julia> @btime sin(1)
 0.8414709848078965
 ```
 
-If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/stable/manual/performance-tips/#Avoid-global-variables-1).  Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
+If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
+[avoid the problems of benchmarking with globals](https://docs.julialang.org/en/latest/manual/performance-tips/#Avoid-global-variables-1).
+Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
 
 ```julia
 julia> A = rand(3,3);
