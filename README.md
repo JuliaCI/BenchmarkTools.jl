@@ -31,14 +31,34 @@ If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https:
 
 ## Quick Start
 
-The simplest usage is via the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time) but is often more accurate (by collecting results over multiple runs):
+The primary macro provided by BenchmarkTools is `@benchmark`:
 
 ```julia
 julia> using BenchmarkTools
 
-julia> @btime sin(1)
-  15.081 ns (0 allocations: 0 bytes)
-0.8414709848078965
+# The `setup` expression is run once per sample, and is not included in the
+# timing results. Note that each sample can require multiple evaluations
+# benchmark kernel evaluations. See the BenchmarkTools manual for details.
+julia> @benchmark sin(x) setup=(x=rand())
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     4.248 ns (0.00% GC)
+  median time:      4.631 ns (0.00% GC)
+  mean time:        5.502 ns (0.00% GC)
+  maximum time:     60.995 ns (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     1000
+```
+
+For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time):
+
+```julia
+julia> @btime sin(x) setup=(x=rand())
+  4.361 ns (0 allocations: 0 bytes)
+0.49587200950472454
 ```
 
 If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
@@ -50,10 +70,10 @@ julia> A = rand(3,3);
 
 julia> @btime inv($A);            # we interpolate the global variable A with $A
   1.191 μs (10 allocations: 2.31 KiB)
-  
+
 julia> @btime inv($(rand(3,3)));  # interpolation: the rand(3,3) call occurs before benchmarking
   1.192 μs (10 allocations: 2.31 KiB)
-  
+
 julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchmark time
   1.295 μs (11 allocations: 2.47 KiB)
 ```
