@@ -275,7 +275,6 @@ Note that the `setup` and `teardown` phases are **executed for each sample, not 
 ### Understanding compiler optimizations
 
 It's possible for LLVM and Julia's compiler to perform optimizations on `@benchmarkable` expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly "fast" benchmarks. For example, the following expression is non-allocating:
-
 ```julia
 julia> @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
 BenchmarkTools.Trial:
@@ -311,7 +310,32 @@ BenchmarkTools.Trial:
 
 The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away `view(a, 1:2, 1:2)` because it could prove that the value wasn't being returned and `a` wasn't being mutated. In the second example, the optimization is not performed because `view(a, 1:2, 1:2)` is a return value of the benchmark expression.
 
-In conclusion, BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It's up to you to design benchmarks which actually exercise the code you intend to exercise.
+In conclusion, BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It's up to you to design benchmarks which actually exercise the code you intend to exercise. 
+
+A common place julia's optimizer may cause a benchmark to not measure what a user thought it was measuring is simple operations where all values are known at compile time. Suppose you wanted to measure the time it takes to add together two integers:
+```julia
+julia> a = 1; b = 2
+2
+
+julia> @btime $a + $b
+  0.024 ns (0 allocations: 0 bytes)
+3
+```
+in this case julia was able to use the properties of `+(::Int, ::Int)` to know that it could safely replace `$a + $b` with `3` at compile time. We can stop the optimizer from doing this by referencing and dereferencing the interpolated variables  
+```julia
+julia> @btime Ref($a)[] + Ref($b)[]
+  1.524 ns (0 allocations: 0 bytes)
+3
+```
+but this can be annoying to remember and write, so we provide a macro @refd to automatically reference and dereference interpolated variables
+```julia
+julia> @refd @btime $a + $b
+  1.277 ns (0 allocations: 0 bytes)
+3
+```
+Note that @refd should be appended *outside* the @btime statement.
+
+As described the manual, the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
 
 # Handling benchmark results
 
@@ -918,3 +942,26 @@ Caching parameters in this manner leads to a far shorter turnaround time, and mo
 - If you use `rand` or something similar to generate the values that are used in your benchmarks, you should seed the RNG (or provide a seeded RNG) so that the values are consistent between trials/samples/evaluations.
 - BenchmarkTools attempts to be robust against machine noise occurring between *samples*, but BenchmarkTools can't do very much about machine noise occurring between *trials*. To cut down on the latter kind of noise, it is advised that you dedicate CPUs and memory to the benchmarking Julia process by using a shielding tool such as [cset](http://manpages.ubuntu.com/manpages/precise/man1/cset.1.html).
 - On some machines, for some versions of BLAS and Julia, the number of BLAS worker threads can exceed the number of available cores. This can occasionally result in scheduling issues and inconsistent performance for BLAS-heavy benchmarks. To fix this issue, you can use `BLAS.set_num_threads(i::Int)` in the Julia REPL to ensure that the number of BLAS threads is equal to or less than the number of available cores.
+
+Sometimes, interpolating variables into very simple expressions can give the compiler more information than you intended, causing it to "cheat" the benchmark by hoisting the calculation out of the benchmark code
+```julia
+julia> a = 1; b = 2
+2
+
+julia> @btime $a + $b
+  0.024 ns (0 allocations: 0 bytes)
+3
+```
+As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occured. You can avoid this by referencing and dereferencing the interpolated variables 
+```julia
+julia> @btime Ref($a)[] + Ref($b)[]
+  1.524 ns (0 allocations: 0 bytes)
+3
+```
+but this can be annoying to remember and write, so we provide a macro `@refd` to automatically reference and dereference interpolated variables
+```julia
+julia> @refd @btime $a + $b
+  1.277 ns (0 allocations: 0 bytes)
+3
+```
+Note that `@refd` should be appended *outside* the `@btime` statement. 
