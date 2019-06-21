@@ -323,8 +323,8 @@ julia> @btime $a + $b
 ```
 in this case julia was able to use the properties of `+(::Int, ::Int)` to know that it could safely replace `$a + $b` with `3` at compile time. We can stop the optimizer from doing this by referencing and dereferencing the interpolated variables  
 ```julia
-julia> @btime Ref($a)[] + Ref($b)[]
-  1.524 ns (0 allocations: 0 bytes)
+julia> @btime $(Ref(a))[] + $(Ref(b))[]
+  1.277 ns (0 allocations: 0 bytes)
 3
 ```
 but this can be annoying to remember and write, so we provide a macro @refd to automatically reference and dereference interpolated variables
