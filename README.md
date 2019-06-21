@@ -89,7 +89,7 @@ julia> @btime $a + $b
 ```
 As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occured. You can avoid this by referencing and dereferencing the interpolated variables 
 ```julia
-julia> @btime $(Ref(a))[] + $(Ref(a))[]
+julia> @btime $(Ref(a))[] + $(Ref(b))[]
   1.277 ns (0 allocations: 0 bytes)
 3
 ```
