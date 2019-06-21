@@ -61,7 +61,8 @@ export tune!,
        @benchmark,
        @benchmarkable,
        @belapsed,
-       @btime
+       @btime,
+       @refd
 
 #################
 # Serialization #
