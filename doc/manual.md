@@ -310,7 +310,7 @@ BenchmarkTools.Trial:
 
 The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away `view(a, 1:2, 1:2)` because it could prove that the value wasn't being returned and `a` wasn't being mutated. In the second example, the optimization is not performed because `view(a, 1:2, 1:2)` is a return value of the benchmark expression.
 
-In conclusion, BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It's up to you to design benchmarks which actually exercise the code you intend to exercise. 
+BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It's up to you to design benchmarks which actually exercise the code you intend to exercise. 
 
 A common place julia's optimizer may cause a benchmark to not measure what a user thought it was measuring is simple operations where all values are known at compile time. Suppose you wanted to measure the time it takes to add together two integers:
 ```julia
