@@ -78,6 +78,29 @@ julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchm
   1.295 μs (11 allocations: 2.47 KiB)
 ```
 
+Sometimes, interpolating variables into very simple expressions can give the compiler more information than you intended, causing it to "cheat" the benchmark by hoisting the calculation out of the benchmark code
+```julia
+julia> a = 1; b = 2
+2
+
+julia> @btime $a + $b
+  0.024 ns (0 allocations: 0 bytes)
+3
+```
+As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occured. You can avoid this by referencing and dereferencing the interpolated variables 
+```julia
+julia> @btime Ref($a)[] + Ref($b)[]
+  1.524 ns (0 allocations: 0 bytes)
+3
+```
+but this can be annoying to remember and write, so we provide a macro `@refd` to automatically reference and dereference interpolated variables
+```julia
+julia> @refd @btime $a + $b
+  1.277 ns (0 allocations: 0 bytes)
+3
+```
+Note that `@refd` should be appended *outside* the `@btime` statement. 
+
 As described the [manual](doc/manual.md), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
 
 ## Why does this package exist?
