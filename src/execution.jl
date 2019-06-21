@@ -426,11 +426,11 @@ stop the compiler from cheating at simple benchmarks. Works
 with any macro that accepts interpolation
 
 Example
-    julia> @btime $a + $b
+    julia> @btime \$a + \$b
       0.024 ns (0 allocations: 0 bytes)
     3
     
-    julia> @refd @btime $a + $b
+    julia> @refd @btime \$a + \$b
       1.277 ns (0 allocations: 0 bytes)
     3
 """
