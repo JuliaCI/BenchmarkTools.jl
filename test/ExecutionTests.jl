@@ -182,12 +182,19 @@ let time = 2
     @benchmark identity(time)
 end
 
+#Test postwalk
+let 
+    @test walk(1, 1, x -> x + 1) == 2
+    @test postwalk(x -> x == :+ ? :* : x == :* ? :+ : x, :(1 + 2 * 3)) == :(1 * (2 + 3))
+end
+
 #Test @refd
 let a=1.0, b=2.0
     @test (@macroexpand @refd $a + $b) == (@macroexpand $(Ref(a))[] + $(Ref(b))[])
     @test try (@refd @belapsed  $a + $b);            true catch e; false end
     @test try (@refd @btime     $a + log($b + 1));   true catch e; false end
     @test try (@refd @benchmark exp($a/2 + 3) + $b); true catch e; false end
+    @test _refd(1) == 1
 end
 
 end # module
