@@ -415,11 +415,9 @@ end
 _refd(x)  = x
 
 """
-    @refd @btime expression
-or
-    @refd @belapsed expression  
-or
-    @refd @benchmark expression    
+    @refd bmacro expression
+  
+where `bmacro` is one of `@btime`, `@belapsed`, `@benchmark`.
 
 Wraps all interpolated code in `expression` in a `Ref()` to 
 stop the compiler from cheating at simple benchmarks. Works 
