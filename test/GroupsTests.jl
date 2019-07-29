@@ -80,14 +80,45 @@ gtrial = BenchmarkGroup([], Dict("t" => trial))
 @test ratio(g1, g2) == ratio(judge(g1, g2))
 
 @test isinvariant(judge(g1, g1))
-@test !(isinvariant(judge(g1, g2)))
-@test isregression(judge(g1, g2))
+@test istimeinvariant(judge(g1, g1))
+@test ismemoryinvariant(judge(g1, g1))
 @test !(isregression(judge(g1, g1)))
-@test isimprovement(judge(g1, g2))
+@test !(istimeregression(judge(g1, g1)))
+@test !(ismemoryregression(judge(g1, g1)))
 @test !(isimprovement(judge(g1, g1)))
-@test invariants(judge(g1, g2)).data == Dict("c" => judge(tc, tc))
-@test regressions(judge(g1, g2)).data == Dict("b" => judge(t1b, t2b))
-@test improvements(judge(g1, g2)).data == Dict("a" => judge(t1a, t2a))
+@test !(istimeimprovement(judge(g1, g1)))
+@test !(ismemoryimprovement(judge(g1, g1)))
+
+@test BenchmarkTools.invariants(judge(g1, g2)).data == Dict("c" => judge(tc, tc))
+@test BenchmarkTools.timeinvariants(judge(g1, g2)).data == Dict("c" => judge(tc, tc))
+@test BenchmarkTools.memoryinvariants(judge(g1, g2)).data == Dict("a" => judge(t1a, t2a), "b" => judge(t1b, t2b), "c" => judge(tc, tc))
+@test BenchmarkTools.regressions(judge(g1, g2)).data == Dict("b" => judge(t1b, t2b))
+@test BenchmarkTools.timeregressions(judge(g1, g2)).data == Dict("b" => judge(t1b, t2b))
+@test BenchmarkTools.memoryregressions(judge(g1, g2)).data == Dict()
+@test BenchmarkTools.improvements(judge(g1, g2)).data == Dict("a" => judge(t1a, t2a))
+@test BenchmarkTools.timeimprovements(judge(g1, g2)).data == Dict("a" => judge(t1a, t2a))
+@test BenchmarkTools.memoryimprovements(judge(g1, g2)).data == Dict()
+
+@test !(isinvariant(judge(g1, g2)))
+@test !(istimeinvariant(judge(g1, g2)))
+@test ismemoryinvariant(judge(g1, g2))
+@test isregression(judge(g1, g2))
+@test istimeregression(judge(g1, g2))
+@test !(ismemoryregression(judge(g1, g2)))
+@test isimprovement(judge(g1, g2))
+@test istimeimprovement(judge(g1, g2))
+@test !(ismemoryimprovement(judge(g1, g2)))
+
+struct Bar end
+@test BenchmarkTools.invariants(Bar()) == Bar()
+@test BenchmarkTools.timeinvariants(Bar()) == Bar()
+@test BenchmarkTools.memoryinvariants(Bar()) == Bar()
+@test BenchmarkTools.regressions(Bar()) == Bar()
+@test BenchmarkTools.timeregressions(Bar()) == Bar()
+@test BenchmarkTools.memoryregressions(Bar()) == Bar()
+@test BenchmarkTools.improvements(Bar()) == Bar()
+@test BenchmarkTools.timeimprovements(Bar()) == Bar()
+@test BenchmarkTools.memoryimprovements(Bar()) == Bar()
 
 @test minimum(gtrial)["t"] == minimum(gtrial["t"])
 @test median(gtrial)["t"] == median(gtrial["t"])
@@ -246,6 +277,5 @@ g2[[1, "a", :b]] = "hello"  # should create higher levels on the fly
 @test g2[[1, "a", :b]] == "hello"
 
 @test g1 == g2
-
 
 # end # module

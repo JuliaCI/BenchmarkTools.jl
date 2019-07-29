@@ -221,9 +221,17 @@ function judge(ratio::Real, tolerance::Float64)
     end
 end
 
-isimprovement(t::TrialJudgement) = time(t) == :improvement || memory(t) == :improvement
-isregression(t::TrialJudgement) = time(t) == :regression || memory(t) == :regression
-isinvariant(t::TrialJudgement) = time(t) == :invariant && memory(t) == :invariant
+isimprovement(t::TrialJudgement) = istimeimprovement(t) || ismemoryimprovement(t)
+istimeimprovement(t::TrialJudgement) = time(t) == :improvement
+ismemoryimprovement(t::TrialJudgement) = memory(t) == :improvement
+
+isregression(t::TrialJudgement) = istimeregression(t) || ismemoryregression(t)
+istimeregression(t::TrialJudgement) = time(t) == :regression
+ismemoryregression(t::TrialJudgement) = memory(t) == :regression
+
+isinvariant(t::TrialJudgement) = istimeinvariant(t) && ismemoryinvariant(t)
+istimeinvariant(t::TrialJudgement) = time(t) == :invariant
+ismemoryinvariant(t::TrialJudgement) = memory(t) == :invariant
 
 const colormap = (
     regression = :red,

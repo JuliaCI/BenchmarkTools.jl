@@ -83,15 +83,40 @@ rmskew!(group::BenchmarkGroup) = mapvals!(rmskew!, group)
 rmskew(group::BenchmarkGroup) = mapvals(rmskew, group)
 
 isregression(group::BenchmarkGroup) = any(isregression, values(group))
+istimeregression(group::BenchmarkGroup) = any(istimeregression, values(group))
+ismemoryregression(group::BenchmarkGroup) = any(ismemoryregression, values(group))
+
 isimprovement(group::BenchmarkGroup) = any(isimprovement, values(group))
+istimeimprovement(group::BenchmarkGroup) = any(istimeimprovement, values(group))
+ismemoryimprovement(group::BenchmarkGroup) = any(ismemoryimprovement, values(group))
+
 isinvariant(group::BenchmarkGroup) = all(isinvariant, values(group))
+istimeinvariant(group::BenchmarkGroup) = all(istimeinvariant, values(group))
+ismemoryinvariant(group::BenchmarkGroup) = all(ismemoryinvariant, values(group))
 
 invariants(x) = x
+timeinvariants(x) = x
+memoryinvariants(x) = x
+
 regressions(x) = x
+timeregressions(x) = x
+memoryregressions(x) = x
+
 improvements(x) = x
+timeimprovements(x) = x
+memoryimprovements(x) = x
+
 invariants(group::BenchmarkGroup) = mapvals!(invariants, filtervals(isinvariant, group))
+timeinvariants(group::BenchmarkGroup) = mapvals!(timeinvariants, filtervals(istimeinvariant, group))
+memoryinvariants(group::BenchmarkGroup) = mapvals!(memoryinvariants, filtervals(ismemoryinvariant, group))
+
 regressions(group::BenchmarkGroup) = mapvals!(regressions, filtervals(isregression, group))
+timeregressions(group::BenchmarkGroup) = mapvals!(timeregressions, filtervals(istimeregression, group))
+memoryregressions(group::BenchmarkGroup) = mapvals!(memoryregressions, filtervals(ismemoryregression, group))
+
 improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprovement, group))
+timeimprovements(group::BenchmarkGroup) = mapvals!(timeimprovements, filtervals(istimeimprovement, group))
+memoryimprovements(group::BenchmarkGroup) = mapvals!(memoryimprovements, filtervals(ismemoryimprovement, group))
 
 function loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup, fields...)
     for (k, v) in group
