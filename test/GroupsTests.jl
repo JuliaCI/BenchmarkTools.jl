@@ -278,4 +278,5 @@ g2[[1, "a", :b]] = "hello"  # should create higher levels on the fly
 
 @test g1 == g2
 
+
 # end # module
