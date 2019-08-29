@@ -82,41 +82,32 @@ judge(groups::BenchmarkGroup...; kwargs...) = mapvals((x...) -> judge(x...; kwar
 rmskew!(group::BenchmarkGroup) = mapvals!(rmskew!, group)
 rmskew(group::BenchmarkGroup) = mapvals(rmskew, group)
 
+isregression(f, group::BenchmarkGroup) = any((x) -> isregression(f, x), values(group))
 isregression(group::BenchmarkGroup) = any(isregression, values(group))
-istimeregression(group::BenchmarkGroup) = any(istimeregression, values(group))
-ismemoryregression(group::BenchmarkGroup) = any(ismemoryregression, values(group))
 
+isimprovement(f, group::BenchmarkGroup) = any((x) -> isimprovement(f, x), values(group))
 isimprovement(group::BenchmarkGroup) = any(isimprovement, values(group))
-istimeimprovement(group::BenchmarkGroup) = any(istimeimprovement, values(group))
-ismemoryimprovement(group::BenchmarkGroup) = any(ismemoryimprovement, values(group))
 
+isinvariant(f, group::BenchmarkGroup) = all((x) -> isinvariant(f, x), values(group))
 isinvariant(group::BenchmarkGroup) = all(isinvariant, values(group))
-istimeinvariant(group::BenchmarkGroup) = all(istimeinvariant, values(group))
-ismemoryinvariant(group::BenchmarkGroup) = all(ismemoryinvariant, values(group))
 
+invariants(f, x) = x
 invariants(x) = x
-timeinvariants(x) = x
-memoryinvariants(x) = x
 
+regressions(f, x) = x
 regressions(x) = x
-timeregressions(x) = x
-memoryregressions(x) = x
 
+improvements(f, x) = x
 improvements(x) = x
-timeimprovements(x) = x
-memoryimprovements(x) = x
 
+invariants(f, group::BenchmarkGroup) = mapvals!((x) -> invariants(f, x), filtervals((x) -> isinvariant(f, x), group))
 invariants(group::BenchmarkGroup) = mapvals!(invariants, filtervals(isinvariant, group))
-timeinvariants(group::BenchmarkGroup) = mapvals!(timeinvariants, filtervals(istimeinvariant, group))
-memoryinvariants(group::BenchmarkGroup) = mapvals!(memoryinvariants, filtervals(ismemoryinvariant, group))
 
+regressions(f, group::BenchmarkGroup) = mapvals!((x) -> regressions(f, x), filtervals((x) -> isregression(f, x), group))
 regressions(group::BenchmarkGroup) = mapvals!(regressions, filtervals(isregression, group))
-timeregressions(group::BenchmarkGroup) = mapvals!(timeregressions, filtervals(istimeregression, group))
-memoryregressions(group::BenchmarkGroup) = mapvals!(memoryregressions, filtervals(ismemoryregression, group))
 
+improvements(f, group::BenchmarkGroup) = mapvals!((x) -> improvements(f, x), filtervals((x) -> isimprovement(f, x), group))
 improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprovement, group))
-timeimprovements(group::BenchmarkGroup) = mapvals!(timeimprovements, filtervals(istimeimprovement, group))
-memoryimprovements(group::BenchmarkGroup) = mapvals!(memoryimprovements, filtervals(ismemoryimprovement, group))
 
 function loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup, fields...)
     for (k, v) in group
