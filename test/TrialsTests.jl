@@ -135,15 +135,45 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 @test isinvariant(tj_ab_2)
 @test isinvariant(tj_r_2)
 
+@test !(isinvariant(time, tj_ab))
+@test !(isinvariant(time, tj_r))
+@test isinvariant(time, tj_ab_2)
+@test isinvariant(time, tj_r_2)
+
+@test !(isinvariant(memory, tj_ab))
+@test !(isinvariant(memory, tj_r))
+@test isinvariant(memory, tj_ab_2)
+@test isinvariant(memory, tj_r_2)
+
 @test isregression(tj_ab)
 @test isregression(tj_r)
 @test !(isregression(tj_ab_2))
 @test !(isregression(tj_r_2))
 
+@test !(isregression(time, tj_ab))
+@test !(isregression(time, tj_r))
+@test !(isregression(time, tj_ab_2))
+@test !(isregression(time, tj_r_2))
+
+@test isregression(memory, tj_ab)
+@test isregression(memory, tj_r)
+@test !(isregression(memory, tj_ab_2))
+@test !(isregression(memory, tj_r_2))
+
 @test isimprovement(tj_ab)
 @test isimprovement(tj_r)
 @test !(isimprovement(tj_ab_2))
 @test !(isimprovement(tj_r_2))
+
+@test isimprovement(time, tj_ab)
+@test isimprovement(time, tj_r)
+@test !(isimprovement(time, tj_ab_2))
+@test !(isimprovement(time, tj_r_2))
+
+@test !(isimprovement(memory, tj_ab))
+@test !(isimprovement(memory, tj_r))
+@test !(isimprovement(memory, tj_ab_2))
+@test !(isimprovement(memory, tj_r_2))
 
 ###################
 # pretty printing #

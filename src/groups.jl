@@ -82,15 +82,31 @@ judge(groups::BenchmarkGroup...; kwargs...) = mapvals((x...) -> judge(x...; kwar
 rmskew!(group::BenchmarkGroup) = mapvals!(rmskew!, group)
 rmskew(group::BenchmarkGroup) = mapvals(rmskew, group)
 
+isregression(f, group::BenchmarkGroup) = any((x) -> isregression(f, x), values(group))
 isregression(group::BenchmarkGroup) = any(isregression, values(group))
+
+isimprovement(f, group::BenchmarkGroup) = any((x) -> isimprovement(f, x), values(group))
 isimprovement(group::BenchmarkGroup) = any(isimprovement, values(group))
+
+isinvariant(f, group::BenchmarkGroup) = all((x) -> isinvariant(f, x), values(group))
 isinvariant(group::BenchmarkGroup) = all(isinvariant, values(group))
 
+invariants(f, x) = x
 invariants(x) = x
+
+regressions(f, x) = x
 regressions(x) = x
+
+improvements(f, x) = x
 improvements(x) = x
+
+invariants(f, group::BenchmarkGroup) = mapvals!((x) -> invariants(f, x), filtervals((x) -> isinvariant(f, x), group))
 invariants(group::BenchmarkGroup) = mapvals!(invariants, filtervals(isinvariant, group))
+
+regressions(f, group::BenchmarkGroup) = mapvals!((x) -> regressions(f, x), filtervals((x) -> isregression(f, x), group))
 regressions(group::BenchmarkGroup) = mapvals!(regressions, filtervals(isregression, group))
+
+improvements(f, group::BenchmarkGroup) = mapvals!((x) -> improvements(f, x), filtervals((x) -> isimprovement(f, x), group))
 improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprovement, group))
 
 function loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup, fields...)
