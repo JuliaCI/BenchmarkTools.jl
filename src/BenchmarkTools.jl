@@ -7,7 +7,7 @@ using Statistics
 using Printf
 
 
-const BENCHMARKTOOLS_VERSION = v"0.2.2"
+const BENCHMARKTOOLS_VERSION = v"0.4.3"
 
 ##############
 # Parameters #
