@@ -32,6 +32,8 @@ export gctime,
        isinvariant,
        isregression,
        isimprovement,
+       median,
+       mean,
        rmskew!,
        rmskew,
        trim
