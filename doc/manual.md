@@ -511,7 +511,7 @@ suite["utf8"] = BenchmarkGroup(["string", "unicode"])
 suite["trig"] = BenchmarkGroup(["math", "triangles"])
 
 # Add some benchmarks to the "utf8" group
-teststr = join(rand(MersenneTwister(1), 'a':'d', 10^4));
+teststr = join(rand('a':'d', 10^4));
 suite["utf8"]["replace"] = @benchmarkable replace($teststr, "a" => "b")
 suite["utf8"]["join"] = @benchmarkable join($teststr, $teststr)
 
