@@ -5,9 +5,11 @@ using Base.Iterators
 
 using Statistics
 using Printf
+using MacroTools: MacroTools, prewalk, postwalk, @capture
+using OrderedCollections: OrderedDict
 
 
-const BENCHMARKTOOLS_VERSION = v"0.4.3"
+const BENCHMARKTOOLS_VERSION = v"0.4.4"
 
 ##############
 # Parameters #
@@ -63,7 +65,10 @@ export tune!,
        @benchmark,
        @benchmarkable,
        @belapsed,
-       @btime
+       @btime,
+       @localbenchmark,
+       @localbelapsed,
+       @localbtime
 
 #################
 # Serialization #
