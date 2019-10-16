@@ -499,7 +499,7 @@ parameters as `@benchmark`.  The returned time
 is the *minimum* elapsed time measured during the benchmark.
 
 This macro allows you to use local scoping within the expression called.
-Please see the tests for further examples. 
+Please see the tests for further examples.
 """
 macro localbelapsed(args...)
     core, params = interpolate_locals_into_setup(args...)
