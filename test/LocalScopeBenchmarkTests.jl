@@ -30,6 +30,12 @@ global_x = 1.0
         @test isinvariant(j)
     end
 
+        @testset "Generated code is identical" begin
+            x = 1.0
+            ex1 = Meta.@lower(@benchmark($sin($x), evals=500))
+            ex2 = Meta.@lower(@localbenchmark(sin(x), evals=500))
+        end
+
     @testset "Benchmarks with setup" begin
         @testset "Single setup" begin
             x =1.0
