@@ -91,7 +91,7 @@ Alternatively, you can use the `@btime` or `@belapsed` macros.
 These take exactly the same arguments as `@benchmark`, but
 behave like the `@time` or `@elapsed` macros included with
 Julia: `@btime` prints the minimum time and memory allocation
-before returning the value of the expression, while `@elapsed`
+before returning the value of the expression, while `@belapsed`
 returns the minimum time in seconds.
 
 ```julia
