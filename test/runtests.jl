@@ -17,3 +17,7 @@ println("done (took ", took_seconds, " seconds)")
 print("Testing serialization...")
 took_seconds = @elapsed include("SerializationTests.jl")
 println("done (took ", took_seconds, " seconds)")
+
+print("Testing LocalScopeBenchmarks")
+took_seconds = @elapsed include("LocalScopeBenchmarkTests.jl")
+println("done (took ", took_seconds, " seconds)")
