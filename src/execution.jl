@@ -32,6 +32,54 @@ end
 run_result(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_run, b, p; kwargs...)
 lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_lineartrial, b, p; kwargs...)
 
+##############################
+# progress logging utilities #
+##############################
+
+# As used in ProgressLogging.jl
+# https://github.com/JunoLab/ProgressLogging.jl/blob/v0.1.0/src/ProgressLogging.jl#L11
+const ProgressLevel = LogLevel(-1)
+
+"""
+    _withprogress(
+        name::AbstractString,
+        group::BenchmarkGroup;
+        kwargs...,
+    ) do progressid, nleaves, ndone
+        ...
+    end
+
+Execute do block with following arguments:
+
+* `progressid`: logging ID to be used for `@logmsg`.
+* `nleaves`: total number of benchmarks counted at the root benchmark group.
+* `ndone`: number of completed benchmarks
+
+They are either extracted from `kwargs` (for sub-groups) or newly created
+(for root benchmark group).
+"""
+function _withprogress(
+    f,
+    name::AbstractString,
+    group::BenchmarkGroup;
+    progressid = nothing,
+    nleaves = NaN,
+    ndone = NaN,
+    _...,
+)
+    if progressid !== nothing
+        return f(progressid, nleaves, ndone)
+    end
+    progressid = uuid4()
+    nleaves = length(leaves(group))
+    @logmsg(ProgressLevel, name, progress = NaN, _id = progressid)
+    try
+        return f(progressid, nleaves, 0)
+    finally
+        @logmsg(ProgressLevel, name, progress = "done", _id = progressid)
+    end
+end
+
 #############
 # execution #
 #############
@@ -43,21 +91,40 @@ lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelate
 function sample end
 function _run end
 
-Base.run(b::Benchmark, p::Parameters = b.params; kwargs...) = run_result(b, p; kwargs...)[1]
+Base.run(b::Benchmark, p::Parameters = b.params; progressid=nothing, nleaves=NaN, ndone=NaN, kwargs...) =
+    run_result(b, p; kwargs...)[1]
 
-function Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...)
-    result = similar(group)
-    gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
-    i = 1
-    for id in keys(group)
-        verbose && println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "...")
-        took_seconds = @elapsed begin
-            result[id] = run(group[id], args...; verbose = verbose, pad = pad*"  ", kwargs...)
+Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...) =
+    _withprogress("Benchmarking", group; kwargs...) do progressid, nleaves, ndone
+        result = similar(group)
+        gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
+        i = 1
+        for id in keys(group)
+            progressid === nothing || @logmsg(
+                ProgressLevel,
+                "Benchmarking",
+                progress = ndone / nleaves,
+                _id = progressid
+            )
+            verbose &&
+                println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "...")
+            took_seconds = @elapsed begin
+                result[id] = run(
+                    group[id],
+                    args...;
+                    verbose = verbose,
+                    pad = pad * "  ",
+                    kwargs...,
+                    progressid = progressid,
+                    nleaves = nleaves,
+                    ndone = ndone,
+                )
+            end
+            ndone += group[id] isa BenchmarkGroup ? length(leaves(group[id])) : 1
+            verbose && (println(pad, "done (took ", took_seconds, " seconds)"); i += 1)
         end
-        verbose && (println(pad, "done (took ", took_seconds, " seconds)"); i += 1)
+        return result
     end
-    return result
-end
 
 function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUTION, kwargs...)
     params = Parameters(p; kwargs...)
@@ -118,18 +185,35 @@ for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] .= 11 - i)     end # linearl
 
 guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
 
-function tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
-    gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
-    i = 1
-    for id in keys(group)
-        verbose && println(pad, "($(i)/$(length(group))) tuning ", repr(id), "...")
-        took_seconds = @elapsed tune!(group[id]; verbose = verbose, pad = pad*"  ", kwargs...)
-        verbose && (println(pad, "done (took ", took_seconds, " seconds)"); i += 1)
+tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...) =
+    _withprogress("Tuning", group; kwargs...) do progressid, nleaves, ndone
+        gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
+        i = 1
+        for id in keys(group)
+            progressid === nothing || @logmsg(
+                ProgressLevel,
+                "Tuning",
+                progress = ndone / nleaves,
+                _id = progressid
+            )
+            verbose && println(pad, "($(i)/$(length(group))) tuning ", repr(id), "...")
+            took_seconds = @elapsed tune!(
+                group[id];
+                verbose = verbose,
+                pad = pad * "  ",
+                kwargs...,
+                progressid = progressid,
+                nleaves = nleaves,
+                ndone = ndone,
+            )
+            ndone += group[id] isa BenchmarkGroup ? length(leaves(group[id])) : 1
+            verbose && (println(pad, "done (took ", took_seconds, " seconds)"); i += 1)
+        end
+        return group
     end
-    return group
-end
 
 function tune!(b::Benchmark, p::Parameters = b.params;
+               progressid=nothing, nleaves=NaN, ndone=NaN,  # ignored
                verbose::Bool = false, pad = "", kwargs...)
     warmup(b, verbose = false)
     estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
