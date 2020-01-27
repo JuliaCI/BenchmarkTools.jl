@@ -100,12 +100,7 @@ Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
         i = 1
         for id in keys(group)
-            progressid === nothing || @logmsg(
-                ProgressLevel,
-                "Benchmarking",
-                progress = ndone / nleaves,
-                _id = progressid
-            )
+            @logmsg(ProgressLevel, "Benchmarking", progress = ndone / nleaves, _id = progressid)
             verbose &&
                 println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "...")
             took_seconds = @elapsed begin
@@ -190,12 +185,7 @@ tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...) =
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
         i = 1
         for id in keys(group)
-            progressid === nothing || @logmsg(
-                ProgressLevel,
-                "Tuning",
-                progress = ndone / nleaves,
-                _id = progressid
-            )
+            @logmsg(ProgressLevel, "Tuning", progress = ndone / nleaves, _id = progressid)
             verbose && println(pad, "($(i)/$(length(group))) tuning ", repr(id), "...")
             took_seconds = @elapsed tune!(
                 group[id];
