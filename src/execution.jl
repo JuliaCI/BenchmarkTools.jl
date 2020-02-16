@@ -348,7 +348,7 @@ end
 ######################
 
 # These macros provide drop-in replacements for the
-# Base.@time and Base.@elapsed macros, which use
+# Base.@time, Base.@elapsed macros and Base.@allocated, which use
 # @benchmark but yield only the minimum time.
 
 """
@@ -364,6 +364,23 @@ is the *minimum* elapsed time measured during the benchmark.
 macro belapsed(args...)
     return esc(quote
         $BenchmarkTools.time($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))/1e9
+    end)
+end
+
+"""
+    @ballocated expression [other parameters...]
+
+Similar to the `@allocated` macro included with Julia,
+this returns the number of bytes allocated when executing
+a given expression.   It uses the `@benchmark`
+macro, however, and accepts all of the same additional
+parameters as `@benchmark`.  The returned allocations
+is for the trial with the *minimum* elapsed time measured
+during the benchmark.
+"""
+macro ballocated(args...)
+    return esc(quote
+        $BenchmarkTools.memory($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))
     end)
 end
 

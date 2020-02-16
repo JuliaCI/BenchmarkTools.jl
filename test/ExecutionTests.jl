@@ -154,6 +154,10 @@ tune!(b)
 @test @belapsed(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) < 1
 @test @belapsed(sin(0)) < 1
 
+@test @ballocated(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) == 0
+@test @ballocated(sin(0)) == 0
+@test @ballocated(Ref(1)) == 2*sizeof(Int)  # 1 for the pointer, 1 for content
+
 let fname = tempname()
     try
         ret = open(fname, "w") do f
