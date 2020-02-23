@@ -267,6 +267,21 @@ tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 Base.summary(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
 
 function Base.show(io::IO, group::BenchmarkGroup)
+    limit = get(io, :limit, true)
+    if !(limit isa Bool)
+        msg = (
+            "`show(IOContext(io, :limit => number), group::BenchmarkGroup)` is" *
+            " deprecated. Please use `IOContext(io, :boundto => number)` to" *
+            " bound the number of elements to be shown."
+        )
+        Base.depwarn(msg, :show)
+        nbound = get(io, :boundto, limit)
+    elseif limit === false
+        nbound = Inf
+    else
+        nbound = get(io, :boundto, 10)
+    end
+
     println(io, "$(length(group))-element BenchmarkTools.BenchmarkGroup:")
     pad = get(io, :pad, "")
     print(io, pad, "  tags: ", tagrepr(group.tags))
@@ -275,7 +290,7 @@ function Base.show(io::IO, group::BenchmarkGroup)
         println(io)
         print(io, pad, "  ", repr(k), " => ")
         show(IOContext(io, :pad => "\t"*pad), v)
-        count > get(io, :limit, 10) && (println(io); print(io, pad, "  ⋮"); break)
+        count > nbound && (println(io); print(io, pad, "  ⋮"); break)
         count += 1
     end
 end
