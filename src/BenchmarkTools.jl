@@ -3,7 +3,9 @@ module BenchmarkTools
 using JSON
 using Base.Iterators
 
+using Logging: @logmsg, LogLevel
 using Statistics
+using UUIDs: uuid4
 using Printf
 
 
