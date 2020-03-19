@@ -53,7 +53,7 @@ BenchmarkTools.Trial:
   evals/sample:     1000
 ```
 
-For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time):
+For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/latest/base/base/#Base.@time):
 
 ```julia
 julia> @btime sin(x) setup=(x=rand())
