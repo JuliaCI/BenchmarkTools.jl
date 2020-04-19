@@ -72,7 +72,7 @@ end
 # RESOLUTION/OVERHEAD settings #
 ################################
 
-@noinline nullfunc() = nothing
+@noinline nullfunc() = Base.inferencebarrier(nothing)::Nothing
 
 @noinline function overhead_sample(evals)
     start_time = time_ns()
