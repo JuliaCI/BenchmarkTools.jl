@@ -93,13 +93,6 @@ julia> @btime $(Ref(a))[] + $(Ref(b))[]
   1.277 ns (0 allocations: 0 bytes)
 3
 ```
-but this can be tricky to remember, annoying to write and hard to explain, so we provide a macro `@refd` to automatically reference and dereference interpolated variables
-```julia
-julia> @refd @btime $a + $b
-  1.277 ns (0 allocations: 0 bytes)
-3
-```
-Note that `@refd` should be appended *outside* the `@btime` statement. 
 
 As described the [manual](doc/manual.md), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
 
