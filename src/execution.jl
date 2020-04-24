@@ -400,39 +400,3 @@ macro btime(args...)
         $result
     end)
 end
-
-walk(x, inner, outer) = outer(x)
-walk(x::Expr, inner, outer) = outer(Expr(x.head, map(inner, x.args)...))
-postwalk(f, x) = walk(x, x -> postwalk(f, x), f)
-
-function _refd(expr::Expr)
-    if expr.head == :$
-        :($(Expr(:$, :(Ref($(expr.args...)))))[])
-    else
-        expr
-    end
-end
-_refd(x)  = x
-
-"""
-    @refd bmacro expression
-  
-where `bmacro` is one of `@btime`, `@belapsed`, `@benchmark`.
-
-Wraps all interpolated code in `expression` in a `Ref()` to 
-stop the compiler from cheating at simple benchmarks. Works 
-with any macro that accepts interpolation
-
-Example
-
-    julia> @btime \$a + \$b
-      0.024 ns (0 allocations: 0 bytes)
-    3
-    
-    julia> @refd @btime \$a + \$b
-      1.277 ns (0 allocations: 0 bytes)
-    3
-"""
-macro refd(expr)
-    out = postwalk(_refd, expr) |> esc
-end
