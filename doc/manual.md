@@ -275,7 +275,6 @@ Note that the `setup` and `teardown` phases are **executed for each sample, not 
 ### Understanding compiler optimizations
 
 It's possible for LLVM and Julia's compiler to perform optimizations on `@benchmarkable` expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly "fast" benchmarks. For example, the following expression is non-allocating:
-
 ```julia
 julia> @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
 BenchmarkTools.Trial:
@@ -311,7 +310,23 @@ BenchmarkTools.Trial:
 
 The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away `view(a, 1:2, 1:2)` because it could prove that the value wasn't being returned and `a` wasn't being mutated. In the second example, the optimization is not performed because `view(a, 1:2, 1:2)` is a return value of the benchmark expression.
 
-In conclusion, BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It's up to you to design benchmarks which actually exercise the code you intend to exercise.
+BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It's up to you to design benchmarks which actually exercise the code you intend to exercise. 
+
+A common place julia's optimizer may cause a benchmark to not measure what a user thought it was measuring is simple operations where all values are known at compile time. Suppose you wanted to measure the time it takes to add together two integers:
+```julia
+julia> a = 1; b = 2
+2
+
+julia> @btime $a + $b
+  0.024 ns (0 allocations: 0 bytes)
+3
+```
+in this case julia was able to use the properties of `+(::Int, ::Int)` to know that it could safely replace `$a + $b` with `3` at compile time. We can stop the optimizer from doing this by referencing and dereferencing the interpolated variables  
+```julia
+julia> @btime $(Ref(a))[] + $(Ref(b))[]
+  1.277 ns (0 allocations: 0 bytes)
+3
+```
 
 # Handling benchmark results
 
