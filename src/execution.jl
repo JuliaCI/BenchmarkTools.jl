@@ -153,7 +153,7 @@ end
 #   1. Using `lineartrial`, take one sample of the benchmark for each `evals` in `1:RESOLUTION`.
 #
 #   2. Extract the minimum sample found in this trial. Hopefully, this value will be
-#      reasonably close to the the true benchmark time. At the very least, we can be certain
+#      reasonably close to the true benchmark time. At the very least, we can be certain
 #      that the minimum sample overcomes discretization noise, assuming a sufficient time
 #      budget for the trial (which technically should never need to be more than a couple of
 #      seconds if `RESOLUTION` ∼ 1μs).
