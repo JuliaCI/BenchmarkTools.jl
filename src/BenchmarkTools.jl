@@ -7,6 +7,7 @@ using Logging: @logmsg, LogLevel
 using Statistics
 using UUIDs: uuid4
 using Printf
+import UnicodePlots
 
 
 const BENCHMARKTOOLS_VERSION = v"0.4.3"

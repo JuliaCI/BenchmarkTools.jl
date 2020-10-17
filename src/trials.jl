@@ -341,8 +341,11 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     println(io, pad, "  mean time:        ", meanstr)
     println(io, pad, "  maximum time:     ", maxstr)
     println(io, pad, "  --------------")
+    print(  io, UnicodePlots.histogram(t.times, ylabel="ns"))
+    println(io, pad, "  --------------")
     println(io, pad, "  samples:          ", length(t))
-    print(io,   pad, "  evals/sample:     ", t.params.evals)
+    println(io, pad, "  evals/sample:     ", t.params.evals)
+    println(io, pad, "  --------------")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
