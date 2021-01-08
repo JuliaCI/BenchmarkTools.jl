@@ -53,7 +53,7 @@ BenchmarkTools.Trial:
   evals/sample:     1000
 ```
 
-For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/latest/base/base/#Base.@time):
+For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
 
 ```julia
 julia> @btime sin(x) setup=(x=rand())
@@ -62,7 +62,7 @@ julia> @btime sin(x) setup=(x=rand())
 ```
 
 If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
-[avoid the problems of benchmarking with globals](https://docs.julialang.org/en/latest/manual/performance-tips/#Avoid-global-variables-1).
+[avoid the problems of benchmarking with globals](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables).
 Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
 
 ```julia
