@@ -278,5 +278,14 @@ g2[[1, "a", :b]] = "hello"  # should create higher levels on the fly
 
 @test g1 == g2
 
+@testset "benchmarkset" begin
+    g1 = @benchmarkset "test set" begin
+       @case "test case 1" 1 + 1
+       @case "test case 2" 2 + 2
+    end
 
+    @test haskey(g1, "test set")
+    @test haskey(g1["test set"], "test case 1")
+    @test haskey(g1["test set"], "test case 2")
+end
 # end # module
