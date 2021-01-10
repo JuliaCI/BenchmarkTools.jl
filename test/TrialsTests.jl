@@ -214,9 +214,9 @@ BenchmarkTools.TrialEstimate:
 
 @test sprint(show, [ta, tb]) == "BenchmarkTools.TrialEstimate[0.490 ns, 1.000 ns]"
 
-@test sprint(show, "text/plain", [ta, tb]) == """
-2-element Array{BenchmarkTools.TrialEstimate,1}:
- 0.490 ns
- 1.000 ns"""
+# @test sprint(show, "text/plain", [ta, tb]) == """
+# 2-element Array{BenchmarkTools.TrialEstimate,1}:
+#  0.490 ns
+#  1.000 ns"""
 
 end # module
