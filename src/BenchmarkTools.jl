@@ -3,7 +3,9 @@ module BenchmarkTools
 using JSON
 using Base.Iterators
 
+using Logging: @logmsg, LogLevel
 using Statistics
+using UUIDs: uuid4
 using Printf
 
 
@@ -32,6 +34,8 @@ export gctime,
        isinvariant,
        isregression,
        isimprovement,
+       median,
+       mean,
        rmskew!,
        rmskew,
        trim
@@ -60,6 +64,7 @@ include("execution.jl")
 
 export tune!,
        warmup,
+       @ballocated,
        @benchmark,
        @benchmarkable,
        @belapsed,

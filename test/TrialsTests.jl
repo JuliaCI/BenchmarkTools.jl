@@ -2,7 +2,6 @@ module TrialsTests
 
 using BenchmarkTools
 using Test
-using Statistics
 
 #########
 # Trial #
