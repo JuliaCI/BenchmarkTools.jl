@@ -3,7 +3,6 @@
 using BenchmarkTools
 using BenchmarkTools: TrialEstimate, Parameters
 using Test
-using Statistics
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
@@ -278,5 +277,37 @@ g2[[1, "a", :b]] = "hello"  # should create higher levels on the fly
 
 @test g1 == g2
 
+# pretty printing #
+#-----------------#
+
+g1 = BenchmarkGroup(["1", "2"])
+g1["a"] = t1a
+g1["b"] = t1b
+g1["c"] = tc
+
+@test sprint(show, g1) == """
+3-element BenchmarkTools.BenchmarkGroup:
+  tags: ["1", "2"]
+  "c" => TrialEstimate(1.000 ns)
+  "b" => TrialEstimate(4.123 μs)
+  "a" => TrialEstimate(32.000 ns)"""
+@test sprint(show, g1; context = :boundto => 1) == """
+3-element BenchmarkTools.BenchmarkGroup:
+  tags: ["1", "2"]
+  "c" => TrialEstimate(1.000 ns)
+  "b" => TrialEstimate(4.123 μs)
+  ⋮"""
+@test sprint(show, g1; context = :limit => false) == """
+3-element BenchmarkTools.BenchmarkGroup:
+  tags: ["1", "2"]
+  "c" => TrialEstimate(1.000 ns)
+  "b" => TrialEstimate(4.123 μs)
+  "a" => TrialEstimate(32.000 ns)"""
+@test @test_deprecated(sprint(show, g1; context = :limit => 1)) == """
+3-element BenchmarkTools.BenchmarkGroup:
+  tags: ["1", "2"]
+  "c" => TrialEstimate(1.000 ns)
+  "b" => TrialEstimate(4.123 μs)
+  ⋮"""
 
 # end # module

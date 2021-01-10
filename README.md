@@ -53,7 +53,7 @@ BenchmarkTools.Trial:
   evals/sample:     1000
 ```
 
-For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/stable/stdlib/base/#Base.@time):
+For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
 
 ```julia
 julia> @btime sin(x) setup=(x=rand())
@@ -62,7 +62,7 @@ julia> @btime sin(x) setup=(x=rand())
 ```
 
 If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
-[avoid the problems of benchmarking with globals](https://docs.julialang.org/en/latest/manual/performance-tips/#Avoid-global-variables-1).
+[avoid the problems of benchmarking with globals](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables).
 Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
 
 ```julia
@@ -76,6 +76,22 @@ julia> @btime inv($(rand(3,3)));  # interpolation: the rand(3,3) call occurs bef
 
 julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchmark time
   1.295 μs (11 allocations: 2.47 KiB)
+```
+
+Sometimes, interpolating variables into very simple expressions can give the compiler more information than you intended, causing it to "cheat" the benchmark by hoisting the calculation out of the benchmark code
+```julia
+julia> a = 1; b = 2
+2
+
+julia> @btime $a + $b
+  0.024 ns (0 allocations: 0 bytes)
+3
+```
+As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occured. You can avoid this by referencing and dereferencing the interpolated variables 
+```julia
+julia> @btime $(Ref(a))[] + $(Ref(b))[]
+  1.277 ns (0 allocations: 0 bytes)
+3
 ```
 
 As described the [manual](doc/manual.md), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
