@@ -303,7 +303,7 @@ macro benchmarkset(title, ex)
 end
 
 macro case(title, xs...)
-    esc(:(var"#suite#"[$title] = @benchmarkable $(xs...)))
+    esc(:(Symbol("#suite#")[$title] = @benchmarkable $(xs...)))
 end
 
 function benchmarkset_m(title, ex::Expr)
@@ -336,9 +336,9 @@ end
 function benchmarkset_block(title, ex::Expr)
     stack = GlobalRef(BenchmarkTools, :benchmark_stack)
     quote
-        let var"#root#" = last($stack)
-            var"#root#"[$title] = var"#suite#" = BenchmarkGroup()
-            push!($stack, var"#suite#")
+        let Symbol("#root#") = last($stack)
+            Symbol("#root#")[$title] = Symbol("#root#") = BenchmarkGroup()
+            push!($stack, Symbol("#root#"))
             $ex
             pop!($stack)
         end
