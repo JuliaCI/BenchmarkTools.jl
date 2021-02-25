@@ -1,7 +1,26 @@
 # Trigger several successive GC sweeps. This is more comprehensive than running just a
 # single sweep, since freeable objects may need more than one sweep to be appropriately
 # marked and freed.
-gcscrub() = (GC.gc(); GC.gc(); GC.gc(); GC.gc())
+gcscrub() = (pressure = reset_gc_pressure(); for i = 1:pressure; GC.gc(); end; pressure)
+
+reset_gc_pressure() = 4
+#const gc_znum = Base.gc_num()
+#alloc_diff(nums::Base.GC_Num) = Base.gc_alloc_count(Base.GC_Diff(nums, gc_znum))
+#const gc_allocs = Ref{Int64}(0)
+#const gc_allocd = Ref{Int64}(0)
+#function reset_gc_pressure()
+#    nums = Base.gc_num()
+#    allocs = alloc_diff(nums) - gc_allocs[]
+#    allocs == 0 && return 0
+#    allocd = Base.gc_total_bytes(nums) - gc_allocd[]
+#    pressure = 1
+#    (allocs > 10 || allocd > 1000) && (pressure += 1)
+#    (allocs > 100 || allocd > 10000) && (pressure += 1)
+#    (allocs > 1000 || allocd > 100000) && (pressure += 1)
+#    gc_allocs[] += allocs
+#    gc_allocd[] += allocd
+#    return pressure
+#end
 
 #############
 # Benchmark #
