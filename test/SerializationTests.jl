@@ -3,7 +3,7 @@ module SerializationTests
 using BenchmarkTools
 using Test
 
-eq(x::T, y::T) where {T<:Union{BenchmarkTools.SUPPORTED_TYPES...}} =
+eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}} =
     all(i->eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
 eq(x::T, y::T) where {T} = isapprox(x, y)
 
@@ -25,13 +25,13 @@ end
     withtempdir() do
         tmp = joinpath(pwd(), "tmp.json")
 
-        BenchmarkTools.save(tmp, b, bb)
+        BenchmarkTools.save(tmp, b.params, bb)
         @test isfile(tmp)
 
         results = BenchmarkTools.load(tmp)
         @test results isa Vector{Any}
         @test length(results) == 2
-        @test eq(results[1], b)
+        @test eq(results[1], b.params)
         @test eq(results[2], bb)
     end
 
@@ -56,18 +56,18 @@ end
     tune!(b)
     bb = run(b)
 
-    @test_throws ArgumentError BenchmarkTools.save("x.jld", b)
-    @test_throws ArgumentError BenchmarkTools.save("x.txt", b)
+    @test_throws ArgumentError BenchmarkTools.save("x.jld", b.params)
+    @test_throws ArgumentError BenchmarkTools.save("x.txt", b.params)
     @test_throws ArgumentError BenchmarkTools.save("x.json")
     @test_throws ArgumentError BenchmarkTools.save("x.json", 1)
 
     withtempdir() do
         tmp = joinpath(pwd(), "tmp.json")
-        @test_logs (:warn, r"Naming variables") BenchmarkTools.save(tmp, "b", b)
+        @test_logs (:warn, r"Naming variables") BenchmarkTools.save(tmp, "b", b.params)
         @test isfile(tmp)
         results = BenchmarkTools.load(tmp)
         @test length(results) == 1
-        @test eq(results[1], b)
+        @test eq(results[1], b.params)
     end
 
     @test_throws ArgumentError BenchmarkTools.load("x.jld")
