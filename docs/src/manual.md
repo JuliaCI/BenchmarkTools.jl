@@ -1,5 +1,4 @@
 # Manual
-
 BenchmarkTools was created to facilitate the following tasks:
 
 1. Organize collections of benchmarks into manageable benchmark suites
@@ -899,6 +898,32 @@ julia> loadparams!(suite, BenchmarkTools.load("params.json")[1], :evals, :sample
 ```
 
 Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.
+
+## Visualizing benchmark results
+The `Trial` object can be visualized using the `BenchmarkPlots` package:
+
+```julia
+using BenchmarkPlots, StatsPlots
+b = @benchmarkable lu(rand(10,10))
+t = run(b)
+
+plot(t)
+```
+
+This will show the timing results of the trial as a violin plot. You can use
+all the keyword arguments from `Plots.jl`, for instance `st=:box` or
+`yaxis=:log10`.
+
+If a `BenchmarkGroup` contains (only) `Trial`s, its results can be visualized
+simply by
+
+```julia
+using BenchmarkPlots, StatsPlots
+t = run(g)
+plot(t)
+```
+
+This will display each `Trial` as a violin plot.
 
 ## Miscellaneous tips and info
 
