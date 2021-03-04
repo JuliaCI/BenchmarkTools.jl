@@ -30,9 +30,10 @@ end
 
         results = BenchmarkTools.load(tmp)
         @test results isa Vector{Any}
-        @test length(results) == 2
+        @test length(results) == 3
         @test eq(results[1], b.params)
         @test eq(results[2], bb)
+        @test results[3] == BenchmarkTools.VERSIONS
     end
 
     # Nested BenchmarkGroups
@@ -66,8 +67,9 @@ end
         @test_logs (:warn, r"Naming variables") BenchmarkTools.save(tmp, "b", b.params)
         @test isfile(tmp)
         results = BenchmarkTools.load(tmp)
-        @test length(results) == 1
+        @test length(results) == 2
         @test eq(results[1], b.params)
+        @test results[2] == BenchmarkTools.VERSIONS
     end
 
     @test_throws ArgumentError BenchmarkTools.load("x.jld")

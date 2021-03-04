@@ -1,5 +1,7 @@
-const VERSIONS = Dict("Julia" => string(VERSION),
-                      "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))
+const VERSIONS = Dict{String,String}(
+    "Julia" => string(VERSION),
+    "JuliaCommit" => string(Base.GIT_VERSION_INFO.commit),
+    "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))
 
 # TODO: Add any new types as they're added
 const SUPPORTED_TYPES = Dict{Symbol,Type}(Base.typename(x).name => x for x in [
@@ -123,4 +125,6 @@ function load(io::IO, args...)
     versions = parsed[1]::Dict
     values = parsed[2]::Vector
     map!(recover, values, values)
+    push!(values, versions)
+    return values
 end
