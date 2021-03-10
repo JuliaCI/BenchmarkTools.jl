@@ -70,9 +70,9 @@ function badext(filename)
     noext, ext = splitext(filename)
     msg = if ext == ".jld"
         "JLD serialization is no longer supported. Benchmarks should now be saved in\n" *
-        "JSON format using `save(\"$noext\".json, args...)` and loaded from JSON using\n" *
-        "using `load(\"$noext\".json, args...)`. You will need to convert existing\n" *
-        "saved benchmarks to JSON in order to use them with this version of BenchmarkTools."
+        "JSON format using `save(\"$noext.json\", args...)` and loaded from JSON using\n" *
+        "`load(\"$noext.json\", args...)`. You will need to convert existing saved\n" *
+        "benchmarks to JSON in order to use them with this version of BenchmarkTools."
     else
         "Only JSON serialization is supported."
     end
