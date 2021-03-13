@@ -49,17 +49,13 @@ Base.iterate(group::BenchmarkGroup, i=1) = iterate(group.data, i)
 andexpr(a, b) = :($a && $b)
 andreduce(preds) = reduce(andexpr, preds)
 
-@generated function mapvals!(f, dest::BenchmarkGroup, srcs::BenchmarkGroup...)
-    haskeys = andreduce([:(haskey(srcs[$i], k)) for i in 1:length(srcs)])
-    getinds = [:(srcs[$i][k]) for i in 1:length(srcs)]
-    return quote
-        for k in keys(first(srcs))
-            if $(haskeys)
-                dest[k] = f($(getinds...))
-            end
+function mapvals!(f, dest::BenchmarkGroup, srcs::BenchmarkGroup...)
+    for k in keys(first(srcs))
+        if all(s -> haskey(s, k), srcs)
+            dest[k] = f((s[k] for s in srcs)...)
         end
-        return dest
     end
+    return dest
 end
 
 mapvals!(f, group::BenchmarkGroup) = mapvals!(f, similar(group), group)
