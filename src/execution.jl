@@ -107,9 +107,20 @@ function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
     return sort!(trial), return_val
 end
 
+
+"""
+    run(b::Benchmark[, p::Parameters = b.params]; kwargs...)
+
+Run the benchmark defined by [`@benchmarkable`](@ref).
+"""
 Base.run(b::Benchmark, p::Parameters = b.params; progressid=nothing, nleaves=NaN, ndone=NaN, kwargs...) =
     run_result(b, p; kwargs...)[1]
 
+"""
+    run(group::BenchmarkGroup[, args...]; verbose::Bool = false, pad = "", kwargs...)
+
+Run the benchmark group, with benchmark parameters set to `group`'s by default.
+"""
 Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...) =
     _withprogress("Benchmarking", group; kwargs...) do progressid, nleaves, ndone
         result = similar(group)
@@ -196,6 +207,15 @@ for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] .= 11 - i)     end # linearl
 
 guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
 
+"""
+    tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...)
+
+Tune a `BenchmarkGroup` instance. For most benchmarks, `tune!` needs to perform many
+evaluations to determine the proper parameters for any given benchmark - often more
+evaluations than are performed when running a trial. In fact, the majority of total
+benchmarking time is usually spent tuning parameters, rather than actually running
+trials.
+"""
 tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...) =
     _withprogress("Tuning", group; kwargs...) do progressid, nleaves, ndone
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
@@ -218,6 +238,11 @@ tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...) =
         return group
     end
 
+"""
+    tune!(b::Benchmark, p::Parameters = b.params; verbose::Bool = false, pad = "", kwargs...)
+
+Tune a `Benchmark` instance.
+"""
 function tune!(b::Benchmark, p::Parameters = b.params;
                progressid=nothing, nleaves=NaN, ndone=NaN,  # ignored
                verbose::Bool = false, pad = "", kwargs...)
@@ -296,6 +321,64 @@ function quasiquote!(ex::Expr, vars::Vector{Expr})
     return ex
 end
 
+raw"""
+    @benchmark <expr to benchmark> [setup=<setup expr>]
+
+Run benchmark on a given expression.
+
+# Example
+
+The simplest usage of this macro is to put it in front of what you want
+to benchmark.
+
+```julia-repl
+julia> @benchmark sin(1)
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     13.610 ns (0.00% GC)
+  median time:      13.622 ns (0.00% GC)
+  mean time:        13.638 ns (0.00% GC)
+  maximum time:     21.084 ns (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     998
+```
+
+You can interpolate values into `@benchmark` expressions:
+
+```julia
+# rand(1000) is executed for each evaluation
+julia> @benchmark sum(rand(1000))
+BenchmarkTools.Trial:
+  memory estimate:  7.94 KiB
+  allocs estimate:  1
+  --------------
+  minimum time:     1.566 μs (0.00% GC)
+  median time:      2.135 μs (0.00% GC)
+  mean time:        3.071 μs (25.06% GC)
+  maximum time:     296.818 μs (95.91% GC)
+  --------------
+  samples:          10000
+  evals/sample:     10
+
+# rand(1000) is evaluated at definition time, and the resulting
+# value is interpolated into the benchmark expression
+julia> @benchmark sum($(rand(1000)))
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     101.627 ns (0.00% GC)
+  median time:      101.909 ns (0.00% GC)
+  mean time:        103.834 ns (0.00% GC)
+  maximum time:     276.033 ns (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     935
+```
+"""
 macro benchmark(args...)
     _, params = prunekwargs(args...)
     tmp = gensym()
@@ -337,6 +420,12 @@ function benchmarkable_parts(args)
     return core, setup, teardown, params
 end
 
+"""
+    @benchmarkable <expr to benchmark> [setup=<setup expr>]
+
+Create a `Benchmark` instance for the given expression. `@benchmarkable`
+has similar syntax with `@benchmark`. See also [`@benchmark`](@ref).
+"""
 macro benchmarkable(args...)
     core, setup, teardown, params = benchmarkable_parts(args)
     map!(esc, params, params)
