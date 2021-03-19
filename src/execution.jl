@@ -7,7 +7,8 @@ gcscrub() = (GC.gc(); GC.gc(); GC.gc(); GC.gc())
 # Benchmark #
 #############
 
-mutable struct Benchmark{id}
+mutable struct Benchmark
+    samplefunc
     params::Parameters
 end
 
@@ -87,9 +88,24 @@ end
 # Note that trials executed via `run` and `lineartrial` are always executed at top-level
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
-# these stubs get overloaded by @benchmarkable
-function sample end
-function _run end
+function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
+    params = Parameters(p; kwargs...)
+    @assert params.seconds > 0.0 "time limit must be greater than 0.0"
+    params.gctrial && gcscrub()
+    start_time = Base.time()
+    trial = Trial(params)
+    params.gcsample && gcscrub()
+    s = b.samplefunc(params)
+    push!(trial, s[1:end-1]...)
+    return_val = s[end]
+    iters = 2
+    while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
+         params.gcsample && gcscrub()
+         push!(trial, b.samplefunc(params)[1:end-1]...)
+         iters += 1
+    end
+    return sort!(trial), return_val
+end
 
 Base.run(b::Benchmark, p::Parameters = b.params; progressid=nothing, nleaves=NaN, ndone=NaN, kwargs...) =
     run_result(b, p; kwargs...)[1]
@@ -130,7 +146,7 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
     for evals in eachindex(estimates)
         params.gcsample && gcscrub()
         params.evals = evals
-        estimates[evals] = first(sample(b, params))
+        estimates[evals] = first(b.samplefunc(params))
         completed += 1
         ((time() - start_time) > params.seconds) && break
     end
@@ -216,6 +232,7 @@ end
 #############################
 
 function prunekwargs(args...)
+    @nospecialize
     firstarg = first(args)
     if isa(firstarg, Expr) && firstarg.head == :parameters
         return prunekwargs(drop(args, 1)..., firstarg.args...)
@@ -291,6 +308,7 @@ macro benchmark(args...)
 end
 
 function benchmarkable_parts(args)
+    @nospecialize
     core, params = prunekwargs(args...)
 
     # extract setup/teardown if present, removing them from the original expression
@@ -321,6 +339,7 @@ end
 
 macro benchmarkable(args...)
     core, setup, teardown, params = benchmarkable_parts(args)
+    map!(esc, params, params)
 
     # extract any variable bindings shared between the core and setup expressions
     setup_vars = isa(setup, Expr) ? collectvars(setup) : []
@@ -328,15 +347,15 @@ macro benchmarkable(args...)
     out_vars = filter(var -> var in setup_vars, core_vars)
 
     # generate the benchmark definition
-    return esc(quote
-        $BenchmarkTools.generate_benchmark_definition($__module__,
-                                                      $(Expr(:quote, out_vars)),
-                                                      $(Expr(:quote, setup_vars)),
-                                                      $(Expr(:quote, core)),
-                                                      $(Expr(:quote, setup)),
-                                                      $(Expr(:quote, teardown)),
-                                                      $Parameters($(params...)))
-    end)
+    return quote
+        generate_benchmark_definition($__module__,
+                                      $(Expr(:quote, out_vars)),
+                                      $(Expr(:quote, setup_vars)),
+                                      $(esc(Expr(:quote, core))),
+                                      $(esc(Expr(:quote, setup))),
+                                      $(esc(Expr(:quote, teardown))),
+                                      Parameters($(params...)))
+    end
 end
 
 # `eval` an expression that forcibly defines the specified benchmark at
@@ -347,7 +366,7 @@ end
 # possible for them to conflict with names used in the setup or teardown expressions.
 # A more robust solution would be preferable.
 function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, setup, teardown, params)
-    id = Expr(:quote, gensym("benchmark"))
+    @nospecialize
     corefunc = gensym("core")
     samplefunc = gensym("sample")
     type_vars = [gensym() for i in 1:length(setup_vars)]
@@ -389,31 +408,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
                                __evals))
             return __time, __gctime, __memory, __allocs, __return_val
         end
-        function $BenchmarkTools.sample(b::$BenchmarkTools.Benchmark{$(id)},
-                                        p::$BenchmarkTools.Parameters = b.params)
-            return $(samplefunc)(p)
-        end
-        function $BenchmarkTools._run(b::$BenchmarkTools.Benchmark{$(id)},
-                                      p::$BenchmarkTools.Parameters;
-                                      verbose = false, pad = "", kwargs...)
-            params = $BenchmarkTools.Parameters(p; kwargs...)
-            @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-            params.gctrial && $BenchmarkTools.gcscrub()
-            start_time = Base.time()
-            trial = $BenchmarkTools.Trial(params)
-            params.gcsample && $BenchmarkTools.gcscrub()
-            s = $(samplefunc)(params)
-            push!(trial, s[1:end-1]...)
-            return_val = s[end]
-            iters = 2
-            while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-                 params.gcsample && $BenchmarkTools.gcscrub()
-                 push!(trial, $(samplefunc)(params)[1:end-1]...)
-                 iters += 1
-            end
-            return sort!(trial), return_val
-        end
-        $BenchmarkTools.Benchmark{$(id)}($(params))
+        $BenchmarkTools.Benchmark($(samplefunc), $(params))
     end)
 end
 
