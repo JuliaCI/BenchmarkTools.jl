@@ -2,44 +2,66 @@ const VERSIONS = Dict("Julia" => string(VERSION),
                       "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION))
 
 # TODO: Add any new types as they're added
-const SUPPORTED_TYPES = [Benchmark, BenchmarkGroup, Parameters, TagFilter, Trial,
-                         TrialEstimate, TrialJudgement, TrialRatio]
+const SUPPORTED_TYPES = Dict{Symbol,Type}(Base.typename(x).name => x for x in [
+    BenchmarkGroup, Parameters, TagFilter, Trial,
+    TrialEstimate, TrialJudgement, TrialRatio])
+# n.b. Benchmark type not included here, since it is gensym'd
 
-for T in SUPPORTED_TYPES
-    @eval function JSON.lower(x::$T)
-        d = Dict{String,Any}()
-        for i = 1:nfields(x)
-            name = String(fieldname($T, i))
-            field = getfield(x, i)
-            value = typeof(field) in SUPPORTED_TYPES ? JSON.lower(field) : field
-            push!(d, name => value)
-        end
-        [string(typeof(x)), d]
+function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
+    d = Dict{String,Any}()
+    T = typeof(x)
+    for i = 1:nfields(x)
+        name = String(fieldname(T, i))
+        field = getfield(x, i)
+        ft = typeof(field)
+        value = ft <: get(SUPPORTED_TYPES, ft.name.name, Union{}) ? JSON.lower(field) : field
+        d[name] = value
     end
+    [string(typeof(x).name.name), d]
 end
 
+# a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
+safeeval(@nospecialize x) = x
+safeeval(x::QuoteNode) = x.value
+function safeeval(x::Expr)
+    x.head === :quote && return x.args[1]
+    x.head === :inert && return x.args[1]
+    x.head === :tuple && return ((safeeval(a) for a in x.args)...,)
+    x
+end
 function recover(x::Vector)
     length(x) == 2 || throw(ArgumentError("Expecting a vector of length 2"))
     typename = x[1]::String
     fields = x[2]::Dict
-    T = Core.eval(@__MODULE__, Meta.parse(typename))::Type
+    startswith(typename, "BenchmarkTools.") && (typename = typename[sizeof("BenchmarkTools.")+1:end])
+    T = SUPPORTED_TYPES[Symbol(typename)]
     fc = fieldcount(T)
     xs = Vector{Any}(undef, fc)
     for i = 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        xs[i] = if ft in SUPPORTED_TYPES
-            recover(fields[fn])
+        if ft <: get(SUPPORTED_TYPES, ft.name.name, Union{})
+            xsi = recover(fields[fn])
         else
-            convert(ft, fields[fn])
+            xsi = convert(ft, fields[fn])
         end
-        if T == BenchmarkGroup && xs[i] isa Dict
-            for (k, v) in xs[i]
+        if T == BenchmarkGroup && xsi isa Dict
+            for (k, v) in copy(xsi)
+                k = k::String
+                if startswith(k, "(") || startswith(k, ":")
+                    kt = Meta.parse(k, raise=false)
+                    if !(kt isa Expr && kt.head === :error)
+                        delete!(xsi, k)
+                        k = safeeval(kt)
+                        xsi[k] = v
+                    end
+                end
                 if v isa Vector && length(v) == 2 && v[1] isa String
-                    xs[i][k] = recover(v)
+                    xsi[k] = recover(v)
                 end
             end
         end
+        xs[i] = xsi
     end
     T(xs...)
 end
@@ -48,9 +70,9 @@ function badext(filename)
     noext, ext = splitext(filename)
     msg = if ext == ".jld"
         "JLD serialization is no longer supported. Benchmarks should now be saved in\n" *
-        "JSON format using `save(\"$noext\".json, args...)` and loaded from JSON using\n" *
-        "using `load(\"$noext\".json, args...)`. You will need to convert existing\n" *
-        "saved benchmarks to JSON in order to use them with this version of BenchmarkTools."
+        "JSON format using `save(\"$noext.json\", args...)` and loaded from JSON using\n" *
+        "`load(\"$noext.json\", args...)`. You will need to convert existing saved\n" *
+        "benchmarks to JSON in order to use them with this version of BenchmarkTools."
     else
         "Only JSON serialization is supported."
     end
@@ -73,7 +95,7 @@ function save(io::IO, args...)
                   "The name will be ignored and the object will be serialized " *
                   "in the order it appears in the input.")
             continue
-        elseif !any(T->arg isa T, SUPPORTED_TYPES)
+        elseif !(arg isa get(SUPPORTED_TYPES, typeof(arg).name.name, Union{}))
             throw(ArgumentError("Only BenchmarkTools types can be serialized."))
         end
         push!(goodargs, arg)

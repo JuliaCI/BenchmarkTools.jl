@@ -216,7 +216,8 @@ gnest = BenchmarkGroup(["1"],
                                            10 => BenchmarkGroup(["3"]),
                                            11 => BenchmarkGroup()))
 
-@test leaves(gnest) == [([7],8), ([4,5],6), (["2",1],1), (["a", (11, "b")], :b), (["a","a"], :a)]
+@test sort(leaves(gnest), by=string) ==
+      Any[(Any["2",1],1), (Any["a","a"],:a), (Any["a",(11,"b")],:b), (Any[4,5],6), (Any[7],8)]
 
 @test gnest[@tagged 11 || 10] == BenchmarkGroup(["1"],
                                                 "a" => BenchmarkGroup(["3"],

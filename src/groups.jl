@@ -2,12 +2,19 @@
 # BenchmarkGroup #
 ##################
 
+const KeyTypes = Union{String,Int,Float64}
+makekey(v::KeyTypes) = v
+makekey(v::Real) = (v2 = Float64(v); v2 == v ? v2 : string(v))
+makekey(v::Integer) = typemin(Int) <= v <= typemax(Int) ? Int(v) : string(v)
+makekey(v::Tuple) = (Any[i isa Tuple ? string(i) : makekey(i) for i in v]...,)::Tuple{Vararg{KeyTypes}}
+makekey(v::Any) = string(v)::String
+
 struct BenchmarkGroup
     tags::Vector{Any}
     data::Dict{Any,Any}
 end
 
-BenchmarkGroup(tags::Vector, args::Pair...) = BenchmarkGroup(tags, Dict(args...))
+BenchmarkGroup(tags::Vector, args::Pair...) = BenchmarkGroup(tags, Dict{Any,Any}((makekey(k) => v for (k, v) in args)))
 BenchmarkGroup(args::Pair...) = BenchmarkGroup([], args...)
 
 function addgroup!(suite::BenchmarkGroup, id, args...)
@@ -24,10 +31,14 @@ Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.d
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), empty(group.data))
 Base.isempty(group::BenchmarkGroup) = isempty(group.data)
 Base.length(group::BenchmarkGroup) = length(group.data)
-Base.getindex(group::BenchmarkGroup, i...) = getindex(group.data, i...)
-Base.setindex!(group::BenchmarkGroup, i...) = setindex!(group.data, i...)
-Base.delete!(group::BenchmarkGroup, k...) = delete!(group.data, k...)
-Base.haskey(group::BenchmarkGroup, k) = haskey(group.data, k)
+Base.getindex(group::BenchmarkGroup, k) = getindex(group.data, makekey(k))
+Base.getindex(group::BenchmarkGroup, k...) = getindex(group.data, makekey(k))
+Base.setindex!(group::BenchmarkGroup, v, k) = setindex!(group.data, v, makekey(k))
+Base.setindex!(group::BenchmarkGroup, v, k...) = setindex!(group.data, v, makekey(k))
+Base.delete!(group::BenchmarkGroup, k) = delete!(group.data, makekey(k))
+Base.delete!(group::BenchmarkGroup, k...) = delete!(group.data, makekey(k))
+Base.haskey(group::BenchmarkGroup, k) = haskey(group.data, makekey(k))
+Base.haskey(group::BenchmarkGroup, k...) = haskey(group.data, makekey(k))
 Base.keys(group::BenchmarkGroup) = keys(group.data)
 Base.values(group::BenchmarkGroup) = values(group.data)
 Base.iterate(group::BenchmarkGroup, i=1) = iterate(group.data, i)
@@ -38,17 +49,13 @@ Base.iterate(group::BenchmarkGroup, i=1) = iterate(group.data, i)
 andexpr(a, b) = :($a && $b)
 andreduce(preds) = reduce(andexpr, preds)
 
-@generated function mapvals!(f, dest::BenchmarkGroup, srcs::BenchmarkGroup...)
-    haskeys = andreduce([:(haskey(srcs[$i], k)) for i in 1:length(srcs)])
-    getinds = [:(srcs[$i][k]) for i in 1:length(srcs)]
-    return quote
-        for k in keys(first(srcs))
-            if $(haskeys)
-                dest[k] = f($(getinds...))
-            end
+function mapvals!(f, dest::BenchmarkGroup, srcs::BenchmarkGroup...)
+    for k in keys(first(srcs))
+        if all(s -> haskey(s, k), srcs)
+            dest[k] = f((s[k] for s in srcs)...)
         end
-        return dest
     end
+    return dest
 end
 
 mapvals!(f, group::BenchmarkGroup) = mapvals!(f, similar(group), group)
@@ -119,11 +126,11 @@ end
 # leaf iteration/indexing #
 #-------------------------#
 
-leaves(group::BenchmarkGroup) = leaves!(Any[], Any[], group)
+leaves(group::BenchmarkGroup) = leaves!([], [], group)
 
 function leaves!(results, parents, group::BenchmarkGroup)
     for (k, v) in group
-        keys = vcat(parents, k)
+        keys = Base.typed_vcat(Any, parents, k)
         if isa(v, BenchmarkGroup)
             leaves!(results, keys, v)
         else
@@ -155,44 +162,44 @@ end
 # tagging #
 #---------#
 
-struct TagFilter{P}
-    predicate::P
+struct TagFilter
+    predicate
 end
 
 macro tagged(expr)
-    return esc(:(BenchmarkTools.TagFilter(tags -> $(tagpredicate!(expr)))))
+    return :(BenchmarkTools.TagFilter(tags -> $(tagpredicate!(expr))))
 end
 
-tagpredicate!(tag) = :(in($tag, tags))
+tagpredicate!(@nospecialize tag) = :(in(makekey($(esc(tag))), tags))
 
 function tagpredicate!(sym::Symbol)
-    sym == :! && return sym
     sym == :ALL && return true
-    return :(in($sym, tags))
+    return :(in(makekey($(esc(sym))), tags))
 end
 
 # build the body of the tag predicate in place
 function tagpredicate!(expr::Expr)
-    expr.head == :quote && return :(in($expr, tags))
-    for i in eachindex(expr.args)
-        expr.args[i] = tagpredicate!(expr.args[i])
+    expr.head == :quote && return :(in(makekey($(esc(expr))), tags))
+    for i in 1:length(expr.args)
+        f = (i == 1 && expr.head === :call ? esc : tagpredicate!)
+        expr.args[i] = f(expr.args[i])
     end
     return expr
 end
 
 function Base.getindex(src::BenchmarkGroup, f::TagFilter)
     dest = similar(src)
-    loadtagged!(f, dest, src, src, Any[], src.tags)
+    loadtagged!(f, dest, src, src, [], src.tags)
     return dest
 end
 
 # normal union doesn't have the behavior we want
 # (e.g. union(["1"], "2") === ["1", '2'])
-keyunion(args...) = unique(vcat(args...))
+keyunion(args...) = unique(Base.typed_vcat(Any, args...))
 
 function tagunion(args...)
     unflattened = keyunion(args...)
-    result = Any[]
+    result = []
     for i in unflattened
         if isa(i, Tuple)
             for j in i

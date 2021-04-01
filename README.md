@@ -1,7 +1,7 @@
 # BenchmarkTools.jl
 
-[![Build Status](https://travis-ci.org/JuliaCI/BenchmarkTools.jl.svg?branch=master)](https://travis-ci.org/JuliaCI/BenchmarkTools.jl)
-[![Coverage Status](https://coveralls.io/repos/github/JuliaCI/BenchmarkTools.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaCI/BenchmarkTools.jl?branch=master)
+[![Build Status](https://github.com/JuliaCI/BenchmarkTools.jl/workflows/CI/badge.svg)](https://github.com/JuliaCI/BenchmarkTools.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Code Coverage](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl/branch/master/graph/badge.svg?label=codecov&token=ccN7NZpkBx)](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl)
 
 BenchmarkTools makes **performance tracking of Julia code easy** by supplying a framework for **writing and running groups of benchmarks** as well as **comparing benchmark results**.
 
