@@ -321,7 +321,7 @@ function quasiquote!(ex::Expr, vars::Vector{Expr})
     return ex
 end
 
-raw"""
+@doc raw"""
     @benchmark <expr to benchmark> [setup=<setup expr>]
 
 Run benchmark on a given expression.
