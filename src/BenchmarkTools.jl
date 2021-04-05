@@ -52,7 +52,9 @@ export BenchmarkGroup,
        improvements,
        @tagged,
        addgroup!,
-       leaves
+       leaves,
+       @benchmarkset,
+       @case
 
 ######################
 # Execution Strategy #
