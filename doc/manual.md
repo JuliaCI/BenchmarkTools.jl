@@ -465,7 +465,7 @@ BenchmarkTools.TrialRatio:
   allocs:           1.0
 ```
 
-Use the `judge` function to decide if one estimate represents a regression versus another estimate:
+Use the `judge` function to decide if the estimate passed as first argument represents a regression versus the second estimate:
 
 ```julia
 julia> m1 = median(@benchmark eig(rand(10, 10)))
