@@ -9,7 +9,7 @@ using UUIDs: uuid4
 using Printf
 
 
-const BENCHMARKTOOLS_VERSION = v"0.7.0"
+const BENCHMARKTOOLS_VERSION = v"1.0.0"
 
 ##############
 # Parameters #
