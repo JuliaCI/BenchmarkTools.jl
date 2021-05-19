@@ -15,6 +15,7 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Manual" => "manual.md",
+        "Linux-based environments" => "linuxtips.md",
         "Reference" => "reference.md",
     ],
 )
