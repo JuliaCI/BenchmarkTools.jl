@@ -305,10 +305,28 @@ end
 
 const benchmark_stack = []
 
+"""
+    @benchmarkset "title" begin ... end
+
+Create a benchmark set, or multiple benchmark sets if a `for` loop is provided.
+
+# Examples
+
+```julia
+@benchmarkset "suite" for k in 1:5
+    @case "case \$k" rand(\$k, \$k)
+end
+```
+"""
 macro benchmarkset(title, ex)
     esc(benchmarkset_m(title, ex))
 end
 
+"""
+    @case title <expr to benchmark> [setup=<setup expr>]
+
+Mark an expression as a benchmark case. Must be used inside [`@benchmarkset`](@ref).
+"""
 macro case(title, xs...)
     esc(:($(Symbol("#suite#"))[$title] = @benchmarkable $(xs...)))
 end
