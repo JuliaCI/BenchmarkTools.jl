@@ -1,5 +1,7 @@
 # BenchmarkTools.jl
 
+[![][docs-stable-img]][docs-stable-url]
+[![][docs-dev-img]][docs-dev-url]
 [![Build Status](https://github.com/JuliaCI/BenchmarkTools.jl/workflows/CI/badge.svg)](https://github.com/JuliaCI/BenchmarkTools.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 [![Code Coverage](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl/branch/master/graph/badge.svg?label=codecov&token=ccN7NZpkBx)](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl)
 
@@ -124,3 +126,8 @@ This package was authored primarily by Jarrett Revels (@jrevels). Additionally, 
 - Andreas Noack, for statistics help and investigating weird benchmark time distributions
 - Oscar Blumberg, for discussions on noise robustness
 - Jiahao Chen, for discussions on error analysis
+
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://JuliaCI.github.io/BenchmarkTools.jl/dev/
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://JuliaCI.github.io/BenchmarkTools.jl/stable
