@@ -491,8 +491,8 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
             $(teardown)
             __time = max((__sample_time / __evals) - __params.overhead, 0.001)
             __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
-            __memory = Int(fld(__gcdiff.allocd, __evals))
-            __allocs = Int(fld(__gcdiff.malloc + __gcdiff.realloc +
+            __memory = Int(Base.fld(__gcdiff.allocd, __evals))
+            __allocs = Int(Base.fld(__gcdiff.malloc + __gcdiff.realloc +
                                __gcdiff.poolalloc + __gcdiff.bigalloc,
                                __evals))
             return __time, __gctime, __memory, __allocs, __return_val
