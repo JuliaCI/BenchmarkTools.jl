@@ -1,0 +1,5 @@
+# References
+
+```@autodocs
+Modules = [BenchmarkTools]
+```

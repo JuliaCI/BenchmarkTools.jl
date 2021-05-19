@@ -3,3 +3,7 @@
 *.jl.mem
 benchmark/params.jld
 test/x.json
+docs/Manifest.toml
+docs/build
+docs/src/assets/indigo.css
+Manifest.toml
