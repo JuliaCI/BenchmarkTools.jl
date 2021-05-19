@@ -1,5 +1,7 @@
 # BenchmarkTools.jl
 
+[![][docs-stable-img]][docs-stable-url]
+[![][docs-dev-img]][docs-dev-url]
 [![Build Status](https://github.com/JuliaCI/BenchmarkTools.jl/workflows/CI/badge.svg)](https://github.com/JuliaCI/BenchmarkTools.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 [![Code Coverage](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl/branch/master/graph/badge.svg?label=codecov&token=ccN7NZpkBx)](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl)
 
@@ -11,10 +13,19 @@ The CI infrastructure for automated performance testing of the Julia language is
 
 ## Installation
 
-To install BenchmarkTools, you can run the following:
+<p>
+BenchmarkTools is a &nbsp;
+    <a href="https://julialang.org">
+        <img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em">
+        Julia Language
+    </a>
+    &nbsp; package. To install BenchmarkTools,
+    please <a href="https://docs.julialang.org/en/v1/manual/getting-started/">open
+    Julia's interactive session (known as REPL)</a> and press <kbd>]</kbd> key in the REPL to use the package mode, then type the following command
+</p>
 
 ```julia
-Pkg.add("BenchmarkTools")
+pkg> add BenchmarkTools
 ```
 
 ## Documentation
@@ -124,3 +135,8 @@ This package was authored primarily by Jarrett Revels (@jrevels). Additionally, 
 - Andreas Noack, for statistics help and investigating weird benchmark time distributions
 - Oscar Blumberg, for discussions on noise robustness
 - Jiahao Chen, for discussions on error analysis
+
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://JuliaCI.github.io/BenchmarkTools.jl/dev/
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://JuliaCI.github.io/BenchmarkTools.jl/stable
