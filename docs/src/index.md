@@ -38,6 +38,17 @@ julia> @btime sin(x) setup=(x=rand())
 0.49587200950472454
 ```
 
+If you want to benchmark an expression and store the value in a variable, you can use:
+
+```julia
+julia> y = @btime sin(x) setup=(x=rand())
+  3.467 ns (0 allocations: 0 bytes)
+0.3812650449427549
+
+julia> y
+0.3812650449427549
+```
+
 If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
 [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables).
 Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
