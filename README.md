@@ -32,7 +32,7 @@ pkg> add BenchmarkTools
 
 If you're just getting started, check out the [manual](docs/src/manual.md) for a thorough explanation of BenchmarkTools.
 
-If you want to explore the BenchmarkTools API, see the [reference document](doc/reference.md).
+If you want to explore the BenchmarkTools API, see the [reference document](docs/src/reference.md).
 
 If you want a short example of a toy benchmark suite, see the sample file in this repo ([benchmark/benchmarks.jl](benchmark/benchmarks.jl)).
 
