@@ -30,7 +30,7 @@ pkg> add BenchmarkTools
 
 ## Documentation
 
-If you're just getting started, check out the [manual](doc/manual.md) for a thorough explanation of BenchmarkTools.
+If you're just getting started, check out the [manual](docs/src/manual.md) for a thorough explanation of BenchmarkTools.
 
 If you want to explore the BenchmarkTools API, see the [reference document](doc/reference.md).
 
