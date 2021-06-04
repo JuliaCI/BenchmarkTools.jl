@@ -139,4 +139,4 @@ This package was authored primarily by Jarrett Revels (@jrevels). Additionally, 
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://JuliaCI.github.io/BenchmarkTools.jl/dev/
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docs-stable-url]: https://JuliaCI.github.io/BenchmarkTools.jl/stable
+[docs-stable-url]: https://JuliaCI.github.io/BenchmarkTools.jl/stable/
