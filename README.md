@@ -30,15 +30,15 @@ pkg> add BenchmarkTools
 
 ## Documentation
 
-If you're just getting started, check out the [manual](docs/src/manual.md) for a thorough explanation of BenchmarkTools.
+If you're just getting started, check out the [manual](https://juliaci.github.io/BenchmarkTools.jl/dev/manual/) for a thorough explanation of BenchmarkTools.
 
-If you want to explore the BenchmarkTools API, see the [reference document](docs/src/reference.md).
+If you want to explore the BenchmarkTools API, see the [reference document](https://juliaci.github.io/BenchmarkTools.jl/dev/reference/).
 
 If you want a short example of a toy benchmark suite, see the sample file in this repo ([benchmark/benchmarks.jl](benchmark/benchmarks.jl)).
 
 If you want an extensive example of a benchmark suite being used in the real world, you can look at the source code of [BaseBenchmarks.jl](https://github.com/JuliaCI/BaseBenchmarks.jl/tree/nanosoldier).
 
-If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/linuxtips.md) to help eliminate noise during performance tests.
+If you're benchmarking on Linux, I wrote up a series of [tips and tricks](https://juliaci.github.io/BenchmarkTools.jl/dev/linuxtips/) to help eliminate noise during performance tests.
 
 ## Quick Start
 
