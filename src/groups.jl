@@ -297,8 +297,8 @@ function Base.show(io::IO, group::BenchmarkGroup)
         println(io)
         print(io, pad, "  ", repr(k), " => ")
         show(IOContext(io, :pad => "\t"*pad), v)
-        count > nbound && (println(io); print(io, pad, "  ⋮"); break)
         count += 1
+        count > nbound && (println(io); print(io, pad, "  ⋮"); break)
     end
 end
 
