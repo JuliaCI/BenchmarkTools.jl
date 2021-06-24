@@ -306,7 +306,6 @@ g1["c"] = tc
 3-element BenchmarkTools.BenchmarkGroup:
   tags: ["1", "2"]
   "c" => TrialEstimate(1.000 ns)
-  "b" => TrialEstimate(4.123 μs)
   ⋮"""
 @test sprint(show, g1; context = :limit => false) == """
 3-element BenchmarkTools.BenchmarkGroup:
@@ -318,7 +317,6 @@ g1["c"] = tc
 3-element BenchmarkTools.BenchmarkGroup:
   tags: ["1", "2"]
   "c" => TrialEstimate(1.000 ns)
-  "b" => TrialEstimate(4.123 μs)
   ⋮"""
 
 # end # module
