@@ -50,18 +50,17 @@ julia> using BenchmarkTools
 # The `setup` expression is run once per sample, and is not included in the
 # timing results. Note that each sample can require multiple evaluations
 # benchmark kernel evaluations. See the BenchmarkTools manual for details.
-julia> @benchmark sin(x) setup=(x=rand())
-BenchmarkTools.Trial:
-  memory estimate:  0 bytes
-  allocs estimate:  0
-  --------------
-  minimum time:     4.248 ns (0.00% GC)
-  median time:      4.631 ns (0.00% GC)
-  mean time:        5.502 ns (0.00% GC)
-  maximum time:     60.995 ns (0.00% GC)
-  --------------
-  samples:          10000
-  evals/sample:     1000
+julia> @benchmark sort(data) setup=(data=rand(10))
+BechmarkTools.Trial: 10000 samples with 972 evaluations.
+ Range (min … max):  69.399 ns …  1.066 μs  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     83.850 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   89.471 ns ± 53.666 ns  ┊ GC (mean ± σ):  3.25% ± 5.16%
+
+          ▁▄▇█▇▆▃▁                                                 
+  ▂▁▁▂▂▃▄▆████████▆▅▄▃▃▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂
+  69.4 ns           Histogram: frequency by time             145 ns (top 1%)
+
+ Memory estimate: 160 bytes, allocs estimate: 1.
 ```
 
 For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
