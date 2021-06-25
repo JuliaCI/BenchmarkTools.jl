@@ -1,32 +1,30 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Manual · BenchmarkTools.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link rel="canonical" href="https://JuliaCI.github.io/BenchmarkTools.jl/manual/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/indigo.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">BenchmarkTools.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Manual</a><ul class="internal"><li><a class="tocitem" href="#Benchmarking-basics"><span>Benchmarking basics</span></a></li><li><a class="tocitem" href="#Handling-benchmark-results"><span>Handling benchmark results</span></a></li><li><a class="tocitem" href="#The-BenchmarkGroup-type"><span>The <code>BenchmarkGroup</code> type</span></a></li><li><a class="tocitem" href="#Caching-Parameters"><span>Caching <code>Parameters</code></span></a></li><li><a class="tocitem" href="#Miscellaneous-tips-and-info"><span>Miscellaneous tips and info</span></a></li></ul></li><li><a class="tocitem" href="../linuxtips/">Linux-based environments</a></li><li><a class="tocitem" href="../reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Manual</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Manual</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/docs/src/manual.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Manual"><a class="docs-heading-anchor" href="#Manual">Manual</a><a id="Manual-1"></a><a class="docs-heading-anchor-permalink" href="#Manual" title="Permalink"></a></h1><p>BenchmarkTools was created to facilitate the following tasks:</p><ol><li>Organize collections of benchmarks into manageable benchmark suites</li><li>Configure, save, and reload benchmark parameters for convenience, accuracy, and consistency</li><li>Execute benchmarks in a manner that yields reasonable and consistent performance predictions</li><li>Analyze and compare results to determine whether a code change caused regressions or improvements</li></ol><p>Before we get too far, let&#39;s define some of the terminology used in this document:</p><ul><li>&quot;evaluation&quot;: a single execution of a benchmark expression.</li><li>&quot;sample&quot;: a single time/memory measurement obtained by running multiple evaluations.</li><li>&quot;trial&quot;: an experiment in which multiple samples are gathered (or the result of such an experiment).</li><li>&quot;benchmark parameters&quot;: the configuration settings that determine how a benchmark trial is performed</li></ul><p>The reasoning behind our definition of &quot;sample&quot; may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, then a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must approximate a valid sample by recording the total time <code>t</code> it takes to record <code>n</code> evaluations, and estimating the sample&#39;s time per evaluation as <code>t/n</code>. For example, if a sample takes 1 second for 1 million evaluations, the approximate time per evaluation for that sample is 1 microsecond. It&#39;s not obvious what the right number of evaluations per sample should be for any given benchmark, so BenchmarkTools provides a mechanism (the <code>tune!</code> method) to automatically figure it out for you.</p><h2 id="Benchmarking-basics"><a class="docs-heading-anchor" href="#Benchmarking-basics">Benchmarking basics</a><a id="Benchmarking-basics-1"></a><a class="docs-heading-anchor-permalink" href="#Benchmarking-basics" title="Permalink"></a></h2><h3 id="Defining-and-executing-benchmarks"><a class="docs-heading-anchor" href="#Defining-and-executing-benchmarks">Defining and executing benchmarks</a><a id="Defining-and-executing-benchmarks-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-and-executing-benchmarks" title="Permalink"></a></h3><p>To quickly benchmark a Julia expression, use <code>@benchmark</code>:</p><pre><code class="language-julia">julia&gt; @benchmark sin(1)
-BenchmarkTools.Trial:
-  memory estimate:  0 bytes
-  allocs estimate:  0
-  --------------
-  minimum time:     13.610 ns (0.00% GC)
-  median time:      13.622 ns (0.00% GC)
-  mean time:        13.638 ns (0.00% GC)
-  maximum time:     21.084 ns (0.00% GC)
-  --------------
-  samples:          10000
-  evals/sample:     998</code></pre><p>The <code>@benchmark</code> macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark&#39;s configuration parameters, and running the benchmark. These three steps can be done explicitly using <code>@benchmarkable</code>, <code>tune!</code> and <code>run</code>:</p><pre><code class="language-julia">julia&gt; b = @benchmarkable sin(1); # define the benchmark with default parameters
+BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  1.442 ns … 53.028 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     1.453 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.462 ns ±  0.566 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+                                   █                              
+  ▂▁▁▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▃▁▁▃
+  1.44 ns           Histogram: frequency by time           1.46 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>The <code>@benchmark</code> macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark&#39;s configuration parameters, and running the benchmark. These three steps can be done explicitly using <code>@benchmarkable</code>, <code>tune!</code> and <code>run</code>:</p><pre><code class="language-julia">julia&gt; b = @benchmarkable sin(1); # define the benchmark with default parameters
 
 # find the right evals/sample and number of samples to take for this benchmark
 julia&gt; tune!(b);
 
 julia&gt; run(b)
-BenchmarkTools.Trial:
-  memory estimate:  0 bytes
-  allocs estimate:  0
-  --------------
-  minimum time:     13.605 ns (0.00% GC)
-  median time:      13.618 ns (0.00% GC)
-  mean time:        13.631 ns (0.00% GC)
-  maximum time:     22.383 ns (0.00% GC)
-  --------------
-  samples:          10000
-  evals/sample:     998</code></pre><p>Alternatively, you can use the <code>@btime</code> or <code>@belapsed</code> macros. These take exactly the same arguments as <code>@benchmark</code>, but behave like the <code>@time</code> or <code>@elapsed</code> macros included with Julia: <code>@btime</code> prints the minimum time and memory allocation before returning the value of the expression, while <code>@belapsed</code> returns the minimum time in seconds.</p><pre><code class="language-julia">julia&gt; @btime sin(1)
+BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  1.442 ns … 4.308 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     1.453 ns             ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.456 ns ± 0.056 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+                                  █                              
+  ▂▁▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▁▁▃
+  1.44 ns          Histogram: frequency by time           1.46 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>Alternatively, you can use the <code>@btime</code> or <code>@belapsed</code> macros. These take exactly the same arguments as <code>@benchmark</code>, but behave like the <code>@time</code> or <code>@elapsed</code> macros included with Julia: <code>@btime</code> prints the minimum time and memory allocation before returning the value of the expression, while <code>@belapsed</code> returns the minimum time in seconds.</p><pre><code class="language-julia">julia&gt; @btime sin(1)
   13.612 ns (0 allocations: 0 bytes)
 0.8414709848078965
 
@@ -37,60 +35,56 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.50
 BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.20</code></pre><p>Here&#39;s an example that demonstrates how to pass these parameters to benchmark definitions:</p><pre><code class="language-julia">b = @benchmarkable sin(1) seconds=1 time_tolerance=0.01
 run(b) # equivalent to run(b, seconds = 1, time_tolerance = 0.01)</code></pre><h3 id="Interpolating-values-into-benchmark-expressions"><a class="docs-heading-anchor" href="#Interpolating-values-into-benchmark-expressions">Interpolating values into benchmark expressions</a><a id="Interpolating-values-into-benchmark-expressions-1"></a><a class="docs-heading-anchor-permalink" href="#Interpolating-values-into-benchmark-expressions" title="Permalink"></a></h3><p>You can interpolate values into <code>@benchmark</code> and <code>@benchmarkable</code> expressions:</p><pre><code class="language-julia"># rand(1000) is executed for each evaluation
 julia&gt; @benchmark sum(rand(1000))
-BenchmarkTools.Trial:
-  memory estimate:  7.94 KiB
-  allocs estimate:  1
-  --------------
-  minimum time:     1.566 μs (0.00% GC)
-  median time:      2.135 μs (0.00% GC)
-  mean time:        3.071 μs (25.06% GC)
-  maximum time:     296.818 μs (95.91% GC)
-  --------------
-  samples:          10000
-  evals/sample:     10
+BechmarkTools.Trial: 10000 samples with 10 evaluations.
+ Range (min … max):  1.153 μs … 142.253 μs  ┊ GC (min … max): 0.00% … 96.43%
+ Time  (median):     1.363 μs               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.786 μs ±   4.612 μs  ┊ GC (mean ± σ):  9.58% ±  3.70%
+
+   ▄▆██▇▇▆▄▃▂▁                           ▁▁▂▂▂▂▂▂▂▁▂▁              
+  ████████████████▆▆▇▅▆▇▆▆▆▇▆▇▆▆▅▄▄▄▅▃▄▇██████████████▇▇▇▇▆▆▇▆▆▅▅▅▅
+  1.15 μs         Histogram: log(frequency) by time          3.8 μs (top 1%)
+
+ Memory estimate: 7.94 KiB, allocs estimate: 1.
 
 # rand(1000) is evaluated at definition time, and the resulting
 # value is interpolated into the benchmark expression
 julia&gt; @benchmark sum($(rand(1000)))
-BenchmarkTools.Trial:
-  memory estimate:  0 bytes
-  allocs estimate:  0
-  --------------
-  minimum time:     101.627 ns (0.00% GC)
-  median time:      101.909 ns (0.00% GC)
-  mean time:        103.834 ns (0.00% GC)
-  maximum time:     276.033 ns (0.00% GC)
-  --------------
-  samples:          10000
-  evals/sample:     935</code></pre><p>A good rule of thumb is that <strong>external variables should be explicitly interpolated into the benchmark expression</strong>:</p><pre><code class="language-julia">julia&gt; A = rand(1000);
+BechmarkTools.Trial: 10000 samples with 963 evaluations.
+ Range (min … max):  84.477 ns … 241.602 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     84.497 ns               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   85.125 ns ±   5.262 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  █                                                                 
+  █▅▇▅▄███▇▇▆▆▆▄▄▅▅▄▄▅▄▄▅▄▄▄▄▁▃▄▁▁▃▃▃▄▃▁▃▁▁▁▁▁▃▁▁▁▁▁▁▁▁▁▁▃▃▁▁▁▃▁▁▁▁▆
+  84.5 ns         Histogram: log(frequency) by time           109 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>A good rule of thumb is that <strong>external variables should be explicitly interpolated into the benchmark expression</strong>:</p><pre><code class="language-julia">julia&gt; A = rand(1000);
 
 # BAD: A is a global variable in the benchmarking context
 julia&gt; @benchmark [i*i for i in A]
-BenchmarkTools.Trial:
-  memory estimate:  7.95 KiB
-  allocs estimate:  2
-  --------------
-  minimum time:     13.154 μs (0.00% GC)
-  median time:      13.806 μs (0.00% GC)
-  mean time:        14.071 μs (0.00% GC)
-  maximum time:     337.462 μs (0.00% GC)
-  --------------
-  samples:          10000
-  evals/sample:     1
+BechmarkTools.Trial: 10000 samples with 54 evaluations.
+ Range (min … max):  889.241 ns … 29.584 μs  ┊ GC (min … max):  0.00% … 93.33%
+ Time  (median):       1.073 μs              ┊ GC (median):     0.00%
+ Time  (mean ± σ):     1.296 μs ±  2.004 μs  ┊ GC (mean ± σ):  14.31% ±  8.76%
+
+      ▃█▆                                                           
+  ▂▂▄▆███▇▄▄▃▃▃▃▃▂▂▂▂▂▂▂▂▂▂▂▁▂▂▂▁▂▂▁▁▁▁▁▂▁▁▁▁▂▂▁▁▁▁▂▁▁▁▁▁▁▂▂▂▂▂▂▂▂▂▂
+  889 ns             Histogram: frequency by time            2.92 μs (top 1%)
+
+ Memory estimate: 7.95 KiB, allocs estimate: 2.
 
 # GOOD: A is a constant value in the benchmarking context
 julia&gt; @benchmark [i*i for i in $A]
-BenchmarkTools.Trial:
-  memory estimate:  7.95 KiB
-  allocs estimate:  2
-  --------------
-  minimum time:     929.375 ns (0.00% GC)
-  median time:      1.348 μs (0.00% GC)
-  mean time:        2.405 μs (36.64% GC)
-  maximum time:     91.481 μs (95.46% GC)
-  --------------
-  samples:          10000
-  evals/sample:     32</code></pre><p>(Note that &quot;KiB&quot; is the SI prefix for a <a href="https://en.wikipedia.org/wiki/Kibibyte">kibibyte</a>: 1024 bytes.)</p><p>Keep in mind that you can mutate external state from within a benchmark:</p><pre><code class="language-julia">julia&gt; A = zeros(3);
+BechmarkTools.Trial: 10000 samples with 121 evaluations.
+ Range (min … max):  742.455 ns … 11.846 μs  ┊ GC (min … max):  0.00% … 88.05%
+ Time  (median):     909.959 ns              ┊ GC (median):     0.00%
+ Time  (mean ± σ):     1.135 μs ±  1.366 μs  ┊ GC (mean ± σ):  16.94% ± 12.58%
+
+  ▇█▅▂                                                             ▁
+  ████▇▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▅▆██
+  742 ns          Histogram: log(frequency) by time          10.3 μs (top 1%)
+
+ Memory estimate: 7.94 KiB, allocs estimate: 1.</code></pre><p>(Note that &quot;KiB&quot; is the SI prefix for a <a href="https://en.wikipedia.org/wiki/Kibibyte">kibibyte</a>: 1024 bytes.)</p><p>Keep in mind that you can mutate external state from within a benchmark:</p><pre><code class="language-julia">julia&gt; A = zeros(3);
 
  # each evaluation will modify A
 julia&gt; b = @benchmarkable fill!($A, rand());
@@ -98,18 +92,18 @@ julia&gt; b = @benchmarkable fill!($A, rand());
 julia&gt; run(b, samples = 1);
 
 julia&gt; A
-3-element Array{Float64,1}:
- 0.837789
- 0.837789
- 0.837789
+3-element Vector{Float64}:
+ 0.4615582142515109
+ 0.4615582142515109
+ 0.4615582142515109
 
 julia&gt; run(b, samples = 1);
 
 julia&gt; A
-3-element Array{Float64,1}:
- 0.647885
- 0.647885
- 0.647885</code></pre><p>Normally, you can&#39;t use locally scoped variables in <code>@benchmark</code> or <code>@benchmarkable</code>, since all benchmarks are defined at the top-level scope by design. However, you can work around this by interpolating local variables into the benchmark expression:</p><pre><code class="language-julia"># will throw UndefVar error for `x`
+3-element Vector{Float64}:
+ 0.06373849439691504
+ 0.06373849439691504
+ 0.06373849439691504</code></pre><p>Normally, you can&#39;t use locally scoped variables in <code>@benchmark</code> or <code>@benchmarkable</code>, since all benchmarks are defined at the top-level scope by design. However, you can work around this by interpolating local variables into the benchmark expression:</p><pre><code class="language-julia"># will throw UndefVar error for `x`
 julia&gt; let x = 1
            @benchmark sin(x)
        end
@@ -125,100 +119,102 @@ julia&gt; b = @benchmarkable sort!(y) setup=(y = copy($x))
 Benchmark(evals=1, seconds=5.0, samples=10000)
 
 julia&gt; run(b)
-BenchmarkTools.Trial:
-  memory estimate:  0 bytes
-  allocs estimate:  0
-  --------------
-  minimum time:     5.739 ms (0.00% GC)
-  median time:      5.757 ms (0.00% GC)
-  mean time:        5.871 ms (0.00% GC)
-  maximum time:     62.138 ms (0.00% GC)
-  --------------
-  samples:          805
-  evals/sample:     1</code></pre><p>In the above example, we wish to benchmark Julia&#39;s in-place sorting method. Without a setup phase, we&#39;d have to either allocate a new input vector for each sample (such that the allocation time would pollute our results) or use the same input vector every sample (such that all samples but the first would benchmark the wrong thing - sorting an already sorted vector). The setup phase solves the problem by allowing us to do some work that can be utilized by the core expression, without that work being erroneously included in our performance results.</p><p>Note that the <code>setup</code> and <code>teardown</code> phases are <strong>executed for each sample, not each evaluation</strong>. Thus, the sorting example above wouldn&#39;t produce the intended results if <code>evals/sample &gt; 1</code> (it&#39;d suffer from the same problem of benchmarking against an already sorted vector).</p><h3 id="Understanding-compiler-optimizations"><a class="docs-heading-anchor" href="#Understanding-compiler-optimizations">Understanding compiler optimizations</a><a id="Understanding-compiler-optimizations-1"></a><a class="docs-heading-anchor-permalink" href="#Understanding-compiler-optimizations" title="Permalink"></a></h3><p>It&#39;s possible for LLVM and Julia&#39;s compiler to perform optimizations on <code>@benchmarkable</code> expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly &quot;fast&quot; benchmarks. For example, the following expression is non-allocating:</p><pre><code class="language-julia">julia&gt; @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
-BenchmarkTools.Trial:
-  memory estimate:  0 bytes
-  allocs estimate:  0
-  --------------
-  minimum time:     2.293 ns (0.00% GC)
-  median time:      2.302 ns (0.00% GC)
-  mean time:        2.330 ns (0.00% GC)
-  maximum time:     6.441 ns (0.00% GC)
-  --------------
-  samples:          10000
-  evals/sample:     1000
-</code></pre><p>Note, however, that this does not mean that <code>view(a, 1:2, 1:2)</code> is non-allocating:</p><pre><code class="language-julia">julia&gt; @benchmark view(a, 1:2, 1:2) setup=(a = rand(3, 3))
-BenchmarkTools.Trial:
-  memory estimate:  64 bytes
-  allocs estimate:  1
-  --------------
-  minimum time:     15.613 ns (0.00% GC)
-  median time:      17.825 ns (0.00% GC)
-  mean time:        23.358 ns (17.46% GC)
-  maximum time:     1.725 μs (95.12% GC)
-  --------------
-  samples:          10000
-  evals/sample:     998</code></pre><p>The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away <code>view(a, 1:2, 1:2)</code> because it could prove that the value wasn&#39;t being returned and <code>a</code> wasn&#39;t being mutated. In the second example, the optimization is not performed because <code>view(a, 1:2, 1:2)</code> is a return value of the benchmark expression.</p><p>BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It&#39;s up to you to design benchmarks which actually exercise the code you intend to exercise. </p><p>A common place julia&#39;s optimizer may cause a benchmark to not measure what a user thought it was measuring is simple operations where all values are known at compile time. Suppose you wanted to measure the time it takes to add together two integers:</p><pre><code class="language-julia">julia&gt; a = 1; b = 2
+BechmarkTools.Trial: 819 samples with 1 evaluations.
+ Range (min … max):  5.983 ms …  6.954 ms  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     6.019 ms              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   6.029 ms ± 46.222 μs  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+        ▃▂▂▄█▄▂▃                                                  
+  ▂▃▃▄▆▅████████▇▆▆▅▄▄▄▅▆▄▃▄▅▄▃▂▃▃▃▂▂▃▁▂▂▂▁▂▂▂▂▂▂▁▁▁▁▂▂▁▁▁▂▂▁▁▂▁▁▂
+  5.98 ms           Histogram: frequency by time           6.18 ms (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>In the above example, we wish to benchmark Julia&#39;s in-place sorting method. Without a setup phase, we&#39;d have to either allocate a new input vector for each sample (such that the allocation time would pollute our results) or use the same input vector every sample (such that all samples but the first would benchmark the wrong thing - sorting an already sorted vector). The setup phase solves the problem by allowing us to do some work that can be utilized by the core expression, without that work being erroneously included in our performance results.</p><p>Note that the <code>setup</code> and <code>teardown</code> phases are <strong>executed for each sample, not each evaluation</strong>. Thus, the sorting example above wouldn&#39;t produce the intended results if <code>evals/sample &gt; 1</code> (it&#39;d suffer from the same problem of benchmarking against an already sorted vector).</p><h3 id="Understanding-compiler-optimizations"><a class="docs-heading-anchor" href="#Understanding-compiler-optimizations">Understanding compiler optimizations</a><a id="Understanding-compiler-optimizations-1"></a><a class="docs-heading-anchor-permalink" href="#Understanding-compiler-optimizations" title="Permalink"></a></h3><p>It&#39;s possible for LLVM and Julia&#39;s compiler to perform optimizations on <code>@benchmarkable</code> expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly &quot;fast&quot; benchmarks. For example, the following expression is non-allocating:</p><pre><code class="language-julia">julia&gt; @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
+BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  2.885 ns … 14.797 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     2.895 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   3.320 ns ±  0.909 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  █             ▁   ▁ ▁▁▁                                     ▂▃▃▁
+  █▁▁▇█▇▆█▇████████████████▇█▇█▇▇▇▇█▇█▇▅▅▄▁▁▁▁▄▃▁▃▃▁▄▃▁▄▁▃▅▅██████
+  2.88 ns        Histogram: log(frequency) by time         5.79 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.0</code></pre><p>Note, however, that this does not mean that <code>view(a, 1:2, 1:2)</code> is non-allocating:</p><pre><code class="language-julia">julia&gt; @benchmark view(a, 1:2, 1:2) setup=(a = rand(3, 3))
+BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  3.175 ns … 18.314 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     3.176 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   3.262 ns ±  0.882 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  █                                                               
+  █▁▂▁▁▁▂▁▂▁▂▁▁▂▁▁▂▂▂▂▂▂▁▁▂▁▁▂▁▁▁▂▂▁▁▁▂▁▂▂▁▂▁▁▂▂▂▁▂▂▂▂▂▂▂▂▂▂▂▁▂▂▁▂
+  3.18 ns           Histogram: frequency by time           4.78 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.8</code></pre><p>The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away <code>view(a, 1:2, 1:2)</code> because it could prove that the value wasn&#39;t being returned and <code>a</code> wasn&#39;t being mutated. In the second example, the optimization is not performed because <code>view(a, 1:2, 1:2)</code> is a return value of the benchmark expression.</p><p>BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It&#39;s up to you to design benchmarks which actually exercise the code you intend to exercise. </p><p>A common place julia&#39;s optimizer may cause a benchmark to not measure what a user thought it was measuring is simple operations where all values are known at compile time. Suppose you wanted to measure the time it takes to add together two integers:</p><pre><code class="language-julia">julia&gt; a = 1; b = 2
 2
 
 julia&gt; @btime $a + $b
   0.024 ns (0 allocations: 0 bytes)
 3</code></pre><p>in this case julia was able to use the properties of <code>+(::Int, ::Int)</code> to know that it could safely replace <code>$a + $b</code> with <code>3</code> at compile time. We can stop the optimizer from doing this by referencing and dereferencing the interpolated variables  </p><pre><code class="language-julia">julia&gt; @btime $(Ref(a))[] + $(Ref(b))[]
   1.277 ns (0 allocations: 0 bytes)
-3</code></pre><h2 id="Handling-benchmark-results"><a class="docs-heading-anchor" href="#Handling-benchmark-results">Handling benchmark results</a><a id="Handling-benchmark-results-1"></a><a class="docs-heading-anchor-permalink" href="#Handling-benchmark-results" title="Permalink"></a></h2><p>BenchmarkTools provides four types related to benchmark results:</p><ul><li><code>Trial</code>: stores all samples collected during a benchmark trial, as well as the trial&#39;s parameters</li><li><code>TrialEstimate</code>: a single estimate used to summarize a <code>Trial</code></li><li><code>TrialRatio</code>: a comparison between two <code>TrialEstimate</code></li><li><code>TrialJudgement</code>: a classification of the fields of a <code>TrialRatio</code> as <code>invariant</code>, <code>regression</code>, or <code>improvement</code></li></ul><p>This section provides a limited number of examples demonstrating these types. For a thorough list of supported functionality, see <a href="../reference/">the reference document</a>.</p><h3 id="Trial-and-TrialEstimate"><a class="docs-heading-anchor" href="#Trial-and-TrialEstimate"><code>Trial</code> and <code>TrialEstimate</code></a><a id="Trial-and-TrialEstimate-1"></a><a class="docs-heading-anchor-permalink" href="#Trial-and-TrialEstimate" title="Permalink"></a></h3><p>Running a benchmark produces an instance of the <code>Trial</code> type:</p><pre><code class="language-julia">julia&gt; t = @benchmark eig(rand(10, 10))
-BenchmarkTools.Trial:
-  memory estimate:  9.30 KiB
-  allocs estimate:  28
-  --------------
-  minimum time:     33.262 μs (0.00% GC)
-  median time:      38.618 μs (0.00% GC)
-  mean time:        39.981 μs (2.65% GC)
-  maximum time:     2.814 ms (95.07% GC)
-  --------------
-  samples:          10000
-  evals/sample:     1
+3</code></pre><h2 id="Handling-benchmark-results"><a class="docs-heading-anchor" href="#Handling-benchmark-results">Handling benchmark results</a><a id="Handling-benchmark-results-1"></a><a class="docs-heading-anchor-permalink" href="#Handling-benchmark-results" title="Permalink"></a></h2><p>BenchmarkTools provides four types related to benchmark results:</p><ul><li><code>Trial</code>: stores all samples collected during a benchmark trial, as well as the trial&#39;s parameters</li><li><code>TrialEstimate</code>: a single estimate used to summarize a <code>Trial</code></li><li><code>TrialRatio</code>: a comparison between two <code>TrialEstimate</code></li><li><code>TrialJudgement</code>: a classification of the fields of a <code>TrialRatio</code> as <code>invariant</code>, <code>regression</code>, or <code>improvement</code></li></ul><p>This section provides a limited number of examples demonstrating these types. For a thorough list of supported functionality, see <a href="../reference/">the reference document</a>.</p><h3 id="Trial-and-TrialEstimate"><a class="docs-heading-anchor" href="#Trial-and-TrialEstimate"><code>Trial</code> and <code>TrialEstimate</code></a><a id="Trial-and-TrialEstimate-1"></a><a class="docs-heading-anchor-permalink" href="#Trial-and-TrialEstimate" title="Permalink"></a></h3><p>Running a benchmark produces an instance of the <code>Trial</code> type:</p><pre><code class="language-julia">julia&gt; t = @benchmark eigen(rand(10, 10))
+BechmarkTools.Trial: 10000 samples with 1 evaluations.
+ Range (min … max):  26.549 μs …  1.503 ms  ┊ GC (min … max): 0.00% … 93.21%
+ Time  (median):     30.818 μs              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   31.777 μs ± 25.161 μs  ┊ GC (mean ± σ):  1.31% ±  1.63%
+
+             ▂▃▅▆█▇▇▆▆▄▄▃▁▁                                        
+  ▁▁▁▁▁▁▂▃▄▆████████████████▆▆▅▅▄▄▃▃▃▂▂▂▂▂▂▁▂▁▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+  26.5 μs           Histogram: frequency by time            41.3 μs (top 1%)
+
+ Memory estimate: 16.36 KiB, allocs estimate: 19.
 
 julia&gt; dump(t) # here&#39;s what&#39;s actually stored in a Trial
-  BenchmarkTools.Trial
-    params: BenchmarkTools.Parameters # Trials store the parameters of their parent process
-      seconds: Float64 5.0
-      samples: Int64 10000
-      evals: Int64 1
-      overhead: Float64 0.0
-      gctrial: Bool true
-      gcsample: Bool false
-      time_tolerance: Float64 0.05
-      memory_tolerance: Float64 0.01
-    times: Array{Float64}((10000,)) [33262.0, 33793.0, … 2.77342e6, 2.81368e6] # every sample is stored in the Trial
-    gctimes: Array{Float64}((10000,)) [0.0, 0.0, … 2.66614e6, 2.67486e6]
-    memory: Int64 9520
-    allocs: Int64 28</code></pre><p>As you can see from the above, a couple of different timing estimates are pretty-printed with the <code>Trial</code>. You can calculate these estimates yourself using the <code>minimum</code>, <code>median</code>, <code>mean</code>, and <code>maximum</code> functions:</p><pre><code class="language-julia">julia&gt; minimum(t)
-BenchmarkTools.TrialEstimate:
-  time:             33.262 μs
+BenchmarkTools.Trial
+  params: BenchmarkTools.Parameters
+    seconds: Float64 5.0
+    samples: Int64 10000
+    evals: Int64 1
+    overhead: Float64 0.0
+    gctrial: Bool true
+    gcsample: Bool false
+    time_tolerance: Float64 0.05
+    memory_tolerance: Float64 0.01
+  times: Array{Float64}((10000,)) [26549.0, 26960.0, 27030.0, 27171.0, 27211.0, 27261.0, 27270.0, 27311.0, 27311.0, 27321.0  …  55383.0, 55934.0, 58649.0, 62847.0, 68547.0, 75761.0, 247081.0, 1.421718e6, 1.488322e6, 1.50329e6]
+  gctimes: Array{Float64}((10000,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.366184e6, 1.389518e6, 1.40116e6]
+  memory: Int64 16752
+  allocs: Int64 19</code></pre><p>As you can see from the above, a couple of different timing estimates are pretty-printed with the <code>Trial</code>. You can calculate these estimates yourself using the <code>minimum</code>, <code>median</code>, <code>mean</code>, <code>maximum</code>, and <code>std</code> functions:</p><pre><code class="language-julia">julia&gt; minimum(t)
+BenchmarkTools.TrialEstimate: 
+  time:             26.549 μs
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           16.36 KiB
+  allocs:           19
 
 julia&gt; median(t)
-BenchmarkTools.TrialEstimate:
-  time:             38.618 μs
+BenchmarkTools.TrialEstimate: 
+  time:             30.818 μs
   gctime:           0.000 ns (0.00%)
-  memory:           9.30 KiB
-  allocs:           28
+  memory:           16.36 KiB
+  allocs:           19
 
 julia&gt; mean(t)
-BenchmarkTools.TrialEstimate:
-  time:             39.981 μs
-  gctime:           1.058 μs (2.65%)
-  memory:           9.30 KiB
-  allocs:           28
+BenchmarkTools.TrialEstimate: 
+  time:             31.777 μs
+  gctime:           415.686 ns (1.31%)
+  memory:           16.36 KiB
+  allocs:           19
 
 julia&gt; maximum(t)
-BenchmarkTools.TrialEstimate:
-  time:             2.814 ms
-  gctime:           2.675 ms (95.07%)
-  memory:           9.30 KiB
-  allocs:           28</code></pre><h3 id="Which-estimator-should-I-use?"><a class="docs-heading-anchor" href="#Which-estimator-should-I-use?">Which estimator should I use?</a><a id="Which-estimator-should-I-use?-1"></a><a class="docs-heading-anchor-permalink" href="#Which-estimator-should-I-use?" title="Permalink"></a></h3><p>Time distributions are always right-skewed for the benchmarks we&#39;ve tested. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some sense, inherently positive - there aren&#39;t really sources of noise that would regularly cause your machine to execute a series of instructions <em>faster</em> than the theoretical &quot;ideal&quot; time prescribed by your hardware. Following this characterization of benchmark noise, we can describe the behavior of our estimators:</p><ul><li>The minimum is a robust estimator for the location parameter of the time distribution, and should not be considered an outlier</li><li>The median, as a robust measure of central tendency, should be relatively unaffected by outliers</li><li>The mean, as a non-robust measure of central tendency, will usually be positively skewed by outliers</li><li>The maximum should be considered a primarily noise-driven outlier, and can change drastically between benchmark trials.</li></ul><h3 id="TrialRatio-and-TrialJudgement"><a class="docs-heading-anchor" href="#TrialRatio-and-TrialJudgement"><code>TrialRatio</code> and <code>TrialJudgement</code></a><a id="TrialRatio-and-TrialJudgement-1"></a><a class="docs-heading-anchor-permalink" href="#TrialRatio-and-TrialJudgement" title="Permalink"></a></h3><p>BenchmarkTools supplies a <code>ratio</code> function for comparing two values:</p><pre><code class="language-julia">julia&gt; ratio(3, 2)
+BenchmarkTools.TrialEstimate: 
+  time:             1.503 ms
+  gctime:           1.401 ms (93.21%)
+  memory:           16.36 KiB
+  allocs:           19
+
+julia&gt; std(t)
+BenchmarkTools.TrialEstimate: 
+  time:             25.161 μs
+  gctime:           23.999 μs (95.38%)
+  memory:           16.36 KiB
+  allocs:           19</code></pre><h3 id="Which-estimator-should-I-use?"><a class="docs-heading-anchor" href="#Which-estimator-should-I-use?">Which estimator should I use?</a><a id="Which-estimator-should-I-use?-1"></a><a class="docs-heading-anchor-permalink" href="#Which-estimator-should-I-use?" title="Permalink"></a></h3><p>Time distributions are always right-skewed for the benchmarks we&#39;ve tested. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some sense, inherently positive - there aren&#39;t really sources of noise that would regularly cause your machine to execute a series of instructions <em>faster</em> than the theoretical &quot;ideal&quot; time prescribed by your hardware. Following this characterization of benchmark noise, we can describe the behavior of our estimators:</p><ul><li>The minimum is a robust estimator for the location parameter of the time distribution, and should not be considered an outlier</li><li>The median, as a robust measure of central tendency, should be relatively unaffected by outliers</li><li>The mean, as a non-robust measure of central tendency, will usually be positively skewed by outliers</li><li>The maximum should be considered a primarily noise-driven outlier, and can change drastically between benchmark trials.</li></ul><h3 id="TrialRatio-and-TrialJudgement"><a class="docs-heading-anchor" href="#TrialRatio-and-TrialJudgement"><code>TrialRatio</code> and <code>TrialJudgement</code></a><a id="TrialRatio-and-TrialJudgement-1"></a><a class="docs-heading-anchor-permalink" href="#TrialRatio-and-TrialJudgement" title="Permalink"></a></h3><p>BenchmarkTools supplies a <code>ratio</code> function for comparing two values:</p><pre><code class="language-julia">julia&gt; ratio(3, 2)
 1.5
 
 julia&gt; ratio(1, 0)
@@ -231,7 +227,7 @@ julia&gt; ratio(0, 1)
 julia&gt; ratio(0, 0)
 1.0</code></pre><p>Calling the <code>ratio</code> function on two <code>TrialEstimate</code> instances compares their fields:</p><pre><code class="language-julia">julia&gt; using BenchmarkTools
 
-julia&gt; b = @benchmarkable eig(rand(10, 10));
+julia&gt; b = @benchmarkable eigen(rand(10, 10));
 
 julia&gt; tune!(b);
 
@@ -254,14 +250,14 @@ BenchmarkTools.TrialRatio:
   time:             0.997792009916587
   gctime:           1.0
   memory:           1.0
-  allocs:           1.0</code></pre><p>Use the <code>judge</code> function to decide if the estimate passed as first argument represents a regression versus the second estimate:</p><pre><code class="language-julia">julia&gt; m1 = median(@benchmark eig(rand(10, 10)))
+  allocs:           1.0</code></pre><p>Use the <code>judge</code> function to decide if the estimate passed as first argument represents a regression versus the second estimate:</p><pre><code class="language-julia">julia&gt; m1 = median(@benchmark eigen(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
   time:             38.745 μs
   gctime:           0.000 ns (0.00%)
   memory:           9.30 KiB
   allocs:           28
 
-julia&gt; m2 = median(@benchmark eig(rand(10, 10)))
+julia&gt; m2 = median(@benchmark eigen(rand(10, 10)))
 BenchmarkTools.TrialEstimate:
   time:             38.611 μs
   gctime:           0.000 ns (0.00%)
@@ -559,4 +555,4 @@ julia&gt; tune!(suite);
 # over JSON (this wrapper maintains compatibility
 # across BenchmarkTools versions)
 julia&gt; BenchmarkTools.save(&quot;params.json&quot;, params(suite));</code></pre><p>Now, instead of tuning <code>suite</code> every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JSON file using the <code>loadparams!</code> function. The <code>[1]</code> on the <code>load</code> call gets the first value that was serialized into the JSON file, which in this case is the parameters.</p><pre><code class="language-julia"># syntax is loadparams!(group, paramsgroup, fields...)
-julia&gt; loadparams!(suite, BenchmarkTools.load(&quot;params.json&quot;)[1], :evals, :samples);</code></pre><p>Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.</p><h2 id="Miscellaneous-tips-and-info"><a class="docs-heading-anchor" href="#Miscellaneous-tips-and-info">Miscellaneous tips and info</a><a id="Miscellaneous-tips-and-info-1"></a><a class="docs-heading-anchor-permalink" href="#Miscellaneous-tips-and-info" title="Permalink"></a></h2><ul><li>BenchmarkTools restricts the minimum measurable benchmark execution time to one picosecond.</li><li>If you use <code>rand</code> or something similar to generate the values that are used in your benchmarks, you should seed the RNG (or provide a seeded RNG) so that the values are consistent between trials/samples/evaluations.</li><li>BenchmarkTools attempts to be robust against machine noise occurring between <em>samples</em>, but BenchmarkTools can&#39;t do very much about machine noise occurring between <em>trials</em>. To cut down on the latter kind of noise, it is advised that you dedicate CPUs and memory to the benchmarking Julia process by using a shielding tool such as <a href="http://manpages.ubuntu.com/manpages/precise/man1/cset.1.html">cset</a>.</li><li>On some machines, for some versions of BLAS and Julia, the number of BLAS worker threads can exceed the number of available cores. This can occasionally result in scheduling issues and inconsistent performance for BLAS-heavy benchmarks. To fix this issue, you can use <code>BLAS.set_num_threads(i::Int)</code> in the Julia REPL to ensure that the number of BLAS threads is equal to or less than the number of available cores.</li><li><code>@benchmark</code> is evaluated in global scope, even if called from local scope.</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../linuxtips/">Linux-based environments »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 23 June 2021 18:12">Wednesday 23 June 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+julia&gt; loadparams!(suite, BenchmarkTools.load(&quot;params.json&quot;)[1], :evals, :samples);</code></pre><p>Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.</p><h2 id="Miscellaneous-tips-and-info"><a class="docs-heading-anchor" href="#Miscellaneous-tips-and-info">Miscellaneous tips and info</a><a id="Miscellaneous-tips-and-info-1"></a><a class="docs-heading-anchor-permalink" href="#Miscellaneous-tips-and-info" title="Permalink"></a></h2><ul><li>BenchmarkTools restricts the minimum measurable benchmark execution time to one picosecond.</li><li>If you use <code>rand</code> or something similar to generate the values that are used in your benchmarks, you should seed the RNG (or provide a seeded RNG) so that the values are consistent between trials/samples/evaluations.</li><li>BenchmarkTools attempts to be robust against machine noise occurring between <em>samples</em>, but BenchmarkTools can&#39;t do very much about machine noise occurring between <em>trials</em>. To cut down on the latter kind of noise, it is advised that you dedicate CPUs and memory to the benchmarking Julia process by using a shielding tool such as <a href="http://manpages.ubuntu.com/manpages/precise/man1/cset.1.html">cset</a>.</li><li>On some machines, for some versions of BLAS and Julia, the number of BLAS worker threads can exceed the number of available cores. This can occasionally result in scheduling issues and inconsistent performance for BLAS-heavy benchmarks. To fix this issue, you can use <code>BLAS.set_num_threads(i::Int)</code> in the Julia REPL to ensure that the number of BLAS threads is equal to or less than the number of available cores.</li><li><code>@benchmark</code> is evaluated in global scope, even if called from local scope.</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../linuxtips/">Linux-based environments »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 25 June 2021 10:43">Friday 25 June 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

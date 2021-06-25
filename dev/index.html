@@ -4,18 +4,17 @@
 # The `setup` expression is run once per sample, and is not included in the
 # timing results. Note that each sample can require multiple evaluations
 # benchmark kernel evaluations. See the BenchmarkTools manual for details.
-julia&gt; @benchmark sin(x) setup=(x=rand())
-BenchmarkTools.Trial:
-  memory estimate:  0 bytes
-  allocs estimate:  0
-  --------------
-  minimum time:     4.248 ns (0.00% GC)
-  median time:      4.631 ns (0.00% GC)
-  mean time:        5.502 ns (0.00% GC)
-  maximum time:     60.995 ns (0.00% GC)
-  --------------
-  samples:          10000
-  evals/sample:     1000</code></pre><p>For quick sanity checks, one can use the <a href="https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics"><code>@btime</code> macro</a>, which is a convenience wrapper around <code>@benchmark</code> whose output is analogous to Julia&#39;s built-in <a href="https://docs.julialang.org/en/v1/base/base/#Base.@time"><code>@time</code> macro</a>:</p><pre><code class="language-julia">julia&gt; @btime sin(x) setup=(x=rand())
+julia&gt; @benchmark sort(data) setup=(data=rand(10))
+BechmarkTools.Trial:
+ 10000 samples with 968 evaulations took a median time of 90.902 ns (0.00% GC)
+ Time  (mean ± σ):   94.936 ns ±  47.797 ns  (GC: 2.78% ±  5.03%)
+ Range (min … max):  77.655 ns … 954.823 ns  (GC: 0.00% … 87.94%)
+
+          ▁▃▅▆▇█▇▆▅▂▁                                          
+  ▂▂▃▃▄▅▆▇███████████▇▆▄▄▃▃▂▂▂▂▂▂▂▂▂▂▂▁▂▁▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂
+  77.7 ns         Histogram: frequency by time           137 ns
+
+ Memory estimate: 160 bytes, allocs estimate: 1.</code></pre><p>For quick sanity checks, one can use the <a href="https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics"><code>@btime</code> macro</a>, which is a convenience wrapper around <code>@benchmark</code> whose output is analogous to Julia&#39;s built-in <a href="https://docs.julialang.org/en/v1/base/base/#Base.@time"><code>@time</code> macro</a>:</p><pre><code class="language-julia">julia&gt; @btime sin(x) setup=(x=rand())
   4.361 ns (0 allocations: 0 bytes)
 0.49587200950472454</code></pre><p>If the expression you want to benchmark depends on external variables, you should use <a href="https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions"><code>$</code> to &quot;interpolate&quot;</a> them into the benchmark expression to <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables">avoid the problems of benchmarking with globals</a>. Essentially, any interpolated variable <code>$x</code> or expression <code>$(...)</code> is &quot;pre-computed&quot; before benchmarking begins:</p><pre><code class="language-julia">julia&gt; A = rand(3,3);
 
@@ -33,4 +32,4 @@ julia&gt; @btime $a + $b
   0.024 ns (0 allocations: 0 bytes)
 3</code></pre><p>As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occured. You can avoid this by referencing and dereferencing the interpolated variables </p><pre><code class="language-julia">julia&gt; @btime $(Ref(a))[] + $(Ref(b))[]
   1.277 ns (0 allocations: 0 bytes)
-3</code></pre><p>As described the <a href="manual/#Manual">Manual</a>, the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="manual/">Manual »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 23 June 2021 18:12">Wednesday 23 June 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+3</code></pre><p>As described the <a href="manual/#Manual">Manual</a>, the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="manual/">Manual »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 25 June 2021 10:43">Friday 25 June 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
