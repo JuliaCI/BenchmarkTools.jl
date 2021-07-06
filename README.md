@@ -105,7 +105,7 @@ julia> @btime $(Ref(a))[] + $(Ref(b))[]
 3
 ```
 
-As described the [manual](doc/manual.md), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
+As described the [manual](https://juliaci.github.io/BenchmarkTools.jl/dev/manual/), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
 
 ## Why does this package exist?
 
