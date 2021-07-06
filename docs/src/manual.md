@@ -24,7 +24,7 @@ To quickly benchmark a Julia expression, use `@benchmark`:
 
 ```julia
 julia> @benchmark sin(1)
-BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
  Range (min … max):  1.442 ns … 53.028 ns  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     1.453 ns              ┊ GC (median):    0.00%
  Time  (mean ± σ):   1.462 ns ±  0.566 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
@@ -45,7 +45,7 @@ julia> b = @benchmarkable sin(1); # define the benchmark with default parameters
 julia> tune!(b);
 
 julia> run(b)
-BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
  Range (min … max):  1.442 ns … 4.308 ns  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     1.453 ns             ┊ GC (median):    0.00%
  Time  (mean ± σ):   1.456 ns ± 0.056 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
@@ -109,7 +109,7 @@ You can interpolate values into `@benchmark` and `@benchmarkable` expressions:
 ```julia
 # rand(1000) is executed for each evaluation
 julia> @benchmark sum(rand(1000))
-BechmarkTools.Trial: 10000 samples with 10 evaluations.
+BenchmarkTools.Trial: 10000 samples with 10 evaluations.
  Range (min … max):  1.153 μs … 142.253 μs  ┊ GC (min … max): 0.00% … 96.43%
  Time  (median):     1.363 μs               ┊ GC (median):    0.00%
  Time  (mean ± σ):   1.786 μs ±   4.612 μs  ┊ GC (mean ± σ):  9.58% ±  3.70%
@@ -123,7 +123,7 @@ BechmarkTools.Trial: 10000 samples with 10 evaluations.
 # rand(1000) is evaluated at definition time, and the resulting
 # value is interpolated into the benchmark expression
 julia> @benchmark sum($(rand(1000)))
-BechmarkTools.Trial: 10000 samples with 963 evaluations.
+BenchmarkTools.Trial: 10000 samples with 963 evaluations.
  Range (min … max):  84.477 ns … 241.602 ns  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     84.497 ns               ┊ GC (median):    0.00%
  Time  (mean ± σ):   85.125 ns ±   5.262 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
@@ -142,7 +142,7 @@ julia> A = rand(1000);
 
 # BAD: A is a global variable in the benchmarking context
 julia> @benchmark [i*i for i in A]
-BechmarkTools.Trial: 10000 samples with 54 evaluations.
+BenchmarkTools.Trial: 10000 samples with 54 evaluations.
  Range (min … max):  889.241 ns … 29.584 μs  ┊ GC (min … max):  0.00% … 93.33%
  Time  (median):       1.073 μs              ┊ GC (median):     0.00%
  Time  (mean ± σ):     1.296 μs ±  2.004 μs  ┊ GC (mean ± σ):  14.31% ±  8.76%
@@ -155,7 +155,7 @@ BechmarkTools.Trial: 10000 samples with 54 evaluations.
 
 # GOOD: A is a constant value in the benchmarking context
 julia> @benchmark [i*i for i in $A]
-BechmarkTools.Trial: 10000 samples with 121 evaluations.
+BenchmarkTools.Trial: 10000 samples with 121 evaluations.
  Range (min … max):  742.455 ns … 11.846 μs  ┊ GC (min … max):  0.00% … 88.05%
  Time  (median):     909.959 ns              ┊ GC (median):     0.00%
  Time  (mean ± σ):     1.135 μs ±  1.366 μs  ┊ GC (mean ± σ):  16.94% ± 12.58%
@@ -221,7 +221,7 @@ julia> b = @benchmarkable sort!(y) setup=(y = copy($x))
 Benchmark(evals=1, seconds=5.0, samples=10000)
 
 julia> run(b)
-BechmarkTools.Trial: 819 samples with 1 evaluations.
+BenchmarkTools.Trial: 819 samples with 1 evaluations.
  Range (min … max):  5.983 ms …  6.954 ms  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     6.019 ms              ┊ GC (median):    0.00%
  Time  (mean ± σ):   6.029 ms ± 46.222 μs  ┊ GC (mean ± σ):  0.00% ± 0.00%
@@ -242,7 +242,7 @@ Note that the `setup` and `teardown` phases are **executed for each sample, not 
 It's possible for LLVM and Julia's compiler to perform optimizations on `@benchmarkable` expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly "fast" benchmarks. For example, the following expression is non-allocating:
 ```julia
 julia> @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
-BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
  Range (min … max):  2.885 ns … 14.797 ns  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     2.895 ns              ┊ GC (median):    0.00%
  Time  (mean ± σ):   3.320 ns ±  0.909 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
@@ -258,7 +258,7 @@ Note, however, that this does not mean that `view(a, 1:2, 1:2)` is non-allocatin
 
 ```julia
 julia> @benchmark view(a, 1:2, 1:2) setup=(a = rand(3, 3))
-BechmarkTools.Trial: 10000 samples with 1000 evaluations.
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
  Range (min … max):  3.175 ns … 18.314 ns  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     3.176 ns              ┊ GC (median):    0.00%
  Time  (mean ± σ):   3.262 ns ±  0.882 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
@@ -307,7 +307,7 @@ Running a benchmark produces an instance of the `Trial` type:
 
 ```julia
 julia> t = @benchmark eigen(rand(10, 10))
-BechmarkTools.Trial: 10000 samples with 1 evaluations.
+BenchmarkTools.Trial: 10000 samples with 1 evaluations.
  Range (min … max):  26.549 μs …  1.503 ms  ┊ GC (min … max): 0.00% … 93.21%
  Time  (median):     30.818 μs              ┊ GC (median):    0.00%
  Time  (mean ± σ):   31.777 μs ± 25.161 μs  ┊ GC (mean ± σ):  1.31% ±  1.63%

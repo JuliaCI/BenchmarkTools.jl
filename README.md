@@ -51,7 +51,7 @@ julia> using BenchmarkTools
 # timing results. Note that each sample can require multiple evaluations
 # benchmark kernel evaluations. See the BenchmarkTools manual for details.
 julia> @benchmark sort(data) setup=(data=rand(10))
-BechmarkTools.Trial: 10000 samples with 972 evaluations.
+BenchmarkTools.Trial: 10000 samples with 972 evaluations.
  Range (min … max):  69.399 ns …  1.066 μs  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     83.850 ns              ┊ GC (median):    0.00%
  Time  (mean ± σ):   89.471 ns ± 53.666 ns  ┊ GC (mean ± σ):  3.25% ± 5.16%

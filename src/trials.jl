@@ -371,7 +371,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     # Main stats
 
     pad = get(io, :pad, "")
-    print(io, "BechmarkTools.Trial: ", length(t), " samples with ", t.params.evals, " evaluations.")
+    print(io, "BenchmarkTools.Trial: ", length(t), " samples with ", t.params.evals, " evaluations.")
 
     print(io, "\n", pad, " Range ")
     printstyled(io, "("; color=:light_black)
