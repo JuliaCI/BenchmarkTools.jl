@@ -16,6 +16,8 @@ html:not(.theme--documenter-dark) body #documenter .docs-sidebar {
   box-shadow: none;
   color: #FFFFFF;
   background-color: #194E82; }
+  html:not(.theme--documenter-dark) body #documenter .docs-sidebar .docs-package-name a, html:not(.theme--documenter-dark) body #documenter .docs-sidebar .docs-package-name a:hover {
+    color: #FFFFFF; }
   html:not(.theme--documenter-dark) body #documenter .docs-sidebar ul.docs-menu {
     border-top: none; }
     html:not(.theme--documenter-dark) body #documenter .docs-sidebar ul.docs-menu .tocitem:hover, html:not(.theme--documenter-dark) body #documenter .docs-sidebar ul.docs-menu li.is-active .tocitem, html:not(.theme--documenter-dark) body #documenter .docs-sidebar ul.docs-menu li.is-active .tocitem:hover, html:not(.theme--documenter-dark) body #documenter .docs-sidebar ul.docs-menu li.is-active ul.internal .tocitem:hover {
