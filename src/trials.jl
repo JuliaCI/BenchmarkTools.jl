@@ -422,11 +422,11 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     # Histogram
 
     histquantile = 0.99
+    # The height and width of the printed histogram in characters.
     histheight = 2
     histwidth = 42 + lmaxtimewidth + rmaxtimewidth
 
     histtimes = t.times[1:round(Int, histquantile*end)]
-    # 47 = the 'base' width such that the histogram doesn't go past the statistics text
     bins, logbins = bindata(histtimes, histwidth - 1), false
     append!(bins, [1, floor((1-histquantile) * length(t.times))])
     # if median size of (bins with >10% average data/bin) is less than 5% of max bin size, log the bin sizes
@@ -438,8 +438,8 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     maxbin = maximum(bins)
 
     delta1 = (histtimes[end] - histtimes[1]) / (histwidth - 1)
-    medpos = 1 + round(Int, (histtimes[length(histtimes) ÷ 2] - histtimes[1]) / delta1)
-    avgpos = 1 + round(Int, (mean(histtimes) - histtimes[1]) / delta1)
+    medpos = 1 + round(Int, (histtimes[length(t.times) ÷ 2] - histtimes[1]) / delta1)
+    avgpos = 1 + round(Int, (mean(t.times) - histtimes[1]) / delta1)
 
     print(io, "\n")
     for histrow in eachrow(hist)
