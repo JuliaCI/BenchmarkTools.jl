@@ -339,7 +339,12 @@ Base.show(io::IO, t::TrialRatio) = _show(io, t)
 Base.show(io::IO, t::TrialJudgement) = _show(io, t)
 
 function Base.show(io::IO, ::MIME"text/plain", t::Trial)
-    if length(t) > 0
+
+    pad = get(io, :pad, "")
+    print(io, "BenchmarkTools.Trial: ", length(t), " sample", if length(t) > 1 "s" else "" end,
+          " with ", t.params.evals, " evaluation", if t.params.evals > 1 "s" else "" end ,".\n")
+
+    if length(t) > 1
         med = median(t)
         avg = mean(t)
         std = Statistics.std(t)
@@ -354,13 +359,20 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
         memorystr = string(prettymemory(memory(min)))
         allocsstr = string(allocs(min))
+    elseif length(t) == 1
+        print(io, pad, " Single result which took ")
+        printstyled(io, prettytime(t.times[1]); color=:blue)
+        print(io, " (", prettypercent(t.gctimes[1]/t.times[1]), " GC) ")
+        print(io, "to evaluate,\n")
+        print(io, pad, " with a memory estimate of ")
+        printstyled(io, prettymemory(t.memory[1]); color=:yellow)
+        print(io, ", over ")
+        printstyled(io, t.allocs[1]; color=:yellow)
+        print(io, " allocations.")
+        return
     else
-        medtime, medgc = "N/A", "N/A"
-        avgtime, avggc = "N/A", "N/A"
-        stdtime, stdgc = "N/A", "N/A"
-        mintime, mingc = "N/A", "N/A"
-        maxtime, maxgc = "N/A", "N/A"
-        memorystr, allocsstr = "N/A", "N/A"
+        print(io, pad, " No results.")
+        return
     end
 
     lmaxtimewidth = maximum(length.((medtime, avgtime, mintime)))
@@ -370,10 +382,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     # Main stats
 
-    pad = get(io, :pad, "")
-    print(io, "BenchmarkTools.Trial: ", length(t), " samples with ", t.params.evals, " evaluations.")
-
-    print(io, "\n", pad, " Range ")
+    print(io, pad, " Range ")
     printstyled(io, "("; color=:light_black)
     printstyled(io, "min"; color=:cyan, bold=true)
     print(io, " … ")
@@ -434,12 +443,16 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         bins, logbins = log.(1 .+ bins), true
     end
     hist = asciihist(bins, histheight)
-    hist[end,end-1] = ' '
+    hist[:,end-1] .= ' '
     maxbin = maximum(bins)
 
     delta1 = (histtimes[end] - histtimes[1]) / (histwidth - 1)
-    medpos = 1 + round(Int, (histtimes[length(t.times) ÷ 2] - histtimes[1]) / delta1)
-    avgpos = 1 + round(Int, (mean(t.times) - histtimes[1]) / delta1)
+    if delta1 > 0
+        medpos = 1 + round(Int, (histtimes[length(t.times) ÷ 2] - histtimes[1]) / delta1)
+        avgpos = 1 + round(Int, (mean(t.times) - histtimes[1]) / delta1)
+    else
+        medpos, avgpos = 1, 1
+    end
 
     print(io, "\n")
     for histrow in eachrow(hist)
