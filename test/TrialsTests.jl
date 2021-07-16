@@ -214,6 +214,9 @@ BenchmarkTools.TrialEstimate:
 
 @test sprint(show, [ta, tb]) == "BenchmarkTools.TrialEstimate[0.490 ns, 1.000 ns]"
 
+trial1sample = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1], [1], 1, 1)
+@test try display(trial1sample); true catch e false end
+
 @static if VERSION < v"1.6-"
 
 @test sprint(show, "text/plain", [ta, tb]) == """
