@@ -466,10 +466,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     end
 
     function remtrailingzeros(timestr)
-        if ! isnothing(match(r"\.0+", timestr))
-            replace(timestr, r"\.0+" => "")
+        if ! isnothing(match(r"\.0+$", timestr))
+            replace(timestr, r"\.0+$" => "")
         else
-            replace(timestr, r"(\.\d+?)0+" => s"\1")
+            replace(timestr, r"(\.\d+?)0+$" => s"\1")
         end
     end
     minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.(histtimes[[1; end]], sigdigits=3)))
