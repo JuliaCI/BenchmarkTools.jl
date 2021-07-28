@@ -104,7 +104,7 @@ function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
          push!(trial, b.samplefunc(params)[1:end-1]...)
          iters += 1
     end
-    return sort!(trial), return_val
+    return trial, return_val
 end
 
 
