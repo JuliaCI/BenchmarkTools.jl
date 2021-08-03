@@ -455,7 +455,8 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     end
 
     print(io, "\n")
-    for histrow in eachrow(hist)
+    for r in axes(hist, 1)
+        histrow = view(hist, r, :)
         print(io, "\n", pad, "  ")
         for (i, bar) in enumerate(histrow)
             color = :default
@@ -466,7 +467,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     end
 
     function remtrailingzeros(timestr)
-        if ! isnothing(match(r"\.0+$", timestr))
+        if match(r"\.0+$", timestr) !== nothing
             replace(timestr, r"\.0+$" => "")
         else
             replace(timestr, r"(\.\d+?)0+$" => s"\1")
