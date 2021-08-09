@@ -208,6 +208,9 @@ julia> let x = 1
        end
 ```
 
+!!! warning
+    Interpolated variables become part of the global scope and their memory won't be freed by the garbage collector until the Julia process is terminated.
+
 ### Setup and teardown phases
 
 BenchmarkTools allows you to pass `setup` and `teardown` expressions to `@benchmark` and `@benchmarkable`. The `setup` expression is evaluated just before sample execution, while the `teardown` expression is evaluated just after sample execution. Here's an example where this kind of thing is useful:
