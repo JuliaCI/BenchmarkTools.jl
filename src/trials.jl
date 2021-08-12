@@ -466,13 +466,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         end
     end
 
-    function remtrailingzeros(timestr)
-        if match(r"\.0+$", timestr) !== nothing
-            replace(timestr, r"\.0+$" => "")
-        else
-            replace(timestr, r"(\.\d+?)0+$" => s"\1")
-        end
-    end
+    remtrailingzeros(timestr) = replace(timestr, r"\.?0+ " => " ")
     minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.(histtimes[[1; end]], sigdigits=3)))
 
     print(io, "\n", pad, "  ", minhisttime)
