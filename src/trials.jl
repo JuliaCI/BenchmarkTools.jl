@@ -455,9 +455,9 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     end
 
     print(io, "\n")
-    for histrow in eachrow(hist)
+    for r in axes(hist, 1)
         print(io, "\n", pad, "  ")
-        for (i, bar) in enumerate(histrow)
+        for (i, bar) in enumerate(view(hist, r, :))
             color = :default
             if i == avgpos color = :green end
             if i == medpos color = :blue end
@@ -465,13 +465,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         end
     end
 
-    function remtrailingzeros(timestr)
-        if ! isnothing(match(r"\.0+$", timestr))
-            replace(timestr, r"\.0+$" => "")
-        else
-            replace(timestr, r"(\.\d+?)0+$" => s"\1")
-        end
-    end
+    remtrailingzeros(timestr) = replace(timestr, r"\.?0+ " => " ")
     minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.(histtimes[[1; end]], sigdigits=3)))
 
     print(io, "\n", pad, "  ", minhisttime)
