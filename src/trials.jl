@@ -456,9 +456,8 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     print(io, "\n")
     for r in axes(hist, 1)
-        histrow = view(hist, r, :)
         print(io, "\n", pad, "  ")
-        for (i, bar) in enumerate(histrow)
+        for (i, bar) in enumerate(view(hist, r, :))
             color = :default
             if i == avgpos color = :green end
             if i == medpos color = :blue end
