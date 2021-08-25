@@ -344,6 +344,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     print(io, "BenchmarkTools.Trial: ", length(t), " sample", if length(t) > 1 "s" else "" end,
           " with ", t.params.evals, " evaluation", if t.params.evals > 1 "s" else "" end ,".\n")
 
+    perm = sortperm(t.times)
+    times = t.times[perm]
+    gctimes = t.gctimes[perm]
+
     if length(t) > 1
         med = median(t)
         avg = mean(t)
@@ -353,7 +357,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
         medtime, medgc = prettytime(time(med)), prettypercent(gcratio(med))
         avgtime, avggc = prettytime(time(avg)), prettypercent(gcratio(avg))
-        stdtime, stdgc = prettytime(time(std)), prettypercent(Statistics.std(t.gctimes ./ t.times))
+        stdtime, stdgc = prettytime(time(std)), prettypercent(Statistics.std(gctimes ./ times))
         mintime, mingc = prettytime(time(min)), prettypercent(gcratio(min))
         maxtime, maxgc = prettytime(time(max)), prettypercent(gcratio(max))
 
@@ -361,8 +365,8 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         allocsstr = string(allocs(min))
     elseif length(t) == 1
         print(io, pad, " Single result which took ")
-        printstyled(io, prettytime(t.times[1]); color=:blue)
-        print(io, " (", prettypercent(t.gctimes[1]/t.times[1]), " GC) ")
+        printstyled(io, prettytime(times[1]); color=:blue)
+        print(io, " (", prettypercent(gctimes[1]/times[1]), " GC) ")
         print(io, "to evaluate,\n")
         print(io, pad, " with a memory estimate of ")
         printstyled(io, prettymemory(t.memory[1]); color=:yellow)
@@ -435,11 +439,11 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     histheight = 2
     histwidth = 42 + lmaxtimewidth + rmaxtimewidth
 
-    histtimes = t.times[1:round(Int, histquantile*end)]
+    histtimes = times[1:round(Int, histquantile*end)]
     bins, logbins = bindata(histtimes, histwidth - 1), false
-    append!(bins, [1, floor((1-histquantile) * length(t.times))])
+    append!(bins, [1, floor((1-histquantile) * length(times))])
     # if median size of (bins with >10% average data/bin) is less than 5% of max bin size, log the bin sizes
-    if median(filter(b -> b > 0.1 * length(t.times) / histwidth, bins)) / maximum(bins) < 0.05
+    if median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05
         bins, logbins = log.(1 .+ bins), true
     end
     hist = asciihist(bins, histheight)
@@ -448,8 +452,8 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     delta1 = (histtimes[end] - histtimes[1]) / (histwidth - 1)
     if delta1 > 0
-        medpos = 1 + round(Int, (histtimes[length(t.times) ÷ 2] - histtimes[1]) / delta1)
-        avgpos = 1 + round(Int, (mean(t.times) - histtimes[1]) / delta1)
+        medpos = 1 + round(Int, (histtimes[length(times) ÷ 2] - histtimes[1]) / delta1)
+        avgpos = 1 + round(Int, (mean(times) - histtimes[1]) / delta1)
     else
         medpos, avgpos = 1, 1
     end
