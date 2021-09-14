@@ -7,6 +7,7 @@ using Logging: @logmsg, LogLevel
 using Statistics
 using UUIDs: uuid4
 using Printf
+using Profile
 
 
 const BENCHMARKTOOLS_VERSION = v"1.0.0"
@@ -68,7 +69,8 @@ export tune!,
        @benchmark,
        @benchmarkable,
        @belapsed,
-       @btime
+       @btime,
+       @bprofile
 
 #################
 # Serialization #
