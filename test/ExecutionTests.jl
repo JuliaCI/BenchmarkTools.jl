@@ -1,6 +1,7 @@
 module ExecutionTests
 
 using BenchmarkTools
+using Profile
 using Test
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
@@ -133,6 +134,36 @@ tune!(b)
 
 # test kwargs separated by `,`
 @benchmark(output=sin(x), setup=(x=1.0; output=0.0), teardown=(@test output == sin(x)))
+
+#############
+# @bprofile #
+#############
+
+function likegcd(a::T, b::T) where T<:Base.BitInteger
+    za = trailing_zeros(a)
+    zb = trailing_zeros(b)
+    k = min(za, zb)
+    u = unsigned(abs(a >> za))
+    v = unsigned(abs(b >> zb))
+    while u != v
+        if u > v
+            u, v = v, u
+        end
+        v -= u
+        v >>= trailing_zeros(v)
+    end
+    r = u << k
+    return r % T
+end
+
+b = @bprofile likegcd(x, y) setup=(x = rand(2:200); y = rand(2:200))
+@test isa(b, BenchmarkTools.Trial)
+io = IOBuffer()
+Profile.print(IOContext(io, :displaysize=>(24,200)))
+str = String(take!(io))
+@test  occursin(r"BenchmarkTools/src/execution.jl:\d+; _run", str)
+@test !occursin(r"BenchmarkTools/src/execution.jl:\d+; warmup", str)
+@test !occursin(r"BenchmarkTools/src/execution.jl:\d+; tune!", str)
 
 ########
 # misc #
