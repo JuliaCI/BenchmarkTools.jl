@@ -161,6 +161,13 @@ b = @bprofile likegcd(x, y) setup=(x = rand(2:200); y = rand(2:200))
 io = IOBuffer()
 Profile.print(IOContext(io, :displaysize=>(24,200)))
 str = String(take!(io))
+if !occursin(r"BenchmarkTools/src/execution.jl:\d+; _run", str)
+    lines = split(str, '\n')
+    idx = findfirst(str->occursin(r"_run", str), lines)
+    if idx !== nothing
+        println(lines[idx])
+    end
+end
 @test  occursin(r"BenchmarkTools/src/execution.jl:\d+; _run", str)
 @test !occursin(r"BenchmarkTools/src/execution.jl:\d+; warmup", str)
 @test !occursin(r"BenchmarkTools/src/execution.jl:\d+; tune!", str)
