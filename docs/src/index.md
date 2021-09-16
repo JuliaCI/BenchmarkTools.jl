@@ -37,6 +37,9 @@ julia> @btime sin(x) setup=(x=rand())
 0.49587200950472454
 ```
 
+If you're interested in profiling a fast-running command, you can use `@bprofile sin(x) setup=(x=rand())` and then your favorite
+tools for displaying the results (`Profile.print` or a graphical viewer).
+
 If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
 [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables).
 Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:

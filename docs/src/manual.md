@@ -896,6 +896,38 @@ julia> loadparams!(suite, BenchmarkTools.load("params.json")[1], :evals, :sample
 Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.
 
 ## Visualizing benchmark results
+
+For comparing two or more benchmarks against one another, you can manually specify the range of the histogram using an
+`IOContext` to set `:histmin` and `:histmax`:
+
+```julia
+julia> io = IOContext(stdout, :histmin=>0.5, :histmax=>8)
+IOContext(Base.TTY(RawFD(13) open, 0 bytes waiting))
+
+julia> b = @benchmark x^3 setup=(x = rand()); show(io, MIME("text/plain"), b)
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  1.239 ns … 28.036 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     1.258 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.277 ns ±  0.593 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+       █▁                                                    ▁
+  ▁▁▁▁▁██▆▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ █
+  0.5 ns       Histogram: log(frequency) by time        8 ns <
+
+ Memory estimate: 0 bytes, allocs estimate: 0.
+julia> b = @benchmark x^3.0 setup=(x = rand()); show(io, MIME("text/plain"), b)
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  5.399 ns … 35.552 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     5.422 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   5.510 ns ±  1.291 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+                                        █
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▅█▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▂
+  0.5 ns         Histogram: frequency by time           8 ns <
+
+ Memory estimate: 0 bytes, allocs estimate: 0.
+```
+
 The `Trial` object can be visualized using the `BenchmarkPlots` package:
 
 ```julia
