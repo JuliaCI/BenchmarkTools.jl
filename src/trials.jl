@@ -290,8 +290,7 @@ function withtypename(f, io, t)
     end
 end
 
-function bindata(sorteddata, nbins)
-    min, max = sorteddata[[1; end]]
+function bindata(sorteddata, nbins, min, max)
     Δ = (max - min) / nbins
     bins = zeros(nbins)
     lastpos = 0
@@ -302,6 +301,7 @@ function bindata(sorteddata, nbins)
     end
     bins
 end
+bindata(sorteddata, nbins) = bindata(sorteddata, nbins, first(sorteddata), last(sorteddata))
 
 function asciihist(bins, height=1)
     histbars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
@@ -440,20 +440,25 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     histwidth = 42 + lmaxtimewidth + rmaxtimewidth
 
     histtimes = times[1:round(Int, histquantile*end)]
-    bins, logbins = bindata(histtimes, histwidth - 1), false
+    histmin = get(io, :histmin, first(histtimes))
+    histmax = get(io, :histmax, last(histtimes))
+    logbins = get(io, :logbins, nothing)
+    bins = bindata(histtimes, histwidth - 1, histmin, histmax)
     append!(bins, [1, floor((1-histquantile) * length(times))])
     # if median size of (bins with >10% average data/bin) is less than 5% of max bin size, log the bin sizes
-    if median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05
+    if (logbins === nothing || logbins === true) && median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05
         bins, logbins = log.(1 .+ bins), true
+    elseif logbins === nothing
+        logbins = false
     end
     hist = asciihist(bins, histheight)
     hist[:,end-1] .= ' '
     maxbin = maximum(bins)
 
-    delta1 = (histtimes[end] - histtimes[1]) / (histwidth - 1)
+    delta1 = (histmax - histmin) / (histwidth - 1)
     if delta1 > 0
-        medpos = 1 + round(Int, (histtimes[length(times) ÷ 2] - histtimes[1]) / delta1)
-        avgpos = 1 + round(Int, (mean(times) - histtimes[1]) / delta1)
+        medpos = 1 + round(Int, (histtimes[length(times) ÷ 2] - histmin) / delta1)
+        avgpos = 1 + round(Int, (mean(times) - histmin) / delta1)
     else
         medpos, avgpos = 1, 1
     end
@@ -470,7 +475,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     end
 
     remtrailingzeros(timestr) = replace(timestr, r"\.?0+ " => " ")
-    minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.(histtimes[[1; end]], sigdigits=3)))
+    minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.([histmin, histmax], sigdigits=3)))
 
     print(io, "\n", pad, "  ", minhisttime)
     caption = "Histogram: " * ( logbins ? "log(frequency)" : "frequency" ) * " by time"
