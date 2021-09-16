@@ -442,11 +442,14 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     histtimes = times[1:round(Int, histquantile*end)]
     histmin = get(io, :histmin, first(histtimes))
     histmax = get(io, :histmax, last(histtimes))
-    bins, logbins = bindata(histtimes, histwidth - 1, histmin, histmax), false
+    logbins = get(io, :logbins, nothing)
+    bins = bindata(histtimes, histwidth - 1, histmin, histmax)
     append!(bins, [1, floor((1-histquantile) * length(times))])
     # if median size of (bins with >10% average data/bin) is less than 5% of max bin size, log the bin sizes
-    if median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05
+    if (logbins === nothing || logbins === true) && median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05
         bins, logbins = log.(1 .+ bins), true
+    elseif logbins === nothing
+        logbins = false
     end
     hist = asciihist(bins, histheight)
     hist[:,end-1] .= ' '

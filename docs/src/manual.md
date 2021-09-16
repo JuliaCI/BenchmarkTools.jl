@@ -901,32 +901,36 @@ For comparing two or more benchmarks against one another, you can manually speci
 `IOContext` to set `:histmin` and `:histmax`:
 
 ```julia
-julia> io = IOContext(stdout, :histmin=>0.5, :histmax=>8)
+julia> io = IOContext(stdout, :histmin=>0.5, :histmax=>8, :logbins=>true)
 IOContext(Base.TTY(RawFD(13) open, 0 bytes waiting))
 
-julia> b = @benchmark x^3 setup=(x = rand()); show(io, MIME("text/plain"), b)
+julia> b = @benchmark x^3   setup=(x = rand()); show(io, MIME("text/plain"), b)
 BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
- Range (min … max):  1.239 ns … 28.036 ns  ┊ GC (min … max): 0.00% … 0.00%
- Time  (median):     1.258 ns              ┊ GC (median):    0.00%
- Time  (mean ± σ):   1.277 ns ±  0.593 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+ Range (min … max):  1.239 ns … 31.433 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     1.244 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.266 ns ±  0.611 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
 
-       █▁                                                    ▁
-  ▁▁▁▁▁██▆▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ █
+       █
+  ▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▂
   0.5 ns       Histogram: log(frequency) by time        8 ns <
 
  Memory estimate: 0 bytes, allocs estimate: 0.
 julia> b = @benchmark x^3.0 setup=(x = rand()); show(io, MIME("text/plain"), b)
 BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
- Range (min … max):  5.399 ns … 35.552 ns  ┊ GC (min … max): 0.00% … 0.00%
- Time  (median):     5.422 ns              ┊ GC (median):    0.00%
- Time  (mean ± σ):   5.510 ns ±  1.291 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+ Range (min … max):  5.636 ns … 38.756 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     5.662 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   5.767 ns ±  1.384 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
 
-                                        █
-  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▅█▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▂
-  0.5 ns         Histogram: frequency by time           8 ns <
+                                         █▆    ▂             ▁
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁███▄▄▃█▁▁▁▁▁▁▁▁▁▁▁▁ █
+  0.5 ns       Histogram: log(frequency) by time        8 ns <
 
  Memory estimate: 0 bytes, allocs estimate: 0.
+
 ```
+
+Set `:logbins` to `true` or `false` to ensure that all use the same vertical scaling (log frequency or frequency).
+
 
 The `Trial` object can be visualized using the `BenchmarkPlots` package:
 

@@ -136,7 +136,7 @@ tune!(b)
 @benchmark(output=sin(x), setup=(x=1.0; output=0.0), teardown=(@test output == sin(x)))
 
 io = IOBuffer()
-ioctx = IOContext(io, :histmin=>0.5, :histmax=>8)
+ioctx = IOContext(io, :histmin=>0.5, :histmax=>8, :logbins=>false)
 b = @benchmark x^3   setup=(x = rand()); show(ioctx, MIME("text/plain"), b)
 b = @benchmark x^3.0 setup=(x = rand()); show(ioctx, MIME("text/plain"), b)
 str = String(take!(io))
