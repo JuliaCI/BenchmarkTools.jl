@@ -227,6 +227,7 @@ str = String(take!(io))
 
 let fname = tempname()
     try
+        # simple function, zero allocations
         ret = open(fname, "w") do f
             redirect_stdout(f) do
                 x = 1
@@ -238,7 +239,21 @@ let fname = tempname()
         end
         s = read(fname, String)
         try
-            @test occursin(r"[0-9.]+ \w*s \([0-9]* allocations?: [0-9]+ bytes\)", s)
+            @test occursin(r"min [0-9.]+ \w*s, mean [0-9.]+ \w*s \(0 allocations\)", s)
+        catch
+            println(stderr, "@btime output didn't match ", repr(s))
+            rethrow()
+        end
+        # function which allocates
+        ret2 = open(fname, "w") do f
+            redirect_stdout(f) do
+                y = @btime(sum(log, ones(100)))
+                @test y ≈ 0
+            end
+        end
+        s2 = read(fname, String)
+        try
+            @test occursin(r", mean [0-9.]+ \w*s \([0-9]* allocations?, [0-9]+ bytes. GC mean [0-9.]+ \w*s,", s2)
         catch
             println(stderr, "@btime output didn't match ", repr(s))
             rethrow()

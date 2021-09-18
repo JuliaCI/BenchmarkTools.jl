@@ -264,7 +264,7 @@ function prettytime(t; short=false)
         value, units = t / 1e9, "s"
     end
     if short
-        string(@sprintf("%.0f", value), " ", units)
+        string(@sprintf("%.0f", value), " ", units)  # "%.3g" also OK, always 3 numbers
     else
         string(@sprintf("%.3f", value), " ", units)
     end
