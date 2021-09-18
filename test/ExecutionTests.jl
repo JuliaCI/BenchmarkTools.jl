@@ -149,14 +149,14 @@ for (tf, rex1, rex2) in ((false, r"0.5 ns +Histogram: frequency by time +8 ns", 
     @test isa(idx, UnitRange)
     ioctx = IOContext(io, :logbins=>tf)
     # A flat distribution won't trigger log by default
-    b = BenchmarkTools.Trial(BenchmarkTools.DEFAULT_PARAMETERS, 0.001 * (1:100), zeros(100), 0, 0)
+    b = BenchmarkTools.Trial(BenchmarkTools.DEFAULT_PARAMETERS, 0.001 * (1:100) * 1e9, zeros(100), 0, 0)
     show(ioctx, MIME("text/plain"), b)
     str = String(take!(io))
     idx = findfirst(rex2, str)
     @test isa(idx, UnitRange)
     # A peaked distribution will trigger log by default
     t = [fill(1, 21); 2]
-    b = BenchmarkTools.Trial(BenchmarkTools.DEFAULT_PARAMETERS, t/sum(t)*BenchmarkTools.DEFAULT_PARAMETERS.seconds, zeros(100), 0, 0)
+    b = BenchmarkTools.Trial(BenchmarkTools.DEFAULT_PARAMETERS, t/sum(t)*1e9*BenchmarkTools.DEFAULT_PARAMETERS.seconds, zeros(100), 0, 0)
     show(ioctx, MIME("text/plain"), b)
     str = String(take!(io))
     idx = findfirst(rex2, str)
