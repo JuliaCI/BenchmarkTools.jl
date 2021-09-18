@@ -253,7 +253,7 @@ function prettydiff(p)
     return string(diff >= 0.0 ? "+" : "", @sprintf("%.2f", diff * 100), "%")
 end
 
-function prettytime(t)
+function prettytime(t; short=false)
     if t < 1e3
         value, units = t, "ns"
     elseif t < 1e6
@@ -263,7 +263,11 @@ function prettytime(t)
     else
         value, units = t / 1e9, "s"
     end
-    return string(@sprintf("%.3f", value), " ", units)
+    if short
+        string(@sprintf("%.0f", value), " ", units)
+    else
+        string(@sprintf("%.3f", value), " ", units)
+    end
 end
 
 function prettymemory(b)

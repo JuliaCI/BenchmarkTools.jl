@@ -572,13 +572,17 @@ macro btime(args...)
         local $trialmin = $BenchmarkTools.minimum($trial)
         local $trialmean = $BenchmarkTools.mean($trial)
         local $trialallocs = $BenchmarkTools.allocs($trialmin)
-        println("  min ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
-                ", mean ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)),
-                " (", $trialallocs , " allocation",
-                $trialallocs == 1 ? "" : "s", 
-                $trialallocs == 0 ? "" : ": " * 
-                    $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)), 
-                ")")
+        $print("  min ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
+            ", mean ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)),
+            " (", $trialallocs , " allocation", $trialallocs == 1 ? "" : "s")
+        if $trialallocs == 0
+            $println(")")
+        else
+            $println(", ", $prettymemory($memory($trialmin)),
+                ". GC mean ", $prettytime($gctime($trialmean); short=true),
+                ", ", $prettypercent($gctime($trialmean) / $time($trialmean)), ")"
+                )
+        end
         $result
     end)
 end
