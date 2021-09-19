@@ -446,9 +446,9 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     bins = bindata(histtimes, histwidth - 1, histmin, histmax)
     append!(bins, [1, floor((1-histquantile) * length(times))])
     # if median size of (bins with >10% average data/bin) is less than 5% of max bin size, log the bin sizes
-    if (logbins === nothing || logbins === true) && median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05
+    if logbins === true || (logbins === nothing && median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05)
         bins, logbins = log.(1 .+ bins), true
-    elseif logbins === nothing
+    else
         logbins = false
     end
     hist = asciihist(bins, histheight)
