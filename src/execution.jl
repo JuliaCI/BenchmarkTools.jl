@@ -276,14 +276,15 @@ function prunekwargs(args...)
     end
 end
 
-function hasevals(params)
+function haskw(params, name::Symbol)
     for p in params
-        if isa(p, Expr) && p.head == :kw && first(p.args) == :evals
+        if isa(p, Expr) && p.head == :kw && first(p.args) == name
             return true
         end
     end
     return false
 end
+hasevals(params) = haskw(params, :evals)
 
 function collectvars(ex::Expr, vars::Vector{Symbol} = Symbol[])
     if ex.head == :(=)
@@ -593,6 +594,12 @@ information.
 """
 macro bprofile(args...)
     _, params = prunekwargs(args...)
+    if !haskw(args, :gctrial)
+        args = (args..., Expr(:kw, :gctrial, false))
+    end
+    if !haskw(args, :gcsample)
+        args = (args..., Expr(:kw, :gcsample, false))
+    end
     tmp = gensym()
     return esc(quote
         local $tmp = $BenchmarkTools.@benchmarkable $(args...)
