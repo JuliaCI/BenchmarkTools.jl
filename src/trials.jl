@@ -351,6 +351,7 @@ _percentile() = 99  # to tweak this live, TODO remove
 function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     pad = get(io, :pad, "")
+    padcolor = :light_black
 
     showpercentile = _percentile()
 
@@ -358,56 +359,63 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     times = t.times[perm]
     gctimes = t.gctimes[perm]
 
-    if length(t) > 1
-        med = median(t)
-        avg = mean(t)
-        min = minimum(t)
-        max = maximum(t)
-        q99 = quantile(t, showpercentile/100)
-
-        mintime = prettytime(time(min))
-        medtime = prettytime(time(med))
-        avgtime = prettytime(time(avg))
-        q99time = prettytime(time(q99))
-
-        # Mean GC time is just that; then we take the percentage of the mean time
-        avggctime, avegcpercent = prettytime(mean(gctimes)), prettypercent(mean(gctimes) / mean(times))
-        q99gctime = prettytime(quantile(gctimes, showpercentile/100))
-        # Maximum GC time has a percentage which is of the same run, not necc. the longest run
-        _t, _i = findmax(gctimes)
-        maxgctime, maxgcpercent = prettytime(_t), prettypercent(_t / times[_i])
-
-        memorystr = prettymemory(memory(min))
-        allocsstr = prettycount(allocs(min)) * (allocs(min)==1 ? " allocation" : " allocations")
+    if length(t) == 0
+        print(io, "BenchmarkTools.Trial: 0 samples")
+        return
     elseif length(t) == 1
-        # TODO update this!
+        println(io, "BenchmarkTools.Trial:")
+        # Time
+        print(io, pad, "│  Only 1 sample: ")
+        printstyled(io, prettytime(times[1]); color=:green)
 
-        print(io, pad, " Single result which took ")
-        printstyled(io, prettytime(times[1]); color=:light_blue)
-        print(io, " (", prettypercent(gctimes[1]/times[1]), " GC) ")
-        print(io, "to evaluate,\n")
-        print(io, pad, " with a memory estimate of ")
-        printstyled(io, prettymemory(t.memory[1]); color=:yellow)
-        print(io, ", over ")
-        printstyled(io, t.allocs[1]; color=:yellow)
-        print(io, " allocations.")
+        # Memory
+        println(io)
+        print(io, pad, "│  ", prettycount(t.allocs[1]), " allocation", t.allocs[1]==1 ? "" : "s")
+        if t.allocs[1] > 0
+            print(io, ", ", prettymemory(t.memory[1]))
+        end
+
+        # GC time
+        if t.gctimes[1] > 0
+            println(io)
+            print(io, pad, "│  GC time: ", prettytime(t.gctimes[1]))
+            printstyled(io, " (", prettypercent(t.gctimes[1] / t.times[1]),")"; color=:green)
+        end
         return
-    else
-        print(io, pad, " No results.")
-        return
-    end
+    end # done with trivial cases.
 
-    # New block
-    # println(io, "┌ BenchmarkTools.Trial:")
-    println(io, "BenchmarkTools.Trial:")
+    med = median(t)
+    avg = mean(t)
+    min = minimum(t)
+    max = maximum(t)
+    q99 = quantile(t, showpercentile/100)
 
-    print(io, pad, "│  ")
+    mintime = prettytime(time(min))
+    medtime = prettytime(time(med))
+    avgtime = prettytime(time(avg))
+    q99time = prettytime(time(q99))
+
+    # Mean GC time is just that; then we take the percentage of the mean time
+    avggctime, avegcpercent = prettytime(mean(gctimes)), prettypercent(mean(gctimes) / mean(times))
+    q99gctime = prettytime(quantile(gctimes, showpercentile/100))
+    # Maximum GC time has a percentage which is of the same run, not necc. the longest run
+    _t, _i = findmax(gctimes)
+    maxgctime, maxgcpercent = prettytime(_t), prettypercent(_t / times[_i])
+
+    memorystr = prettymemory(memory(min))
+    allocsstr = prettycount(allocs(min)) * (allocs(min)==1 ? " allocation" : " allocations")
+
+    # Main text block:
+
+    printstyled(io, "BenchmarkTools.Trial:\n"; color=padcolor)
+
+    printstyled(io, pad, "│  "; color=padcolor)
     printstyled(io, "min "; color=:default)
     printstyled(io, mintime; color=:default, bold=true)
     print(io, ", ")
-    printstyled(io, "median "; color=:light_blue)
-    printstyled(io, medtime; color=:light_blue, bold=true)
-    printstyled(io, " (½)"; color=:light_blue)
+    printstyled(io, "median "; color=:blue)
+    printstyled(io, medtime; color=:blue, bold=true)
+    printstyled(io, " (½)"; color=:blue)
     print(io, ", ")
     printstyled(io, "mean "; color=:green)
     printstyled(io, avgtime; color=:green, bold=true)
@@ -417,20 +425,19 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     printstyled(q99time; bold=true)
     println(io)
 
-    print(io, pad, "│  ", allocsstr)
+    printstyled(io, pad, "│  "; color=padcolor)
+    print(io, allocsstr)
     if allocs(min) != 0
         println(io, ", ", memorystr)
     else
         println(io)
     end
     if !all(iszero, gctimes)
-        print(io, pad, "│  ", "GC time: mean ", avggctime)
+        printstyled(io, pad, "│  "; color=padcolor)
+        print(io, "GC time: mean ", avggctime)
         printstyled(io, " (", avegcpercent, ")"; color=:green)
         println(io, ", max ", maxgctime, " (", maxgcpercent, ")")
     end
-
-    print(io, pad, "│  ", prettycount(length(t)), " sample", if length(t) > 1 "s" else "" end,
-          ", each ", prettycount(t.params.evals), " evaluation", if t.params.evals > 1 "s" else "" end , ":")
 
     # Histogram
 
@@ -466,26 +473,28 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     end
 
     # Above the histogram bars, print markers for special ones:
-    print(io, "\n", pad, "│  ")
+    # println(io)
+    printstyled(io, pad, "│  "; color=padcolor)
     for i in axes(hist, 2)
         if i == avgpos
             printstyled(io, "*", color=:green, bold=true) # or μ, or t̄?
         elseif i == medpos || (medpos==avgpos && i==medpos-1)
             # marker for "median" is moved one to the left if they collide
-            printstyled(io, "½", color=:light_blue) # sadly "㊿" is often double wide. ½, |, ‖, ↓ maybe?
+            printstyled(io, "½", color=:blue) # sadly "㊿" is often double wide. ½, |, ‖, ↓ maybe?
         else
             print(io, " ")
         end
     end
 
     for r in axes(hist, 1)
-        print(io, "\n", pad, "│  ")
+        println(io)
+        printstyled(io, pad, "│  "; color=padcolor)
         for (i, bar) in enumerate(view(hist, r, :))
             color = :default
             if i == avgpos
                 color = :green
             elseif i == medpos  # if the bars co-incide, colour the mean? matches labels
-                color = :light_blue
+                color = :blue
             elseif bins[i] == 0
                 color = :light_black
             end
@@ -496,12 +505,16 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     remtrailingzeros(timestr) = replace(timestr, r"\.?0+ " => " ")
     minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.([histmin, histmax], sigdigits=3)))
 
-    print(io, "\n", pad, "└  ", minhisttime)
+    println(io)
+    printstyled(io, pad, "└  "; color=padcolor)
+    print(io, minhisttime)
     # Caption is only printed if logbins has been selected:
-    caption = logbins ? "log(counts) by time" : ""
+    caption = string(prettycount(length(t)), " sample", if length(t) > 1 "s" else "" end,
+          ", each ", prettycount(t.params.evals), " evaluation", if t.params.evals > 1 "s" else "" end)
+    caption = logbins ? ("log(counts) from " * caption) : caption
     printstyled(io, " " ^ ((histwidth - length(caption)) ÷ 2 - length(minhisttime)), caption; color=:light_black)
     print(io, lpad(maxhisttime, ceil(Int, (histwidth - length(caption)) / 2) - 1), " ")
-    printstyled(io, "+")
+    print(io, "+")
 end
 
 # These two functions allow endpoints 6, 7, 8, 10, 15, 20, 30, 40, ... perhaps too coarse?
