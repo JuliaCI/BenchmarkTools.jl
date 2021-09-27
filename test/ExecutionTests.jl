@@ -192,6 +192,14 @@ str = String(take!(io))
 @test  occursin(r"BenchmarkTools(\.jl)?/src/execution\.jl:\d+; _run", str)
 @test !occursin(r"BenchmarkTools(\.jl)?/src/execution\.jl:\d+; warmup", str)
 @test !occursin(r"BenchmarkTools(\.jl)?/src/execution\.jl:\d+; tune!", str)
+b = @bprofile 1+1
+Profile.print(IOContext(io, :displaysize=>(24,200)))
+str = String(take!(io))
+@test !occursin("gcscrub", str)
+b = @bprofile 1+1 gctrial=true
+Profile.print(IOContext(io, :displaysize=>(24,200)))
+str = String(take!(io))
+@test  occursin("gcscrub", str)
 
 ########
 # misc #
