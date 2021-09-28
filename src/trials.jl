@@ -346,93 +346,91 @@ Base.show(io::IO, t::TrialEstimate) = _show(io, t)
 Base.show(io::IO, t::TrialRatio) = _show(io, t)
 Base.show(io::IO, t::TrialJudgement) = _show(io, t)
 
-_percentile() = 99  # to tweak this live, TODO remove
-
 function Base.show(io::IO, ::MIME"text/plain", t::Trial)
-
     pad = get(io, :pad, "")
     padcolor = :light_black
 
-    showpercentile = _percentile()
+    showpercentile = 99  # used both for display time, and to set right cutoff of histogram
 
-    perm = sortperm(t.times)
-    times = t.times[perm]
-    gctimes = t.gctimes[perm]
+    allocsstr = if allocs(t) == 0
+        "0 allocations"
+    elseif allocs(t) == 1
+        "1 allocation, " * prettymemory(memory(t))
+    else
+        prettycount(allocs(t)) * " allocations, total " * prettymemory(memory(t))
+    end
+
+    samplesstr = string(
+        prettycount(length(t)),
+        if length(t) == 1  " sample, with " else " samples, each " end,
+        prettycount(t.params.evals), 
+        if t.params.evals == 1  " evaluation" else " evaluations" end,
+    )
 
     if length(t) == 0
         print(io, "BenchmarkTools.Trial: 0 samples")
         return
     elseif length(t) == 1
-        println(io, "BenchmarkTools.Trial:")
+        printstyled(io, "BenchmarkTools.Trial:\n"; color=padcolor)
         # Time
-        print(io, pad, "│  Only 1 sample: ")
-        printstyled(io, prettytime(times[1]); color=:green)
+        printstyled(io, pad, "│  "; color=padcolor)
+        print(io, "time ")
+        printstyled(io, prettytime(t.times[1]); color=:green, bold=true)
 
         # Memory
         println(io)
-        print(io, pad, "│  ", prettycount(t.allocs[1]), " allocation", t.allocs[1]==1 ? "" : "s")
-        if t.allocs[1] > 0
-            print(io, ", ", prettymemory(t.memory[1]))
-        end
+        printstyled(io, pad, "│  "; color=padcolor)
+        print(io, allocsstr)
 
         # GC time
         if t.gctimes[1] > 0
             println(io)
-            print(io, pad, "│  GC time: ", prettytime(t.gctimes[1]))
+            printstyled(io, pad, "│  "; color=padcolor)
+            print(io, "GC time: ", prettytime(t.gctimes[1]))
             printstyled(io, " (", prettypercent(t.gctimes[1] / t.times[1]),")"; color=:green)
         end
+
+        # 
+        println(io)
+        printstyled(io, pad, "└  ", samplesstr; color=padcolor)
+
         return
     end # done with trivial cases.
 
-    med = median(t)
-    avg = mean(t)
-    min = minimum(t)
-    max = maximum(t)
-    q99 = quantile(t, showpercentile/100)
-
-    mintime = prettytime(time(min))
-    medtime = prettytime(time(med))
-    avgtime = prettytime(time(avg))
-    q99time = prettytime(time(q99))
-
-    # Mean GC time is just that; then we take the percentage of the mean time
-    avggctime, avegcpercent = prettytime(mean(gctimes)), prettypercent(mean(gctimes) / mean(times))
-    q99gctime = prettytime(quantile(gctimes, showpercentile/100))
-    # Maximum GC time has a percentage which is of the same run, not necc. the longest run
-    _t, _i = findmax(gctimes)
-    maxgctime, maxgcpercent = prettytime(_t), prettypercent(_t / times[_i])
-
-    memorystr = prettymemory(memory(min))
-    allocsstr = prettycount(allocs(min)) * (allocs(min)==1 ? " allocation" : " allocations")
-
     # Main text block:
-
     printstyled(io, "BenchmarkTools.Trial:\n"; color=padcolor)
 
     printstyled(io, pad, "│  "; color=padcolor)
     printstyled(io, "min "; color=:default)
-    printstyled(io, mintime; color=:default, bold=true)
+    printstyled(io, prettytime(minimum(t.times)); color=:default, bold=true)
     print(io, ", ")
     printstyled(io, "median "; color=:blue)
-    printstyled(io, medtime; color=:blue, bold=true)
-    printstyled(io, " (½)"; color=:blue)
+    printstyled(io, prettytime(median(t.times)); color=:blue, bold=true)
+    # printstyled(io, " (½)"; color=:blue)
     print(io, ", ")
     printstyled(io, "mean "; color=:green)
-    printstyled(io, avgtime; color=:green, bold=true)
-    printstyled(io, " (*)"; color=:green)
+    printstyled(io, prettytime(mean(t.times)); color=:green, bold=true)
+    # printstyled(io, " (*)"; color=:green)
     print(io, ", ")
     print(io, showpercentile, "ᵗʰ ")
-    printstyled(q99time; bold=true)
+    printstyled(prettytime(quantile(t.times, showpercentile/100)); bold=true)
     println(io)
 
     printstyled(io, pad, "│  "; color=padcolor)
-    print(io, allocsstr)
-    if allocs(min) != 0
-        println(io, ", ", memorystr)
-    else
-        println(io)
-    end
-    if !all(iszero, gctimes)
+    println(io, allocsstr)
+
+    if !all(iszero, t.gctimes)
+        # Mean GC time is just that; then we take the percentage of the mean time
+        avggctime = prettytime(mean(t.gctimes))
+        avegcpercent = prettypercent(mean(t.gctimes) / mean(t.times))
+
+        # Maximum GC time is not taken as the GC time of the slowst run, max(t).
+        # The percentage shown is of the same max-GC run, again not the percentage of longest time.
+        # Of course, very often the slowest run is due to GC, and these concerns won't matter.
+        _t, _i = findmax(t.gctimes)
+        maxgctime = prettytime(_t)
+        maxgcpercent = prettypercent(_t / t.gctimes[_i])
+
         printstyled(io, pad, "│  "; color=padcolor)
         print(io, "GC time: mean ", avggctime)
         printstyled(io, " (", avegcpercent, ")"; color=:green)
@@ -445,7 +443,11 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     histquantile = showpercentile/100
     # The height and width of the printed histogram in characters:
     histheight = 2
-    histwidth = 74  # fits into 78 chars, as does 1st line with 4 times
+    histwidth = 78-4  # fits into 78 chars  # TODO read this from io?
+
+    perm = sortperm(t.times)
+    times = t.times[perm]
+    gctimes = t.gctimes[perm]
 
     # This needs sorted times:
     histtimes = times[1:round(Int, histquantile*end)]
@@ -454,8 +456,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     logbins = get(io, :logbins, nothing)
     bins = bindata(histtimes, histwidth - 1, histmin, histmax)
     append!(bins, [1, floor((1-histquantile) * length(times))])
-    # if median size of (bins with >10% average data/bin) is less than 5% of max bin size, log the bin sizes
-    if logbins === true # || (logbins === nothing && median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05)
+    if logbins === true
         bins, logbins = log.(1 .+ bins), true
     else
         logbins = false
@@ -468,19 +469,31 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     if delta1 > 0
         medpos = 1 + round(Int, (histtimes[length(times) ÷ 2] - histmin) / delta1)
         avgpos = 1 + round(Int, (mean(times) - histmin) / delta1)
+        # TODO replace with searchsortedfirst & range?
+        q25pos = 1 + round(Int, (histtimes[max(1,length(times) ÷ 4)] - histmin) / delta1)
+        q75pos = 1 + round(Int, (histtimes[3*length(times) ÷ 4] - histmin) / delta1)
     else
         medpos, avgpos = 1, 1
+        q25pos, q75pos = 1, 1
     end
 
     # Above the histogram bars, print markers for special ones:
-    # println(io)
     printstyled(io, pad, "│  "; color=padcolor)
+    istop = maximum(filter(i -> i in axes(hist,2), [avgpos, medpos+1, q75pos]))
     for i in axes(hist, 2)
+        i > istop && break
         if i == avgpos
-            printstyled(io, "*", color=:green, bold=true) # or μ, or t̄?
+            printstyled(io, "*", color=:green, bold=true)
         elseif i == medpos || (medpos==avgpos && i==medpos-1)
             # marker for "median" is moved one to the left if they collide
-            printstyled(io, "½", color=:blue) # sadly "㊿" is often double wide. ½, |, ‖, ↓ maybe?
+            # printstyled(io, "½", color=:blue)
+            printstyled(io, "◑", color=:blue)
+        elseif i == q25pos
+            # printstyled(io, "¼", color=:light_black)
+            printstyled(io, "◔", color=:light_black)
+        elseif i == q75pos
+            # printstyled(io, "¾", color=:light_black)
+            printstyled(io, "◕", color=:light_black)
         else
             print(io, " ")
         end
@@ -489,7 +502,9 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     for r in axes(hist, 1)
         println(io)
         printstyled(io, pad, "│  "; color=padcolor)
+        istop = findlast(!=(' '), view(hist, r, :))
         for (i, bar) in enumerate(view(hist, r, :))
+            i > istop && break  # don't print trailing spaces, as they waste space when line-wrapped
             color = :default
             if i == avgpos
                 color = :green
@@ -509,43 +524,28 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     printstyled(io, pad, "└  "; color=padcolor)
     print(io, minhisttime)
     # Caption is only printed if logbins has been selected:
-    caption = string(prettycount(length(t)), " sample", if length(t) > 1 "s" else "" end,
-          ", each ", prettycount(t.params.evals), " evaluation", if t.params.evals > 1 "s" else "" end)
-    caption = logbins ? ("log(counts) from " * caption) : caption
+    caption = logbins ? ("log(counts) from " * samplesstr) : samplesstr
     printstyled(io, " " ^ ((histwidth - length(caption)) ÷ 2 - length(minhisttime)), caption; color=:light_black)
     print(io, lpad(maxhisttime, ceil(Int, (histwidth - length(caption)) / 2) - 1), " ")
     print(io, "+")
+    # printstyled(io, "●", color=:light_black)  # other options...
+    # print(io, "⋯")
+    # printstyled(io, "¹⁰⁰", color=:light_black)
 end
 
-# These two functions allow endpoints 6, 7, 8, 10, 15, 20, 30, 40, ... perhaps too coarse?
-# exp.(range(log(1), log(10), length=11)) ≈ [1, 1.25, 1.6, 2, 2.5, 3.2, 4, 5, 6.3, 8, 10] 
-
-# round.(0:0.01:10, sigdigits=3, base=2) |> unique # looks good in 1:10, not great outside
+# I wondered about rounding to a few steps per decade. This looks good in 1:10, not great outside:
+# round.(0:0.01:10, sigdigits=3, base=2) |> unique
 function low_edge(times)
-    # return 0
-    min = minimum(times)
-    # return round(min, RoundDown; sigdigits = 3, base = 2)
-    return round(min, RoundDown; sigdigits = 2)
-    # dec = round(min, RoundDown; sigdigits = 1)
-    # if first(string(dec)) == '1'
-    #     min > 1.5 * dec && return 1.5 * dec
-    #     # min > 1.2 * dec && return 1.2 * dec
-    # elseif first(string(dec)) == '9'
-    #     return round((8//9) * dec, sigdigits = 2)
-    # end
-    # dec
+    # _min = minimum(times)
+    _min = min(minimum(times), mean(times) / 1.03)  # demand low edge 3% below mean
+    return round(_min, RoundDown; sigdigits = 2)
+
 end
 function high_edge(times)
-    max = maximum(times)
-    # return round(max, RoundUp; sigdigits = 3, base = 2)
-    return round(max, RoundUp; sigdigits = 2)
-    # dec = round(max, RoundUp; sigdigits = 1)
-    # if first(string(dec)) == '2'
-    #     max < 0.75 * dec && return 0.75 * dec
-    # elseif first(string(dec)) == '9'
-    #     return round((10//9) * dec, sigdigits = 2)
-    # end
-    # dec
+    # _max = maximum(times)
+    # _max = Base.max(maximum(times), 1.07 * low_edge(times))  # demand total width at least 7%
+    _max = max(maximum(times), 1.03 * mean(times))  # demand high edge 3% above mean
+    return round(_max, RoundUp; sigdigits = 2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
