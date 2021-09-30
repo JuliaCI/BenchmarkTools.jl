@@ -122,9 +122,6 @@ Statistics.quantile(trial::Trial, p::Real) = TrialEstimate(trial, quantile(trial
 Statistics.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
 Statistics.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
 Statistics.std(trial::Trial) = TrialEstimate(trial, std(trial.times), std(trial.gctimes))
-# mean absolute deviation
-meanad(xs::AbstractArray; mean = Statistics.mean(xs)) = Statistics.mean(x -> abs(x - mean), xs)
-meanad(trial::Trial) = TrialEstimate(trial, meanad(trial.times), meanad(trial.gctimes))
 
 Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 
@@ -283,8 +280,10 @@ function prettymemory(b)
     return string(@sprintf("%.2f", value), " ", units)
 end
 
+# This returns a string like "16_384", used for number of samples & allocations.
 function prettycount(n::Integer)
-    join(reverse(join.(reverse.(Iterators.partition(digits(n), 3)))), '_')
+    groups = map(join, Iterators.partition(digits(n), 3))
+    return reverse(join(groups, '_'))
 end
 
 function withtypename(f, io, t)
