@@ -370,36 +370,36 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         print(io, "BenchmarkTools.Trial: 0 samples")
         return
     elseif length(t) == 1
-        printstyled(io, "BenchmarkTools.Trial:\n"; color=padcolor)
+        printstyled(io, "┌ BenchmarkTools.Trial:\n"; color=padcolor)
         # Time
-        printstyled(io, pad, "│  "; color=padcolor)
+        printstyled(io, pad, "│   "; color=padcolor)
         print(io, "time ")
         printstyled(io, prettytime(t.times[1]); color=:green, bold=true)
 
         # Memory
         println(io)
-        printstyled(io, pad, "│  "; color=padcolor)
+        printstyled(io, pad, "│   "; color=padcolor)
         print(io, allocsstr)
 
         # GC time
         if t.gctimes[1] > 0
             println(io)
-            printstyled(io, pad, "│  "; color=padcolor)
+            printstyled(io, pad, "│   "; color=padcolor)
             print(io, "GC time: ", prettytime(t.gctimes[1]))
             printstyled(io, " (", prettypercent(t.gctimes[1] / t.times[1]),")"; color=:green)
         end
 
         # 
         println(io)
-        printstyled(io, pad, "└  ", samplesstr; color=padcolor)
+        printstyled(io, pad, "└   ", samplesstr; color=padcolor)
 
         return
     end # done with trivial cases.
 
     # Main text block:
-    printstyled(io, "BenchmarkTools.Trial:\n"; color=padcolor)
+    printstyled(io, "┌ BenchmarkTools.Trial:\n"; color=padcolor)
 
-    printstyled(io, pad, "│  "; color=padcolor)
+    printstyled(io, pad, "│   "; color=padcolor)
     printstyled(io, "min "; color=:default)
     printstyled(io, prettytime(minimum(t.times)); color=:default, bold=true)
     print(io, ", ")
@@ -415,7 +415,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     printstyled(prettytime(quantile(t.times, showpercentile/100)); bold=true)
     println(io)
 
-    printstyled(io, pad, "│  "; color=padcolor)
+    printstyled(io, pad, "│   "; color=padcolor)
     println(io, allocsstr)
 
     if !all(iszero, t.gctimes)
@@ -430,7 +430,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         maxgctime = prettytime(_t)
         maxgcpercent = prettypercent(_t / t.gctimes[_i])
 
-        printstyled(io, pad, "│  "; color=padcolor)
+        printstyled(io, pad, "│   "; color=padcolor)
         print(io, "GC time: mean ", avggctime)
         printstyled(io, " (", avegcpercent, ")"; color=:green)
         println(io, ", max ", maxgctime, " (", maxgcpercent, ")")
@@ -442,7 +442,9 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     histquantile = showpercentile/100
     # The height and width of the printed histogram in characters:
     histheight = 2
-    histwidth = 78-4  # fits into 78 chars  # TODO read this from io?
+    histwidth = max(min(90, displaysize(io)[2]), length(samplesstr) + 24) - 8
+    # This should fit it within your terminal, but stops growing at 90 columns. Below about
+    # 55 columns it will stop shrinking, by which point the first line has already wrapped.
 
     perm = sortperm(t.times)
     times = t.times[perm]
@@ -477,7 +479,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     end
 
     # Above the histogram bars, print markers for special ones:
-    printstyled(io, pad, "│  "; color=padcolor)
+    printstyled(io, pad, "│   "; color=padcolor)
     istop = maximum(filter(i -> i in axes(hist,2), [avgpos, medpos+1, q75pos]))
     for i in axes(hist, 2)
         i > istop && break
@@ -500,7 +502,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     for r in axes(hist, 1)
         println(io)
-        printstyled(io, pad, "│  "; color=padcolor)
+        printstyled(io, pad, "│   "; color=padcolor)
         istop = findlast(!=(' '), view(hist, r, :))
         for (i, bar) in enumerate(view(hist, r, :))
             i > istop && break  # don't print trailing spaces, as they waste space when line-wrapped
@@ -520,7 +522,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.([histmin, histmax], sigdigits=3)))
 
     println(io)
-    printstyled(io, pad, "└  "; color=padcolor)
+    printstyled(io, pad, "└   "; color=padcolor)
     print(io, minhisttime)
     # Caption is only printed if logbins has been selected:
     caption = logbins ? ("log(counts) from " * samplesstr) : samplesstr
