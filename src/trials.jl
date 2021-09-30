@@ -454,6 +454,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     histtimes = times[1:round(Int, histquantile*end)]
     histmin = get(io, :histmin, low_edge(histtimes))
     histmax = get(io, :histmax, high_edge(histtimes))
+
     logbins = get(io, :logbins, nothing)
     bins = bindata(histtimes, histwidth - 1, histmin, histmax)
     append!(bins, [1, floor((1-histquantile) * length(times))])
@@ -466,17 +467,26 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     hist[:,end-1] .= ' '
     maxbin = maximum(bins)
 
-    delta1 = (histmax - histmin) / (histwidth - 1)
-    if delta1 > 0
-        medpos = 1 + round(Int, (histtimes[length(times) ÷ 2] - histmin) / delta1)
-        avgpos = 1 + round(Int, (mean(times) - histmin) / delta1)
-        # TODO replace with searchsortedfirst & range?
-        q25pos = 1 + round(Int, (histtimes[max(1,length(times) ÷ 4)] - histmin) / delta1)
-        q75pos = 1 + round(Int, (histtimes[3*length(times) ÷ 4] - histmin) / delta1)
-    else
-        medpos, avgpos = 1, 1
-        q25pos, q75pos = 1, 1
-    end
+    # delta1 = (histmax - histmin) / (histwidth - 1)
+    # if delta1 > 0
+    #     medpos = 1 + round(Int, (histtimes[length(times) ÷ 2] - histmin) / delta1)
+    #     avgpos = 1 + round(Int, (mean(times) - histmin) / delta1)
+    #     # TODO replace with searchsortedfirst & range?
+    #     q25pos = 1 + round(Int, (histtimes[max(1,length(times) ÷ 4)] - histmin) / delta1)
+    #     q75pos = 1 + round(Int, (histtimes[3*length(times) ÷ 4] - histmin) / delta1)
+    # else
+    #     medpos, avgpos = 1, 1
+    #     q25pos, q75pos = 1, 1
+    # end
+    _centres = range(histmin, histmax, length=length(bins)-2)
+    fences = _centres .+ step(_centres)/2
+    avgpos = searchsortedfirst(fences, mean(times))
+    medpos = searchsortedfirst(fences, median(times))
+    # @show medpos medpos2
+    q25pos = searchsortedfirst(fences, quantile(times, 0.25))
+    q75pos = searchsortedfirst(fences, quantile(times, 0.75))
+    # @show q25pos q25pos2
+    # @show q75pos q75pos2
 
     # Above the histogram bars, print markers for special ones:
     printstyled(io, pad, "│   "; color=padcolor)
@@ -485,8 +495,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         i > istop && break
         if i == avgpos
             printstyled(io, "*", color=:green, bold=true)
-        elseif i == medpos || (medpos==avgpos && i==medpos-1)
-            # marker for "median" is moved one to the left if they collide
+        elseif i == medpos || 
+                (medpos==avgpos && i==medpos-1 && median(times)<=mean(times)) ||
+                (medpos==avgpos && i==medpos+1 && median(times)>mean(times))
+            # marker for "median" is moved one to the left if they collide exactly
             # printstyled(io, "½", color=:blue)
             printstyled(io, "◑", color=:blue)
         elseif i == q25pos
