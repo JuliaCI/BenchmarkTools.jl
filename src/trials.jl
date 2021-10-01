@@ -323,12 +323,13 @@ function asciihist(bins, height=1)
 end
 
 function hist_round_low(times, lo=minimum(times), av=mean(times))
-    _min = min(lo, av / 1.03)  # demand low edge 3% from mean, or further
-    return round(_min, RoundDown; sigdigits = 2)
+    av < 0.1 && return 0.0  # stop at 0, not 0.01 ns, in trivial cases
+    raw = min(lo, av / 1.03)  # demand low edge 3% from mean, or further
+    return round(raw, RoundDown; sigdigits = 2)
 end
 function hist_round_high(times, av=mean(times), hi=quantile(times, 0.99))
-    _max = max(1, hi, 1.03 * av)  # demand high edge 3% above mean, and at least 1ns
-    return round(_max, RoundUp; sigdigits = 2)
+    raw = max(1, hi, 1.03 * av)  # demand high edge 3% above mean, and at least 1ns
+    return round(raw, RoundUp; sigdigits = 2)
 end
 
 _summary(io, t, args...) = withtypename(() -> print(io, args...), io, t)
