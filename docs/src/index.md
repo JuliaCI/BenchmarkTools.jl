@@ -17,19 +17,22 @@ julia> using BenchmarkTools
 # timing results. Note that each sample can require multiple evaluations
 # benchmark kernel evaluations. See the BenchmarkTools manual for details.
 julia> @benchmark sort(data) setup=(data=rand(10))
-BenchmarkTools.Trial:
- 10000 samples with 968 evaulations took a median time of 90.902 ns (0.00% GC)
- Time  (mean ± σ):   94.936 ns ±  47.797 ns  (GC: 2.78% ±  5.03%)
- Range (min … max):  77.655 ns … 954.823 ns  (GC: 0.00% … 87.94%)
-
-          ▁▃▅▆▇█▇▆▅▂▁                                          
-  ▂▂▃▃▄▅▆▇███████████▇▆▄▄▃▃▂▂▂▂▂▂▂▂▂▂▂▁▂▁▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂
-  77.7 ns         Histogram: frequency by time           137 ns
-
- Memory estimate: 160 bytes, allocs estimate: 1.
+┌ Trial:
+│  min 46.954 ns, median 59.475 ns, mean 61.344 ns, 99ᵗʰ 80.203 ns
+│  1 allocation, 144 bytes
+│  GC time: mean 1.092 ns (1.78%), max 537.224 ns (88.05%)
+│                          ◔  ◑   *
+│                        ▂▄▅▇▇█▆▆▄▂
+│  ▁▂▁▁▂▂▂▂▁▂▂▁▁▂▂▂▂▃▃▅▆████████████▇▅▅▃▃▃▃▃▃▃▃▃▃▃▃▂▃▂▂▂▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▁▂▁ ▄
+└  46 ns             10_000 samples, each 985 evaluations             81 ns +
 ```
 
+In the histogram of sample times, the median is marked `◑` and the mean `*`; on most displays
+these will be indicaded by color too (but not in the documentation).
+
 For quick sanity checks, one can use the [`@btime` macro](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
+This prints only the **minimum** time, which is often the most informative for fast-running
+calculations:
 
 ```julia
 julia> @btime sin(x) setup=(x=rand())
