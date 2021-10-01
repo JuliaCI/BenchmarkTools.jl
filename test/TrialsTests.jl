@@ -271,13 +271,13 @@ s123 = sprint(show, "text/plain", t123)
 @test contains(s123, "▁▁█▁▁")  # has a histogram, mostly zero
 @test contains(s123, "▁▁▁█ ▁\n")  # 3.0 fits in last bin, not the overflow
 @test endswith(s123, "3 ns +")  # right endpoint rounded to 3, no decimals
-@test contains(s123, "┌ Trial:")  # box starting at the type
 @test contains(s123, "3 samples, each 1 evaluation")  # caption
 
 t456 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), 100 * [1,1,3,14,16.], [0,0,2,0,0.], 456, 7)
 s456 = sprint(show, "text/plain", t456)
 @test contains(s456, "7 allocations, total 456 bytes")
 @test contains(s456, "GC time: mean 0.400 ns (0.06%), max 2.000 ns (0.67%)")
+@test contains(s456, "┌ Trial:")  # box starting at the type
 @test contains(s456, "│  ◔       ")  # 1st quartile lines up with bar
 @test contains(s456, "│  █▁▁▁▁▁▁▁")
 @test contains(s456, "└  100 ns ")  # box closing + left endpoint without decimals

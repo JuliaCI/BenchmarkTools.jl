@@ -470,7 +470,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     # Here nextfloat() ensures both endpoints included, will only matter for
     # artificial cases such as:  Trial(Parameters(), [3,4,5], [0,0,0], 0, 0)
-    fences = range(histmin, nextfloat(histmax), length=histwidth)
+    fences = range(histmin, nextfloat(float(histmax)), length=histwidth)
     bins = histogram_bindata(t.times, fences)
     # Last bin is everything right of last fence, introduce a gap for printing:
     _lastbin = pop!(bins)
@@ -574,39 +574,3 @@ function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
 end
 
 
-#=
-# Some visual checks, designed so that mean/median should hit a bar
-
-using BenchmarkTools: Trial, Parameters
-Trial(Parameters(), [pi * 10^9], [0], 0, 0)  # one sample
-
-# mean == median, one bar
-Trial(Parameters(), [pi, pi], [0, 0], 0, 0)
-Trial(Parameters(), fill(101, 33), vcat(zeros(32), 50), 0, 0)
-
-# mean == median, three bars -- wrong highlighting before
-Trial(Parameters(), [3,4,5], [0,0,0], 0, 0)
-
-# three bars, including mean not median -- wrong highlighting before
-Trial(Parameters(), pi * [1,3,4,4], [0,0,0,100], 1, 1)
-
-# three bars, including median & both quartiles, not mean -- wrong before
-Trial(Parameters(), 99.9 * [1,1,3,14,16], [0,0,99,0,0], 222, 2)
-
-# same, but smaller range. Note also max GC is not max
-Trial(Parameters(), 999 .+ [1,1,3,14,16], [0,0,123,0,0], 45e6, 7)
-
-
-# Check that auto-sizing stops on very small widths:
-io = IOContext(stdout, :displaysize => (25,30))
-show(io, MIME("text/plain"), Trial(Parameters(), [3,4,5], [0,0,0], 0, 0))
-show(io, MIME("text/plain"), Trial(Parameters(), repeat(100 * [3,4,5], 10^6), zeros(3*10^6), 0, 0))
-
-io = IOContext(stdout, :displaysize => (25,50), :logbins => true)  # this is wider
-show(io, MIME("text/plain"), Trial(Parameters(), 100 * [3,4,5], [0,0,0], 0, 0))
-
-# Check that data off the left is OK, and median still highlighted:
-io = IOContext(stdout, :histmin => 200.123)
-show(io, MIME("text/plain"), Trial(Parameters(), 99.9 * [1,1,3,14,16], [0,0,99,0,0], 222, 2))
-
-=#
