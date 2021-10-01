@@ -198,6 +198,10 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 @test BenchmarkTools.prettymemory(1073741823) == "1024.00 MiB"
 @test BenchmarkTools.prettymemory(1073741824) == "1.00 GiB"
 
+@test BenchmarkTools.prettycount(10) == "10"
+@test BenchmarkTools.prettycount(1023) == "1_023"
+@test BenchmarkTools.prettycount(40560789) == "40_560_789"
+
 @test sprint(show, "text/plain", ta) == sprint(show, ta; context=:compact => false) == """
 BenchmarkTools.TrialEstimate: 
   time:             0.490 ns
@@ -233,17 +237,87 @@ else
 
 end
 
-trial = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1.0, 1.01], [0.0, 0.0], 0, 0)
-@test sprint(show, "text/plain", trial) == """
-BenchmarkTools.Trial: 2 samples with 1 evaluation.
- Range (min … max):  1.000 ns … 1.010 ns  ┊ GC (min … max): 0.00% … 0.00%
- Time  (median):     1.005 ns             ┊ GC (median):    0.00%
- Time  (mean ± σ):   1.005 ns ± 0.007 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+t0 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [], [], 0, 0)
+@test sprint(show, "text/plain", t0) == "Trial: 0 samples"
 
-  █                                                       █  
-  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  1 ns           Histogram: frequency by time       1.01 ns <
+t001 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [pi * 10^6], [0], 0, 0)
+s001 = sprint(show, "text/plain", t001)
+@test contains(s001, "┌ Trial:")  # box starting at the type
+@test contains(s001, "│  time 3.142 ms")
+@test contains(s001, "│  0 allocations\n")  # doesn't print 0 bytes after this
+@test contains(s001, "└  1 sample, with 1 evaluation")
 
- Memory estimate: 0 bytes, allocs estimate: 0."""
+@test BenchmarkTools.asciihist([1,2,3]) == ['▃' '▆' '█']
+@test BenchmarkTools.asciihist([1,2,0,3], 2) == [' ' '▃' ' ' '█'; '▇' '█' '▁' '█']
+
+@test BenchmarkTools.histogram_bindata([1.1, 3.1, 99], 1:3) == [1,0,2]
+@test BenchmarkTools.histogram_bindata([1.1, -99, 3.1], 1:3.0) == [1,0,1]
+
+t003 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [0.01, 0.02, 0.04], [0,0,0], 0, 0)
+s003 = sprint(show, "text/plain", t003)
+@test contains(s003, " 1 ns +")  # right limit is 1ns
+@test contains(s003, "min 0.010 ns, median 0.020 ns, mean 0.023 ns, 99ᵗʰ 0.040 ns")
+
+@test sprint(show, t001) == "Trial(3.142 ms)"
+@test sprint(show, t003) == "Trial(0.010 ns)"
+@test sprint(show, "text/plain", [t001, t003]) == "2-element Vector{BenchmarkTools.Trial}:\n 3.142 ms\n 0.010 ns"
+@test_skip sprint(show, "text/plain", [t0]) == "1-element Vector{BenchmarkTools.Trial}:\n ??"
+
+t123 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1,2,3.], [0,0,0.], 0, 0)
+s123 = sprint(show, "text/plain", t123)
+@test contains(s123, "min 1.000 ns, median 2.000 ns, mean 2.000 ns")
+@test contains(s123, " 0 allocations\n")  # doesn't print 0 bytes after this
+@test contains(s123, " ◑* ")  # median ◑ is shifted left
+@test contains(s123, "▁▁█▁▁")  # has a histogram, mostly zero
+@test contains(s123, "▁▁▁█ ▁\n")  # 3.0 fits in last bin, not the overflow
+@test endswith(s123, "3 ns +")  # right endpoint rounded to 3, no decimals
+@test contains(s123, "┌ Trial:")  # box starting at the type
+@test contains(s123, "3 samples, each 1 evaluation")  # caption
+
+t456 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), 100 * [1,1,3,14,16.], [0,0,2,0,0.], 456, 7)
+s456 = sprint(show, "text/plain", t456)
+@test contains(s456, "7 allocations, total 456 bytes")
+@test contains(s456, "GC time: mean 0.400 ns (0.06%), max 2.000 ns (0.67%)")
+@test contains(s456, "│  ◔       ")  # 1st quartile lines up with bar
+@test contains(s456, "│  █▁▁▁▁▁▁▁")
+@test contains(s456, "└  100 ns ")  # box closing + left endpoint without decimals
+
+#=
+
+# Some visual histogram checks, in which mean/median should highlight a bar, or not:
+
+using BenchmarkTools: Trial, Parameters
+Trial(Parameters(), [pi * 10^9], [0], 0, 0)  # one sample
+
+# mean == median, one bar. Symbol for median moves to the left.
+Trial(Parameters(), [pi, pi], [0, 0], 0, 0)
+Trial(Parameters(), fill(101, 33), vcat(zeros(32), 50), 0, 0)
+
+# mean == median, three bars
+Trial(Parameters(), [3,4,5], [0,0,0], 0, 0)
+
+# three bars, including mean not median
+Trial(Parameters(), pi * [1,3,4,4], [0,0,0,100], 1, 1)
+
+# three bars, including median & both quartiles, but not mean
+Trial(Parameters(), 99.9 * [1,1,3,14,16], [0,0,99,0,0], 222, 2)
+
+# same, but smaller range. Note also max GC is not max time.
+Trial(Parameters(), 999 .+ [1,1,3,14,16], [0,0,123,0,0], 45e6, 7)
+
+
+# Check that auto-sizing stops on very small widths:
+io = IOContext(stdout, :displaysize => (25,30))
+show(io, MIME("text/plain"), Trial(Parameters(), [3,4,5], [0,0,0], 0, 0))
+show(io, MIME("text/plain"), Trial(Parameters(), repeat(100 * [3,4,5], 10^6), zeros(3*10^6), 0, 0))
+
+io = IOContext(stdout, :displaysize => (25,50), :logbins => true)  # this is wider
+show(io, MIME("text/plain"), Trial(Parameters(), 100 * [3,4,5], [0,0,0], 0, 0))
+
+# Check that data off the left is OK, and median still highlighted:
+io = IOContext(stdout, :histmin => 200.123)
+show(io, MIME("text/plain"), Trial(Parameters(), 99.9 * [1,1,3,14,16], [0,0,99,0,0], 222, 2))
+
+=#
 
 end # module

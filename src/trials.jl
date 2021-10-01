@@ -297,7 +297,7 @@ function withtypename(f, io, t)
     end
 end
 
-function bindata(data, fences::AbstractRange)
+function histogram_bindata(data, fences::AbstractRange)
     @assert step(fences) > 0
     bins = zeros(Int, length(fences))
     for t in data
@@ -308,8 +308,6 @@ function bindata(data, fences::AbstractRange)
     end
     bins
 end
-
-# @test bindata([1.1, 3.1, 99, -99], 1:3) == [1,0,2]
 
 function asciihist(bins, height=1)
     histbars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
@@ -322,6 +320,15 @@ function asciihist(bins, height=1)
     heightmatrix = [min(length(histbars), barheights[b] - (h-1) * length(histbars))
                     for h in height:-1:1, b in 1:length(bins)]
     map(height -> if height < 1; ' ' else histbars[height] end, heightmatrix)
+end
+
+function hist_round_low(times, lo=minimum(times), av=mean(times))
+    _min = min(lo, av / 1.03)  # demand low edge 3% from mean, or further
+    return round(_min, RoundDown; sigdigits = 2)
+end
+function hist_round_high(times, av=mean(times), hi=quantile(times, 0.99))
+    _max = max(1, hi, 1.03 * av)  # demand high edge 3% above mean, and at least 1ns
+    return round(_max, RoundUp; sigdigits = 2)
 end
 
 _summary(io, t, args...) = withtypename(() -> print(io, args...), io, t)
@@ -404,7 +411,8 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         return
     end # done with trivial cases.
 
-    # Main text block:
+    # Main text block
+
     printstyled(io, "┌ ", modulestr, "Trial:\n"; color=boxcolor)
 
     printstyled(io, pad, "│", boxspace; color=boxcolor)
@@ -424,7 +432,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     print(io, ", ")
     print(io, showpercentile, "ᵗʰ ")
     quantime = quantile(t.times, showpercentile/100)
-    printstyled(prettytime(quantime); bold=true)
+    printstyled(io, prettytime(quantime); bold=true)
     println(io)
 
     printstyled(io, pad, "│", boxspace; color=boxcolor)
@@ -457,13 +465,13 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     # This should fit it within your terminal, but stops growing at 90 columns. Below about
     # 55 columns it will stop shrinking, by which point the first line has already wrapped.
 
-    histmin = get(io, :histmin, low_edge(t.times, mintime, avgtime))
-    histmax = get(io, :histmax, high_edge(t.times, avgtime, quantime))
+    histmin = get(io, :histmin, hist_round_low(t.times, mintime, avgtime))
+    histmax = get(io, :histmax, hist_round_high(t.times, avgtime, quantime))
 
     # Here nextfloat() ensures both endpoints included, will only matter for
     # artificial cases such as:  Trial(Parameters(), [3,4,5], [0,0,0], 0, 0)
     fences = range(histmin, nextfloat(histmax), length=histwidth)
-    bins = bindata(t.times, fences)
+    bins = histogram_bindata(t.times, fences)
     # Last bin is everything right of last fence, introduce a gap for printing:
     _lastbin = pop!(bins)
     push!(bins, 0, _lastbin)
@@ -534,18 +542,6 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     print(io, lpad(maxhisttime, ceil(Int, (histwidth - length(caption)) / 2) - 1), " ")
     print(io, "+")
     # printstyled(io, "●", color=:light_black)  # other options "⋯" "¹⁰⁰"
-end
-
-# I wondered about rounding to a few steps per decade. This looks good in 1:10, not great outside:
-# round.(0:0.01:10, sigdigits=3, base=2) |> unique
-function low_edge(times, lo=minimum(times), av=mean(times))
-    _min = min(lo, av / 1.03)  # demand low edge 3% from mean, or further
-    return round(_min, RoundDown; sigdigits = 2)
-
-end
-function high_edge(times, av=mean(times), hi=quantile(times, 0.99))
-    _max = max(1, hi, 1.03 * av)  # demand high edge 3% above mean, and at least 1ns
-    return round(_max, RoundUp; sigdigits = 2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
