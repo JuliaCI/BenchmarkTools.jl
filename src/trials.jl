@@ -297,18 +297,19 @@ function withtypename(f, io, t)
     end
 end
 
-function bindata(sorteddata, nbins, min, max)
-    Δ = (max - min) / nbins
-    bins = zeros(nbins)
-    lastpos = 0
-    for i ∈ 1:nbins
-        pos = searchsortedlast(sorteddata, min + i * Δ)
-        bins[i] = pos - lastpos
-        lastpos = pos
+function bindata(data, fences::AbstractRange)
+    @assert step(fences) > 0
+    bins = zeros(Int, length(fences))
+    for t in data
+        i = searchsortedlast(fences, t)
+        # Any data to the left of the leftmost divider is ignored:
+        iszero(i) && continue 
+        bins[i] += 1
     end
     bins
 end
-bindata(sorteddata, nbins) = bindata(sorteddata, nbins, first(sorteddata), last(sorteddata))
+
+# @test bindata([1.1, 3.1, 99, -99], 1:3) == [1,0,2]
 
 function asciihist(bins, height=1)
     histbars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
@@ -347,11 +348,13 @@ Base.show(io::IO, t::TrialJudgement) = _show(io, t)
 
 function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     pad = get(io, :pad, "")
+
     boxcolor = :light_black
     boxspace = "  "
     modulestr = "" # "BenchmarkTools."
     avgcolor = :green
     medcolor = :blue
+    captioncolor = :light_black
     showpercentile = 99  # used both for display time, and to set right cutoff of histogram
 
     allocsstr = if allocs(t) == 0
@@ -406,18 +409,22 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     printstyled(io, pad, "│", boxspace; color=boxcolor)
     printstyled(io, "min "; color=:default)
-    printstyled(io, prettytime(minimum(t.times)); color=:default, bold=true)
+    mintime = minimum(t.times)
+    printstyled(io, prettytime(mintime); color=:default, bold=true)
     print(io, ", ")
     printstyled(io, "median "; color=medcolor)
-    printstyled(io, prettytime(median(t.times)); color=medcolor, bold=true)
+    medtime = median(t.times)
+    printstyled(io, prettytime(medtime); color=medcolor, bold=true)
     # printstyled(io, " (½)"; color=medcolor)
     print(io, ", ")
     printstyled(io, "mean "; color=avgcolor)
-    printstyled(io, prettytime(mean(t.times)); color=avgcolor, bold=true)
+    avgtime = mean(t.times)
+    printstyled(io, prettytime(avgtime); color=avgcolor, bold=true)
     # printstyled(io, " (*)"; color=avgcolor)
     print(io, ", ")
     print(io, showpercentile, "ᵗʰ ")
-    printstyled(prettytime(quantile(t.times, showpercentile/100)); bold=true)
+    quantime = quantile(t.times, showpercentile/100)
+    printstyled(prettytime(quantime); bold=true)
     println(io)
 
     printstyled(io, pad, "│", boxspace; color=boxcolor)
@@ -425,71 +432,51 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     if !all(iszero, t.gctimes)
         # Mean GC time is just that; then we take the percentage of the mean time
-        avggctime = prettytime(mean(t.gctimes))
-        avegcpercent = prettypercent(mean(t.gctimes) / mean(t.times))
+        printstyled(io, pad, "│", boxspace; color=boxcolor)
+        _avgc = mean(t.gctimes)
+        print(io, "GC time: mean ", prettytime(_avgc))
+        printstyled(io, " (", prettypercent(_avgc / avgtime), ")"; color=avgcolor)
 
         # Maximum GC time is _not_ taken as the GC time of the slowst run, maximum(t).
         # The percentage shown is of the same max-GC run, again not the percentage of longest time.
         # Of course, very often the slowest run is due to GC, and these distinctions won't matter.
         _t, _i = findmax(t.gctimes)
-        maxgctime = prettytime(_t)
-        maxgcpercent = prettypercent(_t / t.times[_i])
-
-        printstyled(io, pad, "│", boxspace; color=boxcolor)
-        print(io, "GC time: mean ", avggctime)
-        printstyled(io, " (", avegcpercent, ")"; color=avgcolor)
-        println(io, ", max ", maxgctime, " (", maxgcpercent, ")")
+        println(io, ", max ", prettytime(_t), " (", prettypercent(_t / t.times[_i]), ")")
     end
 
     # Histogram
 
-    # Axis ends at this quantile, same as displayed time, ideally:
-    histquantile = showpercentile/100
+    logbins = get(io, :logbins, nothing) == true
+    caption = logbins ? ("log(counts) from " * samplesstr) : samplesstr
+
     # The height and width of the printed histogram in characters:
-    histheight = 2
-    histwidth = max(min(90, displaysize(io)[2]), length(samplesstr) + 24) - 5 - length(boxspace)
+    histheight = 2    
+    _nonhistwidth = 5 + length(boxspace)
+    _minhistwidth = 18 + length(caption)
+    histwidth = max(_minhistwidth, min(90, displaysize(io)[2]) - _nonhistwidth)
     # This should fit it within your terminal, but stops growing at 90 columns. Below about
     # 55 columns it will stop shrinking, by which point the first line has already wrapped.
 
-    times = sort(t.times)
+    histmin = get(io, :histmin, low_edge(t.times, mintime, avgtime))
+    histmax = get(io, :histmax, high_edge(t.times, avgtime, quantime))
 
-    # This needs sorted times:
-    histtimes = times[1:round(Int, histquantile*end)]
-    histmin = get(io, :histmin, low_edge(histtimes))
-    histmax = get(io, :histmax, high_edge(histtimes))
-
-    logbins = get(io, :logbins, nothing)
-    bins = bindata(histtimes, histwidth - 1, histmin, histmax)
-    append!(bins, [1, floor((1-histquantile) * length(times))])
-    if logbins === true
-        bins, logbins = log.(1 .+ bins), true
-    else
-        logbins = false
+    # Here nextfloat() ensures both endpoints included, will only matter for
+    # artificial cases such as:  Trial(Parameters(), [3,4,5], [0,0,0], 0, 0)
+    fences = range(histmin, nextfloat(histmax), length=histwidth)
+    bins = bindata(t.times, fences)
+    # Last bin is everything right of last fence, introduce a gap for printing:
+    _lastbin = pop!(bins)
+    push!(bins, 0, _lastbin)
+    if logbins
+        bins = log.(1 .+ bins)
     end
     hist = asciihist(bins, histheight)
-    hist[:,end-1] .= ' '
-    maxbin = maximum(bins)
+    hist[:, end-1] .= ' '
 
-    # delta1 = (histmax - histmin) / (histwidth - 1)
-    # if delta1 > 0
-    #     medpos = 1 + round(Int, (histtimes[length(times) ÷ 2] - histmin) / delta1)
-    #     avgpos = 1 + round(Int, (mean(times) - histmin) / delta1)
-    #     # TODO replace with searchsortedfirst & range?
-    #     q25pos = 1 + round(Int, (histtimes[max(1,length(times) ÷ 4)] - histmin) / delta1)
-    #     q75pos = 1 + round(Int, (histtimes[3*length(times) ÷ 4] - histmin) / delta1)
-    # else
-    #     medpos, avgpos = 1, 1
-    #     q25pos, q75pos = 1, 1
-    # end
-    _centres = range(histmin, histmax, length=length(bins)-2)
-    fences = _centres .+ step(_centres)/2
-    avgpos = searchsortedfirst(fences, mean(times))
-    medpos = searchsortedfirst(fences, median(times))
-    # @show medpos medpos2
-    q25pos = searchsortedfirst(fences, quantile(times, 0.25))
-    q75pos = searchsortedfirst(fences, quantile(times, 0.75))
-    # @show q25pos q25pos2
-    # @show q75pos q75pos2
+    avgpos = searchsortedlast(fences, avgtime)
+    medpos = searchsortedlast(fences, medtime)
+    q25pos = searchsortedlast(fences, quantile(t.times, 0.25)) # might be 0, that's OK
+    q75pos = searchsortedlast(fences, quantile(t.times, 0.75))
 
     # Above the histogram bars, print markers for special ones:
     printstyled(io, pad, "│", boxspace; color=boxcolor)
@@ -499,12 +486,13 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         if i == avgpos
             printstyled(io, "*", color=avgcolor, bold=true)
         elseif i == medpos || 
-                (medpos==avgpos && i==medpos-1 && median(times)<=mean(times)) ||
-                (medpos==avgpos && i==medpos+1 && median(times)>mean(times))
-            # marker for "median" is moved one to the left if they collide exactly
+                (medpos==avgpos && i==medpos-1 && medtime<=avgtime) ||
+                (medpos==avgpos && i==medpos+1 && medtime>avgtime)
+            # Marker for "median" is moved one to the left if they collide exactly
             # printstyled(io, "½", color=medcolor)
             printstyled(io, "◑", color=medcolor)
         elseif i == q25pos
+            # Quartile markers exist partly to explain the median marker, without needing a legend
             # printstyled(io, "¼", color=:light_black)
             printstyled(io, "◔", color=:light_black)
         elseif i == q75pos
@@ -521,46 +509,42 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         istop = findlast(!=(' '), view(hist, r, :))
         for (i, bar) in enumerate(view(hist, r, :))
             i > istop && break  # don't print trailing spaces, as they waste space when line-wrapped
-            color = :default
             if i == avgpos
-                color = avgcolor
-            elseif i == medpos  # if the bars co-incide, colour the mean? matches labels
-                color = medcolor
+                printstyled(io, bar; color=avgcolor)
+                # If mean & median bars co-incide, colour the mean. Matches markers above.
+            elseif i == medpos
+                printstyled(io, bar; color=medcolor)
             elseif bins[i] == 0
-                color = :light_black
+                printstyled(io, bar; color=:light_black)
+            else
+                printstyled(io, bar; color=:default)
             end
-            printstyled(io, bar; color=color)
+            
         end
     end
 
-    remtrailingzeros(timestr) = replace(timestr, r"\.?0+ " => " ")
-    minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.([histmin, histmax], sigdigits=3)))
+    # Strings for axis labels, rounded again in case you supply :histmin => 123.456
+    minhisttime = replace(prettytime(round(histmin, sigdigits=3)), r"\.?0+ " => " ")
+    maxhisttime = replace(prettytime(round(histmax, sigdigits=3)), r"\.?0+ " => " ")
 
     println(io)
     printstyled(io, pad, "└", boxspace; color=boxcolor)
     print(io, minhisttime)
-    # Caption is only printed if logbins has been selected:
-    caption = logbins ? ("log(counts) from " * samplesstr) : samplesstr
-    printstyled(io, " " ^ ((histwidth - length(caption)) ÷ 2 - length(minhisttime)), caption; color=:light_black)
+    printstyled(io, " " ^ ((histwidth - length(caption)) ÷ 2 - length(minhisttime)), caption; color=captioncolor)
     print(io, lpad(maxhisttime, ceil(Int, (histwidth - length(caption)) / 2) - 1), " ")
     print(io, "+")
-    # printstyled(io, "●", color=:light_black)  # other options...
-    # print(io, "⋯")
-    # printstyled(io, "¹⁰⁰", color=:light_black)
+    # printstyled(io, "●", color=:light_black)  # other options "⋯" "¹⁰⁰"
 end
 
 # I wondered about rounding to a few steps per decade. This looks good in 1:10, not great outside:
 # round.(0:0.01:10, sigdigits=3, base=2) |> unique
-function low_edge(times)
-    # _min = minimum(times)
-    _min = min(minimum(times), mean(times) / 1.03)  # demand low edge 3% below mean
+function low_edge(times, lo=minimum(times), av=mean(times))
+    _min = min(lo, av / 1.03)  # demand low edge 3% from mean, or further
     return round(_min, RoundDown; sigdigits = 2)
 
 end
-function high_edge(times)
-    # _max = maximum(times)
-    # _max = Base.max(maximum(times), 1.07 * low_edge(times))  # demand total width at least 7%
-    _max = max(maximum(times), 1.03 * mean(times))  # demand high edge 3% above mean
+function high_edge(times, av=mean(times), hi=quantile(times, 0.99))
+    _max = max(1, hi, 1.03 * av)  # demand high edge 3% above mean, and at least 1ns
     return round(_max, RoundUp; sigdigits = 2)
 end
 
@@ -592,3 +576,41 @@ function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
     printmemoryjudge(io, t)
     println(io, " (", prettypercent(params(t).memory_tolerance), " tolerance)")
 end
+
+
+#=
+# Some visual checks, designed so that mean/median should hit a bar
+
+using BenchmarkTools: Trial, Parameters
+Trial(Parameters(), [pi * 10^9], [0], 0, 0)  # one sample
+
+# mean == median, one bar
+Trial(Parameters(), [pi, pi], [0, 0], 0, 0)
+Trial(Parameters(), fill(101, 33), vcat(zeros(32), 50), 0, 0)
+
+# mean == median, three bars -- wrong highlighting before
+Trial(Parameters(), [3,4,5], [0,0,0], 0, 0)
+
+# three bars, including mean not median -- wrong highlighting before
+Trial(Parameters(), pi * [1,3,4,4], [0,0,0,100], 1, 1)
+
+# three bars, including median & both quartiles, not mean -- wrong before
+Trial(Parameters(), 99.9 * [1,1,3,14,16], [0,0,99,0,0], 222, 2)
+
+# same, but smaller range. Note also max GC is not max
+Trial(Parameters(), 999 .+ [1,1,3,14,16], [0,0,123,0,0], 45e6, 7)
+
+
+# Check that auto-sizing stops on very small widths:
+io = IOContext(stdout, :displaysize => (25,30))
+show(io, MIME("text/plain"), Trial(Parameters(), [3,4,5], [0,0,0], 0, 0))
+show(io, MIME("text/plain"), Trial(Parameters(), repeat(100 * [3,4,5], 10^6), zeros(3*10^6), 0, 0))
+
+io = IOContext(stdout, :displaysize => (25,50), :logbins => true)  # this is wider
+show(io, MIME("text/plain"), Trial(Parameters(), 100 * [3,4,5], [0,0,0], 0, 0))
+
+# Check that data off the left is OK, and median still highlighted:
+io = IOContext(stdout, :histmin => 200.123)
+show(io, MIME("text/plain"), Trial(Parameters(), 99.9 * [1,1,3,14,16], [0,0,99,0,0], 222, 2))
+
+=#
