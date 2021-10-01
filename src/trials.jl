@@ -454,7 +454,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     # Histogram
 
-    logbins = get(io, :logbins, nothing) == true
+    logbins = get(io, :logbins, nothing) === true
     caption = logbins ? ("log(counts) from " * samplesstr) : samplesstr
 
     # The height and width of the printed histogram in characters:
