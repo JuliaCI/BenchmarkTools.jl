@@ -588,9 +588,12 @@ macro btime(args...)
         local $trialmin = $BenchmarkTools.minimum($trial)
         local $trialmean = $BenchmarkTools.mean($trial)
         local $trialallocs = $BenchmarkTools.allocs($trialmin)
-        $print("  min ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
-            ", mean ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)),
-            " (", $trialallocs , " allocation", $trialallocs == 1 ? "" : "s")
+        $print("  min ")
+        $printstyled($BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)); bold=true)
+        $print(", ")
+        $print("mean ")
+        $printstyled($BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)); bold=true)
+        $print(" (", $trialallocs , " allocation", $trialallocs == 1 ? "" : "s")
         if $trialallocs != 0
             $print(", ", $prettymemory($memory($trialmin)))
         end
