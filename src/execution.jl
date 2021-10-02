@@ -591,14 +591,16 @@ macro btime(args...)
         $print("  min ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
             ", mean ", $BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)),
             " (", $trialallocs , " allocation", $trialallocs == 1 ? "" : "s")
-        if $trialallocs == 0
-            $println(")")
-        else
-            $println(", ", $prettymemory($memory($trialmin)),
-                ". GC mean ", $prettytime($gctime($trialmean); short=true),
-                ", ", $prettypercent($gctime($trialmean) / $time($trialmean)), ")"
+        if $trialallocs != 0
+            $print(", ", $prettymemory($memory($trialmin)))
+        end
+        if $gctime($trialmean) != 0
+            $print(". GC mean ",
+                # $prettytime($gctime($trialmean); short=true), ", ",
+                $prettypercent($gctime($trialmean) / $time($trialmean)),
                 )
         end
+        $println(")")
         $result
     end)
 end
