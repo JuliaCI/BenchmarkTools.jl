@@ -503,10 +503,18 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         elseif i == q25pos
             # Quartile markers exist partly to explain the median marker, without needing a legend
             # printstyled(io, "¼", color=:light_black)
-            printstyled(io, "◔", color=:light_black)
+            if VERSION > v"1.7-"
+                printstyled(io, "◔", color=:light_black, hidden=true)
+            else
+                printstyled(io, "◔", color=:light_black)
+            end
         elseif i == q75pos
             # printstyled(io, "¾", color=:light_black)
-            printstyled(io, "◕", color=:light_black)
+            if VERSION > v"1.7-"
+                printstyled(io, "◕", color=:light_black, hidden=true)
+            else
+                printstyled(io, "◕", color=:light_black)
+            end
         else
             print(io, " ")
         end
