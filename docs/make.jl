@@ -17,6 +17,7 @@ makedocs(;
         "Manual" => "manual.md",
         "Linux-based environments" => "linuxtips.md",
         "Reference" => "reference.md",
+        hide("Internals" => "internals.md"),
     ],
 )
 
