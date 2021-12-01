@@ -63,7 +63,7 @@ BenchmarkTools.Trial: 10000 samples with 972 evaluations.
  Memory estimate: 160 bytes, allocs estimate: 1.
 ```
 
-For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
+For quick sanity checks, one can use the [`@btime` macro](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
 
 ```julia
 # The `seconds` expression helps set a rough time budget, see Manual for more explaination
@@ -72,7 +72,7 @@ julia> @btime sin(x) setup=(x=rand()) seconds=3
 0.49587200950472454
 ```
 
-If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
+If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions) them into the benchmark expression to
 [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables).
 Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
 
