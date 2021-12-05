@@ -3,6 +3,11 @@ module TrialsTests
 using BenchmarkTools
 using Test
 
+if !isdefined(@__MODULE__(), :contains)
+    # added in Julia 1.5, defined here to make tests pass on 1.0
+    contains(haystack::AbstractString, needle) = occursin(needle, haystack)
+end
+
 #########
 # Trial #
 #########
@@ -284,8 +289,12 @@ s456 = sprint(show, "text/plain", t456)
 # Compact show & arrays of Trials
 @test sprint(show, t001) == "Trial(3.142 ms)"
 @test sprint(show, t003) == "Trial(0.010 ns)"
-@test sprint(show, "text/plain", [t001, t003]) == "2-element Vector{BenchmarkTools.Trial}:\n 3.142 ms\n 0.010 ns"
-@test_skip sprint(show, "text/plain", [t0]) == "1-element Vector{BenchmarkTools.Trial}:\n ??"
+if VERSION >= v"1.6"  # 1.5 prints Array{T,1}
+    @test sprint(show, "text/plain", [t001, t003]) == "2-element Vector{BenchmarkTools.Trial}:\n 3.142 ms\n 0.010 ns"
+    @test_skip sprint(show, "text/plain", [t0]) == "1-element Vector{BenchmarkTools.Trial}:\n ??"
+    # this is an error on BenchmarkTools v1.2.1, and v0.4.3, probably long before:
+    # MethodError: reducing over an empty collection is not allowed
+end
 
 #=
 

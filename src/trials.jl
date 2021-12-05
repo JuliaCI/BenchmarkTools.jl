@@ -471,7 +471,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     # Here nextfloat() ensures both endpoints included, will only matter for
     # artificial cases such as:  Trial(Parameters(), [3,4,5], [0,0,0], 0, 0)
-    fences = range(histmin, nextfloat(float(histmax)), length=histwidth)
+    fences = range(histmin, stop=nextfloat(float(histmax)), length=histwidth)  # stop necc. for Julia 1.0
     bins = histogram_bindata(t.times, fences)
     # Last bin is everything right of last fence, introduce a gap for printing:
     _lastbin = pop!(bins)
@@ -523,7 +523,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     for r in axes(hist, 1)
         println(io)
         printstyled(io, pad, "│", boxspace; color=boxcolor)
-        istop = findlast(!=(' '), view(hist, r, :))
+        istop = findlast(c -> c != ' ', view(hist, r, :))
         for (i, bar) in enumerate(view(hist, r, :))
             i > istop && break  # don't print trailing spaces, as they waste space when line-wrapped
             if i == avgpos
