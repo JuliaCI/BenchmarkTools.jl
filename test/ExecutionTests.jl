@@ -253,4 +253,13 @@ let time = 2
     @benchmark identity(time)
 end
 
+# Ensure that interpolated values are garbage-collectable
+x = []
+x_finalized = false
+finalizer(x->(global x_finalized=true), x)
+b = @benchmarkable $x
+b = x = nothing
+GC.gc()
+@test x_finalized
+
 end # module

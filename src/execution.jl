@@ -9,6 +9,7 @@ gcscrub() = (GC.gc(); GC.gc(); GC.gc(); GC.gc())
 
 mutable struct Benchmark
     samplefunc
+    quote_vals
     params::Parameters
 end
 
@@ -95,13 +96,13 @@ function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
     start_time = Base.time()
     trial = Trial(params)
     params.gcsample && gcscrub()
-    s = b.samplefunc(params)
+    s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:end-1]...)
     return_val = s[end]
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
          params.gcsample && gcscrub()
-         push!(trial, b.samplefunc(params)[1:end-1]...)
+         push!(trial, b.samplefunc(b.quote_vals, params)[1:end-1]...)
          iters += 1
     end
     return trial, return_val
@@ -157,7 +158,7 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
     for evals in eachindex(estimates)
         params.gcsample && gcscrub()
         params.evals = evals
-        estimates[evals] = first(b.samplefunc(params))
+        estimates[evals] = first(b.samplefunc(b.quote_vals, params))
         completed += 1
         ((time() - start_time) > params.seconds) && break
     end
@@ -305,18 +306,22 @@ function collectvars(ex::Expr, vars::Vector{Symbol} = Symbol[])
     return vars
 end
 
-function quasiquote!(ex::Expr, vars::Vector{Expr})
+"""
+    quasiquote!(expr::Expr, vars::Vector{Symbol}, vals::Vector{Expr})
+
+Replace every interpolated value in `expr` with a placeholder variable and
+store the resulting variable / value pairings in `vars` and `vals`.
+"""
+quasiquote!(ex, _...) = ex
+function quasiquote!(ex::Expr, vars::Vector{Symbol}, vals::Vector{Expr})
     if ex.head === :($)
-        lhs = ex.args[1]
-        rhs = isa(lhs, Symbol) ? gensym(lhs) : gensym()
-        push!(vars, Expr(:(=), rhs, ex))
-        return rhs
+        var = isa(ex.args[1], Symbol) ? gensym(ex.args[1]) : gensym()
+        push!(vars, var)
+        push!(vals, ex)
+        return var
     elseif ex.head !== :quote
         for i in 1:length(ex.args)
-            arg = ex.args[i]
-            if isa(arg, Expr)
-                ex.args[i] = quasiquote!(arg, vars)
-            end
+            ex.args[i] = quasiquote!(ex.args[i], vars, vals)
         end
     end
     return ex
@@ -410,15 +415,11 @@ function benchmarkable_parts(args)
     end
     deleteat!(params, delinds)
 
-    if isa(core, Expr)
-        quote_vars = Expr[]
-        core = quasiquote!(core, quote_vars)
-        if !isempty(quote_vars)
-            setup = Expr(:block, setup, quote_vars...)
-        end
-    end
+    quote_vars = Symbol[]
+    quote_vals = Expr[]
+    core = quasiquote!(core, quote_vars, quote_vals)
 
-    return core, setup, teardown, params
+    return core, setup, teardown, quote_vars, quote_vals, params
 end
 
 """
@@ -428,7 +429,7 @@ Create a `Benchmark` instance for the given expression. `@benchmarkable`
 has similar syntax with `@benchmark`. See also [`@benchmark`](@ref).
 """
 macro benchmarkable(args...)
-    core, setup, teardown, params = benchmarkable_parts(args)
+    core, setup, teardown, quote_vars, quote_vals, params = benchmarkable_parts(args)
     map!(esc, params, params)
 
     # extract any variable bindings shared between the core and setup expressions
@@ -441,6 +442,8 @@ macro benchmarkable(args...)
         generate_benchmark_definition($__module__,
                                       $(Expr(:quote, out_vars)),
                                       $(Expr(:quote, setup_vars)),
+                                      $(Expr(:quote, quote_vars)),
+                                      $(esc(Expr(:vect,Expr.(:quote, quote_vals)...))),
                                       $(esc(Expr(:quote, core))),
                                       $(esc(Expr(:quote, setup))),
                                       $(esc(Expr(:quote, teardown))),
@@ -455,14 +458,14 @@ end
 # The double-underscore-prefixed variable names are not particularly hygienic - it's
 # possible for them to conflict with names used in the setup or teardown expressions.
 # A more robust solution would be preferable.
-function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, setup, teardown, params)
+function generate_benchmark_definition(eval_module, out_vars, setup_vars, quote_vars, quote_vals, core, setup, teardown, params)
     @nospecialize
     corefunc = gensym("core")
     samplefunc = gensym("sample")
-    type_vars = [gensym() for i in 1:length(setup_vars)]
-    signature = Expr(:call, corefunc, setup_vars...)
+    type_vars = [gensym() for i in 1:length(quote_vars)+length(setup_vars)]
+    signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
     signature_def = Expr(:where, Expr(:call, corefunc,
-                                  [Expr(:(::), setup_var, type_var) for (setup_var, type_var) in zip(setup_vars, type_vars)]...)
+                                  [Expr(:(::), var, type) for (var, type) in zip([quote_vars;setup_vars], type_vars)]...)
                     , type_vars...)
     if length(out_vars) == 0
         invocation = signature
@@ -478,7 +481,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
     end
     return Core.eval(eval_module, quote
         @noinline $(signature_def) = begin $(core_body) end
-        @noinline function $(samplefunc)(__params::$BenchmarkTools.Parameters)
+        @noinline function $(samplefunc)($(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters)
             $(setup)
             __evals = __params.evals
             __gc_start = Base.gc_num()
@@ -498,7 +501,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, core, 
                                __evals))
             return __time, __gctime, __memory, __allocs, __return_val
         end
-        $BenchmarkTools.Benchmark($(samplefunc), $(params))
+        $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
     end)
 end
 
