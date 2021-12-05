@@ -253,7 +253,7 @@ let fname = tempname()
         end
         s2 = read(fname, String)
         try
-            @test occursin(r", mean [0-9.]+ \w*s \([0-9]* allocations?, [0-9]+ bytes. GC mean [0-9.]+ \w*s,", s2)
+            @test occursin(r", mean [0-9.]+ \w*s \([0-9]* allocations?, [0-9]+ bytes", s2)
         catch
             println(stderr, "@btime output didn't match ", repr(s))
             rethrow()

@@ -597,12 +597,6 @@ macro btime(args...)
         if $trialallocs != 0
             $print(", ", $prettymemory($memory($trialmin)))
         end
-        if $gctime($trialmean) != 0
-            $print(". GC mean ",
-                # $prettytime($gctime($trialmean); short=true), ", ",
-                $prettypercent($gctime($trialmean) / $time($trialmean)),
-                )
-        end
         $println(")")
         $result
     end)
