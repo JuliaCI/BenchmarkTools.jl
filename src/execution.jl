@@ -443,7 +443,7 @@ macro benchmarkable(args...)
                                       $(Expr(:quote, out_vars)),
                                       $(Expr(:quote, setup_vars)),
                                       $(Expr(:quote, quote_vars)),
-                                      $(esc(Expr(:vect,Expr.(:quote, quote_vals)...))),
+                                      $(esc(Expr(:tuple,Expr.(:quote, quote_vals)...))),
                                       $(esc(Expr(:quote, core))),
                                       $(esc(Expr(:quote, setup))),
                                       $(esc(Expr(:quote, teardown))),
