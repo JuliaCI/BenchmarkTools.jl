@@ -362,15 +362,16 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     modulestr = "" # "BenchmarkTools."
     avgcolor = :green
     medcolor = :blue
+    alloccolor = :yellow
     captioncolor = :light_black
     showpercentile = 99  # used both for display time, and to set right cutoff of histogram
 
-    allocsstr = if allocs(t) == 0
-        "0 allocations"
+    alloc_strings = if allocs(t) == 0
+        ("0 allocations", "")
     elseif allocs(t) == 1
-        "1 allocation, " * prettymemory(memory(t))
+        ("1 allocation, ", prettymemory(memory(t)))  # divided in two to colour the second
     else
-        prettycount(allocs(t)) * " allocations, total " * prettymemory(memory(t))
+        (prettycount(allocs(t)) * " allocations, total ", prettymemory(memory(t)))
     end
 
     samplesstr = string(
@@ -394,7 +395,9 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         # Memory
         println(io)
         printstyled(io, pad, "│", boxspace; color=boxcolor)
-        print(io, allocsstr)
+        # print(io, allocsstr)
+        print(io, alloc_strings[1])
+        printstyled(io, alloc_strings[2]; color=alloccolor)
 
         # GC time
         if t.gctimes[1] > 0
@@ -437,7 +440,9 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     println(io)
 
     printstyled(io, pad, "│", boxspace; color=boxcolor)
-    println(io, allocsstr)
+    # println(io, allocsstr)
+    print(io, alloc_strings[1])
+    printstyled(io, alloc_strings[2] * "\n"; color=alloccolor)
 
     if !all(iszero, t.gctimes)
         # Mean GC time is just that; then we take the percentage of the mean time
