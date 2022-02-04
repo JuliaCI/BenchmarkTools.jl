@@ -479,6 +479,9 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, quote_
         invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
         core_body = :($(core); $(returns))
     end
+    if isdefined(Base, :donotdelete)
+        invocation = :(Base.donotdelete($invocation))
+    end
     return Core.eval(eval_module, quote
         @noinline $(signature_def) = begin $(core_body) end
         @noinline function $(samplefunc)($(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters)
