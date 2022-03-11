@@ -12,7 +12,7 @@ suite["dot"] = BenchmarkGroup(["broadcast", "elementwise"])
 # This string will be the same every time because we're seeding the RNG
 teststr = join(rand(MersenneTwister(1), 'a':'d', 10^4))
 
-# Add some benchmarks to the "utf8" group
+# Add some benchmarks to the "string" group
 suite["string"]["replace"] = @benchmarkable replace($teststr, "a", "b") seconds=Float64(π)
 suite["string"]["join"] = @benchmarkable join($teststr, $teststr) samples=42
 
