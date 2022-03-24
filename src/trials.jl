@@ -356,6 +356,7 @@ Base.show(io::IO, t::TrialJudgement) = _show(io, t)
 
 function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     pad = get(io, :pad, "")
+    histnumber = get(io, :histnumber, "")  # for Vector{Trial} printing
 
     boxcolor = :light_black
     boxspace = "  "
@@ -382,10 +383,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     )
 
     if length(t) == 0
-        print(io, modulestr, "Trial: 0 samples")
+        print(io, modulestr, "Trial$histnumber: 0 samples")
         return
     elseif length(t) == 1
-        printstyled(io, "┌ ", modulestr, "Trial:\n"; color=boxcolor)
+        printstyled(io, "┌ ", modulestr, "Trial$histnumber:\n"; color=boxcolor)
 
         # Time
         printstyled(io, pad, "│", boxspace; color=boxcolor)
@@ -417,7 +418,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
     # Main text block
 
-    printstyled(io, "┌ ", modulestr, "Trial:\n"; color=boxcolor)
+    printstyled(io, "┌ ", modulestr, "Trial$histnumber:\n"; color=boxcolor)
 
     printstyled(io, pad, "│", boxspace; color=boxcolor)
     printstyled(io, "min "; color=:default)
@@ -556,6 +557,27 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     print(io, lpad(maxhisttime, ceil(Int, (histwidth - length(caption)) / 2) - 1), " ")
     print(io, "+")
     # printstyled(io, "●", color=:light_black)  # other options "⋯" "¹⁰⁰"
+end
+
+function Base.show(io::IO, m::MIME"text/plain", vt::AbstractVector{<:Trial})
+    bounds = map(vt) do t
+        # compute these exactly as in individual show methods:
+        mintime = minimum(t.times)
+        avgtime = mean(t.times)
+        quantime = quantile(t.times, 99/100)
+        lo = hist_round_low(t.times, mintime, avgtime)
+        hi = hist_round_high(t.times, avgtime, quantime)
+        (lo, hi)
+    end
+    histmin = get(io, :histmin, minimum(first, bounds))
+    histmax = get(io, :histmax, maximum(last, bounds))
+    ioc = IOContext(io, :histmin => histmin, :histmax => histmax)
+
+    print(io, summary(vt), ":")
+    for (i,t) in pairs(vt)
+        println(io)
+        show(IOContext(ioc, :histnumber => " [$i]"), m, t)
+    end
 end
 
 function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
