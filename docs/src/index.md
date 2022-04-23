@@ -73,4 +73,4 @@ julia> @btime $(Ref(a))[] + $(Ref(b))[]
 3
 ```
 
-As described the [Manual](@ref), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
+As described in the [Manual](@ref), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
