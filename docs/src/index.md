@@ -29,7 +29,7 @@ BenchmarkTools.Trial:
  Memory estimate: 160 bytes, allocs estimate: 1.
 ```
 
-For quick sanity checks, one can use the [`@btime` macro](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
+For quick sanity checks, one can use the [`@btime` macro](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
 
 ```julia
 julia> @btime sin(x) setup=(x=rand())
@@ -40,7 +40,7 @@ julia> @btime sin(x) setup=(x=rand())
 If you're interested in profiling a fast-running command, you can use `@bprofile sin(x) setup=(x=rand())` and then your favorite
 tools for displaying the results (`Profile.print` or a graphical viewer).
 
-If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://github.com/JuliaCI/BenchmarkTools.jl/blob/master/doc/manual.md#interpolating-values-into-benchmark-expressions) them into the benchmark expression to
+If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions) them into the benchmark expression to
 [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables).
 Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
 
@@ -73,4 +73,4 @@ julia> @btime $(Ref(a))[] + $(Ref(b))[]
 3
 ```
 
-As described in the [Manual](@ref), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
+As described in the [Manual](https://juliaci.github.io/BenchmarkTools.jl/stable/reference/), the BenchmarkTools package supports many other features, both for additional output and for more fine-grained control over the benchmarking process.
