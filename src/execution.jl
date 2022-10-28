@@ -539,16 +539,36 @@ end
     @ballocated expression [other parameters...]
 
 Similar to the `@allocated` macro included with Julia,
-this returns the number of bytes allocated when executing
+this returns the *number of bytes allocated* when executing
 a given expression.   It uses the `@benchmark`
 macro, however, and accepts all of the same additional
 parameters as `@benchmark`.  The returned allocations
 correspond to the trial with the *minimum* elapsed time measured
 during the benchmark.
+
+See also `@ballocs`.
 """
 macro ballocated(args...)
     return esc(quote
         $BenchmarkTools.memory($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))
+    end)
+end
+
+"""
+    @ballocs expression [other parameters...]
+
+Similar to the `@allocs` macro included with Julia (v1.9+),
+this returns the *number of allocations* when executing
+a given expression. It uses the `@benchmark` macro, however,
+and accepts all of the same additional parameters as `@benchmark`.
+The returned allocations correspond to the trial with
+the *minimum* elapsed time measured during the benchmark.
+
+See also `@ballocated`.
+"""
+macro ballocs(args...)
+    return esc(quote
+        $BenchmarkTools.allocs($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))
     end)
 end
 

@@ -66,6 +66,7 @@ include("execution.jl")
 export tune!,
        warmup,
        @ballocated,
+       @ballocs,
        @benchmark,
        @benchmarkable,
        @belapsed,
