@@ -120,6 +120,7 @@ end
 
 Statistics.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
 Statistics.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
+Statistics.var(trial::Trial) = TrialEstimate(trial, var(trial.times), var(trial.gctimes))
 Statistics.std(trial::Trial) = TrialEstimate(trial, std(trial.times), std(trial.gctimes))
 
 Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))

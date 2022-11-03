@@ -1,6 +1,7 @@
 module TrialsTests
 
 using BenchmarkTools
+using Statistics
 using Test
 
 #########
@@ -70,13 +71,15 @@ rmskew!(randtrial)
 tmin = minimum(randtrial)
 tmed = median(randtrial)
 tmean = mean(randtrial)
+tvar = var(randtrial)
+tstd = std(randtrial)
 tmax = maximum(randtrial)
 
 @test time(tmin) == time(randtrial)
 @test gctime(tmin) == gctime(randtrial)
-@test memory(tmin) == memory(tmed) == memory(tmean) == memory(tmax) == memory(randtrial)
-@test allocs(tmin) == allocs(tmed) == allocs(tmean) == allocs(tmax) == allocs(randtrial)
-@test params(tmin) == params(tmed) == params(tmean) == params(tmax) == params(randtrial)
+@test memory(tmin) == memory(tmed) == memory(tmean) == memory(tmax) == memory(tvar) == memory(tstd) == memory(randtrial)
+@test allocs(tmin) == allocs(tmed) == allocs(tmean) == allocs(tmax) == allocs(tvar) == allocs(tstd) == allocs(randtrial)
+@test params(tmin) == params(tmed) == params(tmean) == params(tmax) == params(tvar) == params(tstd) == params(randtrial)
 
 @test tmin <= tmed
 @test tmean <= tmed # this should be true since we called rmoutliers!(randtrial) earlier
