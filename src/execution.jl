@@ -546,7 +546,7 @@ parameters as `@benchmark`.  The returned allocations
 correspond to the trial with the *minimum* elapsed time measured
 during the benchmark.
 
-See also `@ballocs`.
+See also `@ballocations`.
 """
 macro ballocated(args...)
     return esc(quote
@@ -555,7 +555,7 @@ macro ballocated(args...)
 end
 
 """
-    @ballocs expression [other parameters...]
+    @ballocations expression [other parameters...]
 
 Similar to the `@allocs` macro included with Julia (v1.9+),
 this returns the *number of allocations* when executing
@@ -566,7 +566,7 @@ the *minimum* elapsed time measured during the benchmark.
 
 See also `@ballocated`.
 """
-macro ballocs(args...)
+macro ballocations(args...)
     return esc(quote
         $BenchmarkTools.allocs($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))
     end)

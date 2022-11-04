@@ -225,9 +225,9 @@ str = String(take!(io))
 @test @ballocated(sin(0)) == 0
 @test @ballocated(Ref(1)) == 2*sizeof(Int)  # 1 for the pointer, 1 for content
 
-@test @ballocs(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) == 0
-@test @ballocs(sin(0)) == 0
-@test @ballocs(Ref(1)) == 1
+@test @ballocations(sin($(foo.x)), evals=3, samples=10, setup=(foo.x = 0)) == 0
+@test @ballocations(sin(0)) == 0
+@test @ballocations(Ref(1)) == 1
 
 let fname = tempname()
     try
