@@ -74,6 +74,8 @@ Base.minimum(group::BenchmarkGroup) = mapvals(minimum, group)
 Base.maximum(group::BenchmarkGroup) = mapvals(maximum, group)
 Statistics.mean(group::BenchmarkGroup) = mapvals(mean, group)
 Statistics.median(group::BenchmarkGroup) = mapvals(median, group)
+Statistics.std(group::BenchmarkGroup) = mapvals(std, group)
+Statistics.var(group::BenchmarkGroup) = mapvals(var, group)
 Base.min(groups::BenchmarkGroup...) = mapvals(min, groups...)
 Base.max(groups::BenchmarkGroup...) = mapvals(max, groups...)
 

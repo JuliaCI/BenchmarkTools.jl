@@ -2,6 +2,7 @@
 
 using BenchmarkTools
 using BenchmarkTools: TrialEstimate, Parameters
+using Statistics
 using Test
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
@@ -120,9 +121,11 @@ struct Bar end
 @test BenchmarkTools.improvements(memory, (Bar())) == Bar()
 
 @test minimum(gtrial)["t"] == minimum(gtrial["t"])
+@test maximum(gtrial)["t"] == maximum(gtrial["t"])
 @test median(gtrial)["t"] == median(gtrial["t"])
 @test mean(gtrial)["t"] == mean(gtrial["t"])
-@test maximum(gtrial)["t"] == maximum(gtrial["t"])
+@test var(gtrial)["t"] == var(gtrial["t"])
+@test std(gtrial)["t"] == std(gtrial["t"])
 @test params(gtrial)["t"] == params(gtrial["t"])
 
 ######################################
@@ -190,6 +193,8 @@ end
 @test maximum(groupstrial)["g"]["t"] == maximum(groupstrial["g"]["t"])
 @test median(groupstrial)["g"]["t"] == median(groupstrial["g"]["t"])
 @test mean(groupstrial)["g"]["t"] == mean(groupstrial["g"]["t"])
+@test var(groupstrial)["g"]["t"] == var(groupstrial["g"]["t"])
+@test std(groupstrial)["g"]["t"] == std(groupstrial["g"]["t"])
 @test params(groupstrial)["g"]["t"] == params(groupstrial["g"]["t"])
 
 # tagging #
