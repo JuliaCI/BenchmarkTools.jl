@@ -14,10 +14,10 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
         name = String(fieldname(T, i))
         field = getfield(x, i)
         ft = typeof(field)
-        value = ft <: get(SUPPORTED_TYPES, ft.name.name, Union{}) ? JSON.lower(field) : field
+        value = ft <: get(SUPPORTED_TYPES, nameof(ft), Union{}) ? JSON.lower(field) : field
         d[name] = value
     end
-    [string(typeof(x).name.name), d]
+    [string(nameof(typeof(x))), d]
 end
 
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
@@ -40,7 +40,7 @@ function recover(x::Vector)
     for i = 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft <: get(SUPPORTED_TYPES, ft.name.name, Union{})
+        if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
         else
             xsi = convert(ft, fields[fn])
@@ -95,7 +95,7 @@ function save(io::IO, args...)
                   "The name will be ignored and the object will be serialized " *
                   "in the order it appears in the input.")
             continue
-        elseif !(arg isa get(SUPPORTED_TYPES, typeof(arg).name.name, Union{}))
+        elseif !(arg isa get(SUPPORTED_TYPES, nameof(typeof(arg)), Union{}))
             throw(ArgumentError("Only BenchmarkTools types can be serialized."))
         end
         push!(goodargs, arg)
