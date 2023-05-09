@@ -23,16 +23,28 @@ function addgroup!(suite::BenchmarkGroup, id, args...)
     return g
 end
 
+clear_empty!(x) = x
+function clear_empty!(group::BenchmarkGroup)
+    for (k,v) in pairs(group)
+        if v isa BenchmarkGroup && isempty(v)
+            delete!(group, k)
+        else
+            clear_empty!(v)
+        end
+    end
+    group
+end
+
 # Dict-like methods #
 #-------------------#
 
 Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.data))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), empty(group.data))
-Base.isempty(group::BenchmarkGroup) = isempty(group.data)
+Base.isempty(group::BenchmarkGroup) = isempty(clear_empty!(group).data)
 Base.length(group::BenchmarkGroup) = length(group.data)
-Base.getindex(group::BenchmarkGroup, k) = getindex(group.data, makekey(k))
-Base.getindex(group::BenchmarkGroup, k...) = getindex(group.data, makekey(k))
+Base.getindex(group::BenchmarkGroup, k) = get!(group.data, makekey(k), BenchmarkGroup())
+Base.getindex(group::BenchmarkGroup, k...) = get!(group.data, makekey(k), BenchmarkGroup())
 Base.setindex!(group::BenchmarkGroup, v, k) = setindex!(group.data, v, makekey(k))
 Base.setindex!(group::BenchmarkGroup, v, k...) = setindex!(group.data, v, makekey(k))
 Base.delete!(group::BenchmarkGroup, k) = delete!(group.data, makekey(k))
