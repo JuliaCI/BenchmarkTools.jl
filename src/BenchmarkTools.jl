@@ -55,7 +55,8 @@ export BenchmarkGroup,
        addgroup!,
        leaves,
        @benchmarkset,
-       @case
+       @case,
+       clear_empty!
 
 ######################
 # Execution Strategy #
