@@ -28,8 +28,6 @@ function clear_empty!(group::BenchmarkGroup)
     for (k,v) in pairs(group)
         if v isa BenchmarkGroup && isempty(v)
             delete!(group, k)
-        else
-            clear_empty!(v)
         end
     end
     group
