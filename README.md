@@ -66,7 +66,7 @@ BenchmarkTools.Trial: 10000 samples with 972 evaluations.
 For quick sanity checks, one can use the [`@btime` macro](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Benchmarking-basics), which is a convenience wrapper around `@benchmark` whose output is analogous to Julia's built-in [`@time` macro](https://docs.julialang.org/en/v1/base/base/#Base.@time):
 
 ```julia
-# The `seconds` expression helps set a rough time budget, see Manual for more explaination
+# The `seconds` expression helps set a rough time budget, see Manual for more explanation
 julia> @btime sin(x) setup=(x=rand()) seconds=3
   4.361 ns (0 allocations: 0 bytes)
 0.49587200950472454
@@ -98,7 +98,7 @@ julia> @btime $a + $b
   0.024 ns (0 allocations: 0 bytes)
 3
 ```
-As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occured. You can avoid this by referencing and dereferencing the interpolated variables 
+As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occurred. You can avoid this by referencing and dereferencing the interpolated variables 
 ```julia
 julia> @btime $(Ref(a))[] + $(Ref(b))[]
   1.277 ns (0 allocations: 0 bytes)
