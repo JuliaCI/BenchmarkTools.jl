@@ -237,6 +237,24 @@ In the above example, we wish to benchmark Julia's in-place sorting method. With
 
 Note that the `setup` and `teardown` phases are **executed for each sample, not each evaluation**. Thus, the sorting example above wouldn't produce the intended results if `evals/sample > 1` (it'd suffer from the same problem of benchmarking against an already sorted vector).
 
+If your setup involves several objects, you need to wrap them in a tuple as follows:
+
+```julia
+julia> @btime x + y setup = ((x, y) = (1, 2))  # works
+  1.238 ns (0 allocations: 0 bytes)
+3
+
+julia> @btime x + y setup = (x=1, y=2)  # errors
+ERROR: UndefVarError: `x` not defined
+```
+
+This also explains the error you get if you accidentally put a comma in the setup for a single argument:
+
+```julia
+julia> @btime exp(x) setup = (x=1,)  # errors
+ERROR: UndefVarError: `x` not defined
+```
+
 ### Understanding compiler optimizations
 
 It's possible for LLVM and Julia's compiler to perform optimizations on `@benchmarkable` expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly "fast" benchmarks. For example, the following expression is non-allocating:
