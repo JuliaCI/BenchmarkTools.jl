@@ -346,7 +346,7 @@ g1["ssum"]
 @test "ssum" in keys(g1.data)
 g1["ssum2"][Int32]
 @test "ssum2" in keys(g1.data)
-@test Int32 in keys(g1["ssum2"].data)
+@test "Int32" in keys(g1["ssum2"].data)
 
 # So we can clear the empty groups with `clear_empty!`:
 clear_empty!(g1)
