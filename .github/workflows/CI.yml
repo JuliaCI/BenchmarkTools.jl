@@ -22,8 +22,6 @@ jobs:
           - '1.8'
           - '1.9'
           - 'nightly'
-        os:
-          - ubuntu-latest
         arch:
           - x64
         include:
