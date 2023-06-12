@@ -20,11 +20,19 @@ jobs:
           - '1.6'
           - '1.7'
           - '1.8'
+          - '1.9'
           - 'nightly'
         os:
           - ubuntu-latest
         arch:
           - x64
+        include:
+          - version: ['1.5', '1.7']
+            os: ubuntu-20.04
+          - version: ['1.8']
+            os: ubuntu-22.04
+          - version: ['1.0', '1.6', '1.9', 'nightly']
+            os: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
