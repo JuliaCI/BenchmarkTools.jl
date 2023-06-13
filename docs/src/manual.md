@@ -862,7 +862,7 @@ A common workflow used in BenchmarkTools is the following:
     ```
 4. Save the results somehow (e.g. in a JSON file)
     ```julia
-    BenchmarkTools.save("results.json", median(results))
+    BenchmarkTools.save("old_results.json", median(old_results))
     ```
 4. Start a new Julia session
 5. Execute a benchmark suite using a new version of your package
