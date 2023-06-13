@@ -33,7 +33,7 @@ For quick sanity checks, one can use the [`@btime` macro](https://juliaci.github
 
 ```julia
 julia> @btime sin(x) setup=(x=rand())
-  4.361 ns (0 allocations: 0 bytes)
+  min 3.041 ns, mean 3.487 ns (0 allocations)
 0.49587200950472454
 ```
 
@@ -45,16 +45,16 @@ If the expression you want to benchmark depends on external variables, you shoul
 Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
 
 ```julia
-julia> A = rand(3,3);
+julia> A = rand(8,8);
 
 julia> @btime inv($A);            # we interpolate the global variable A with $A
-  1.191 μs (10 allocations: 2.31 KiB)
+  min 951.000 ns, mean 1.349 μs (4 allocations, 4.81 KiB)
 
-julia> @btime inv($(rand(3,3)));  # interpolation: the rand(3,3) call occurs before benchmarking
-  1.192 μs (10 allocations: 2.31 KiB)
+julia> @btime inv($(rand(8,8)));  # interpolation: the rand() call occurs before benchmarking
+  min 930.542 ns, mean 1.363 μs (4 allocations, 4.81 KiB)
 
-julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchmark time
-  1.295 μs (11 allocations: 2.47 KiB)
+julia> @btime inv(rand(8,8));     # the rand() call is included in the benchmark time
+  min 1.092 μs, mean 1.572 μs (5 allocations, 5.38 KiB)
 ```
 
 Sometimes, interpolating variables into very simple expressions can give the compiler more information than you intended, causing it to "cheat" the benchmark by hoisting the calculation out of the benchmark code
@@ -63,13 +63,13 @@ julia> a = 1; b = 2
 2
 
 julia> @btime $a + $b
-  0.024 ns (0 allocations: 0 bytes)
+  min 0.875 ns, mean 0.950 ns (0 allocations)
 3
 ```
 As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occurred. You can avoid this by referencing and dereferencing the interpolated variables 
 ```julia
 julia> @btime $(Ref(a))[] + $(Ref(b))[]
-  1.277 ns (0 allocations: 0 bytes)
+  min 0.875 ns, mean 0.953 ns (0 allocations)
 3
 ```
 

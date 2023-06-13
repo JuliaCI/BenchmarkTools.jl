@@ -560,15 +560,31 @@ this executes an expression, printing the time
 it took to execute and the memory allocated before
 returning the value of the expression.
 
-Unlike `@time`, it uses the `@benchmark`
-macro, and accepts all of the same additional
-parameters as `@benchmark`.  The printed time
-is the *minimum* elapsed time measured during the benchmark.
+However, it uses the [`@benchmark`](@ref) to evaluate
+`expression` many times, and accepts all of the same
+additional parameters as `@benchmark`. It prints both
+the minimum and the mean elapsed time, plus information
+about allocations (if any) and time spent on
+memory garbage collection (GC).
+
+# Examples
+```
+julia> @btime log(x[]) setup=(x=Ref(2.0))
+  min 3.666 ns, mean 3.772 ns (0 allocations)
+0.6931471805599453
+
+julia> @btime sum(log, \$(fill(2.0, 1000)))
+  min 3.391 μs, mean 3.441 μs (0 allocations)
+693.1471805599322
+
+julia> @btime rand(1000);
+  min 724.432 ns, mean 1.462 μs (1 allocation, 7.94 KiB. GC mean 352 ns, 24.11%)
+```
 """
 macro btime(args...)
     _, params = prunekwargs(args...)
     bench, trial, result = gensym(), gensym(), gensym()
-    trialmin, trialallocs = gensym(), gensym()
+    trialmin, trialmean, trialallocs = gensym(), gensym(), gensym()
     tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
     return esc(quote
         local $bench = $BenchmarkTools.@benchmarkable $(args...)
@@ -576,12 +592,18 @@ macro btime(args...)
         $tune_phase
         local $trial, $result = $BenchmarkTools.run_result($bench)
         local $trialmin = $BenchmarkTools.minimum($trial)
+        local $trialmean = $BenchmarkTools.mean($trial)
         local $trialallocs = $BenchmarkTools.allocs($trialmin)
-        println("  ",
-                $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
-                " (", $trialallocs , " allocation",
-                $trialallocs == 1 ? "" : "s", ": ",
-                $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)), ")")
+        $print("  min ")
+        $printstyled($BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)); bold=true)
+        $print(", ")
+        $print("mean ")
+        $printstyled($BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)); bold=true)
+        $print(" (", $trialallocs , " allocation", $trialallocs == 1 ? "" : "s")
+        if $trialallocs != 0
+            $print(", ", $prettymemory($memory($trialmin)))
+        end
+        $println(")")
         $result
     end)
 end

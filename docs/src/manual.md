@@ -65,12 +65,15 @@ before returning the value of the expression, while `@belapsed`
 returns the minimum time in seconds.
 
 ```julia
-julia> @btime sin(1)
-  13.612 ns (0 allocations: 0 bytes)
-0.8414709848078965
+julia> @btime sin.(0:2)
+  min 25.687 ns, mean 28.266 ns (1 allocation, 80 bytes)
+3-element Vector{Float64}:
+ 0.0
+ 0.8414709848078965
+ 0.9092974268256817
 
-julia> @belapsed sin(1)
-1.3614228456913828e-8
+julia> @belapsed sin.(0:2)
+2.5727911646586344e-8
 ```
 
 ### Benchmark `Parameters`
@@ -298,13 +301,13 @@ julia> a = 1; b = 2
 2
 
 julia> @btime $a + $b
-  0.024 ns (0 allocations: 0 bytes)
+  min 0.833 ns, mean 0.944 ns (0 allocations)
 3
 ```
 in this case julia was able to use the properties of `+(::Int, ::Int)` to know that it could safely replace `$a + $b` with `3` at compile time. We can stop the optimizer from doing this by referencing and dereferencing the interpolated variables  
 ```julia
 julia> @btime $(Ref(a))[] + $(Ref(b))[]
-  1.277 ns (0 allocations: 0 bytes)
+  min 0.875 ns, mean 0.948 ns (0 allocations)
 3
 ```
 
