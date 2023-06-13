@@ -858,7 +858,7 @@ A common workflow used in BenchmarkTools is the following:
 1. Start a Julia session
 2. Execute a benchmark suite using an old version of your package
     ```julia
-    results = run(suite, verbose = true)
+    old_results = run(suite, verbose = true)
     ```
 4. Save the results somehow (e.g. in a JSON file)
     ```julia
