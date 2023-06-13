@@ -529,8 +529,7 @@ julia> suite
 As you might imagine, `BenchmarkGroup` supports a subset of Julia's `Associative` interface. A full list of
 these supported functions can be found [in the reference document](reference.md#benchmarkgrouptagsvector-datadict).
 
-One can also create a nested `BenchmarkGroup` simply by passing the keys, similar to how
-`mkdir -p` works:
+One can also create a nested `BenchmarkGroup` simply by indexing the keys:
 
 ```julia
 suite2 = BenchmarkGroup()
@@ -538,9 +537,10 @@ suite2 = BenchmarkGroup()
 suite2["my"]["nested"]["benchmark"] = @benchmarkable sum(randn(32))
 ```
 
-which will result in a hierarchical benchmark without us needing to create each `BenchmarkGroup` ourselves.
-(Note that keys are automatically created upon access, even if a key does not exist. Thus, if you wish
-to empty the unused keys, you can use `clear_empty!` to do so)
+which will result in a hierarchical benchmark without us needing to create the `BenchmarkGroup` at each level ourselves.
+
+Note that keys are automatically created upon access, even if a key does not exist. Thus, if you wish
+to empty the unused keys, you can use `clear_empty!(suite)` to do so.
 
 ### Tuning and running a `BenchmarkGroup`
 
