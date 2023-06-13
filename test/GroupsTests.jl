@@ -354,6 +354,14 @@ clear_empty!(g1)
 # Now it is clean
 @test !("ssum" in keys(g1.data))
 @test !("ssum2" in keys(g1.data))
+
+# Likewise with multi-key groups:
+g1[1, 2, 3][1, 2, 3]
+@test (1, 2, 3) in keys(g1.data)
+@test (1, 2, 3) in keys(g1[1, 2, 3].data)
+clear_empty!(g1)
+@test !((1, 2, 3) in keys(g1.data))
+
 # But other groups should still be present:
 for T in [Float32, Float64], n in [10, 100], m in [5, 20]
   @test "sum" in keys(g1.data)
