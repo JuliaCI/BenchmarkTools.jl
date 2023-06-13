@@ -142,7 +142,8 @@ Base.copy(t::TrialEstimate) = TrialEstimate(
     t.gctime,
     t.memory,
     t.allocs,
-    copy(t.return_value),
+    # copy does not have a method for strings, but as of v1.9 is marked as mutable.
+    hasmethod(copy, (typeof(t.return_value), )) ? copy(t.return_value) : t.return_value,
 )
 
 function Base.minimum(trial::Trial)
@@ -237,7 +238,7 @@ function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
            a.memory == b.memory
 end
 
-Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.params), t.time, t.memory)
+Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.ratio), t.time, t.memory)
 
 Base.time(t::TrialJudgement) = t.time
 memory(t::TrialJudgement) = t.memory
