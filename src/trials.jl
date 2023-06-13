@@ -74,6 +74,7 @@ end
 Base.sort(t::Trial) = sort!(copy(t))
 
 Base.time(t::Trial) = time(minimum(t))
+return_value(t::Trial) = return_value(minimum(t))
 gctime(t::Trial) = gctime(minimum(t))
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs

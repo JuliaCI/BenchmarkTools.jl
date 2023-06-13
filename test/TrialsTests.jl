@@ -43,6 +43,7 @@ trial2.params = trial1.params
 @test memory(trial1) == memory(trial2) == trial1.memory
 @test allocs(trial1) == allocs(trial2) == trial1.allocs
 @test params(trial1) == params(trial2) == trial1.params
+@test return_values(trial1) == return_values(trial2) == trial1.return_values
 
 # outlier trimming
 trial3 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1, 2, 3, 10, 11],
@@ -82,7 +83,9 @@ tmax = maximum(randtrial)
 @test memory(tmin) == memory(tmed) == memory(tmean) == memory(tmax) == memory(tvar) == memory(tstd) == memory(randtrial)
 @test allocs(tmin) == allocs(tmed) == allocs(tmean) == allocs(tmax) == allocs(tvar) == allocs(tstd) == allocs(randtrial)
 @test params(tmin) == params(tmed) == params(tmean) == params(tmax) == params(tvar) == params(tstd) == params(randtrial)
-@test return_value(tmin) == return_value(tmax)
+@test return_value(tmin) == return_value(randtrial)
+@test return_values(tmin) == return_value(randtrial)
+@test copy(tmin) == tmin
 
 @test tmin <= tmed
 @test tmean <= tmed # this should be true since we called rmoutliers!(randtrial) earlier
@@ -122,6 +125,7 @@ tr = ratio(ta, tb)
 tj_ab = judge(ta, tb)
 tj_r = judge(tr)
 
+@test copy(tj_ab) == tj_ab
 @test ratio(tj_ab) == ratio(tj_r) == tr
 @test time(tj_ab) == time(tj_r) == :improvement
 @test memory(tj_ab) == memory(tj_r) == :regression
