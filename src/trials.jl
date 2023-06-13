@@ -8,6 +8,12 @@ mutable struct Trial
     gctimes::Vector{Float64}
     memory::Int
     allocs::Int
+    return_values::Vector{Any}
+end
+
+# Trial constructor with default return values. Required for backwards compatibility.
+function Trial(params::Parameters, times, gctimes, memory, allocs)
+    Trial(params, times, gctimes, memory, allocs, [nothing for _ in eachindex(times)])
 end
 
 Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
@@ -17,34 +23,51 @@ function Base.:(==)(a::Trial, b::Trial)
            a.times == b.times &&
            a.gctimes == b.gctimes &&
            a.memory == b.memory &&
-           a.allocs == b.allocs
+           a.allocs == b.allocs &&
+           a.return_values == b.return_values
 end
 
-Base.copy(t::Trial) = Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+Base.copy(t::Trial) = Trial(
+    copy(t.params),
+    copy(t.times),
+    copy(t.gctimes),
+    t.memory,
+    t.allocs,
+    copy(t.return_values),
+)
 
-function Base.push!(t::Trial, time, gctime, memory, allocs)
+function Base.push!(t::Trial, time, gctime, memory, allocs, return_value)
     push!(t.times, time)
     push!(t.gctimes, gctime)
     memory < t.memory && (t.memory = memory)
     allocs < t.allocs && (t.allocs = allocs)
+    push!(t.return_values, return_value)
     return t
+end
+
+function Base.push!(t::Trial, time, gctime, memory, allocs)
+    push!(t, time, gctime, memory, allocs, nothing)
 end
 
 function Base.deleteat!(t::Trial, i)
     deleteat!(t.times, i)
     deleteat!(t.gctimes, i)
+    deleteat!(t.return_values, i)
     return t
 end
 
 Base.length(t::Trial) = length(t.times)
-Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
-Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
+Base.getindex(t::Trial, i::Number) =
+    push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs, t.return_values[i])
+Base.getindex(t::Trial, i) =
+    Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs, t.return_values[i])
 Base.lastindex(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
     inds = sortperm(t.times)
     t.times = t.times[inds]
     t.gctimes = t.gctimes[inds]
+    t.return_values = t.return_values[inds]
     return t
 end
 
@@ -55,6 +78,7 @@ gctime(t::Trial) = gctime(minimum(t))
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 params(t::Trial) = t.params
+return_values(t::Trial) = t.return_values
 
 # returns the index of the first outlier in `values`, if any outliers are detected.
 # `values` is assumed to be sorted from least to greatest, and assumed to be right-skewed.
@@ -92,10 +116,14 @@ mutable struct TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
+    return_value::Any
 end
 
-function TrialEstimate(trial::Trial, t, gct)
-    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial))
+TrialEstimate(params::Parameters, time, gctime, memory, allocs) =
+    TrialEstimate(params, time, gctime, memory, allocs, nothing)
+
+function TrialEstimate(trial::Trial, t, gct, return_value)
+    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial), return_value)
 end
 
 function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
@@ -103,25 +131,33 @@ function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
            a.time == b.time &&
            a.gctime == b.gctime &&
            a.memory == b.memory &&
-           a.allocs == b.allocs
+           a.allocs == b.allocs &&
+           a.return_value == b.return_value
 end
 
-Base.copy(t::TrialEstimate) = TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
+Base.copy(t::TrialEstimate) = TrialEstimate(
+    copy(t.params),
+    t.time,
+    t.gctime,
+    t.memory,
+    t.allocs,
+    copy(t.return_value),
+)
 
 function Base.minimum(trial::Trial)
     i = argmin(trial.times)
-    return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
+    return TrialEstimate(trial, trial.times[i], trial.gctimes[i], trial.return_values[i])
 end
 
 function Base.maximum(trial::Trial)
     i = argmax(trial.times)
-    return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
+    return TrialEstimate(trial, trial.times[i], trial.gctimes[i], trial.return_values[i])
 end
 
-Statistics.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
-Statistics.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
-Statistics.var(trial::Trial) = TrialEstimate(trial, var(trial.times), var(trial.gctimes))
-Statistics.std(trial::Trial) = TrialEstimate(trial, std(trial.times), std(trial.gctimes))
+Statistics.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes), nothing)
+Statistics.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes), nothing)
+Statistics.var(trial::Trial) = TrialEstimate(trial, var(trial.times), var(trial.gctimes), nothing)
+Statistics.std(trial::Trial) = TrialEstimate(trial, std(trial.times), std(trial.gctimes), nothing)
 
 Base.isless(a::TrialEstimate, b::TrialEstimate) = isless(time(a), time(b))
 
@@ -130,6 +166,8 @@ gctime(t::TrialEstimate) = t.gctime
 memory(t::TrialEstimate) = t.memory
 allocs(t::TrialEstimate) = t.allocs
 params(t::TrialEstimate) = t.params
+return_value(t::TrialEstimate) = t.return_value
+return_values(t::TrialEstimate) = t.return_value
 
 ##############
 # TrialRatio #

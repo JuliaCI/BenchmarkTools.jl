@@ -27,19 +27,21 @@ export loadparams!
 include("trials.jl")
 
 export gctime,
-       memory,
-       allocs,
-       params,
-       ratio,
-       judge,
-       isinvariant,
-       isregression,
-       isimprovement,
-       median,
-       mean,
-       rmskew!,
-       rmskew,
-       trim
+    memory,
+    allocs,
+    params,
+    return_values,
+    return_value,
+    ratio,
+    judge,
+    isinvariant,
+    isregression,
+    isimprovement,
+    median,
+    mean,
+    rmskew!,
+    rmskew,
+    trim
 
 ##################
 # Benchmark Data #

@@ -4,8 +4,18 @@ using BenchmarkTools
 using Test
 
 eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}} =
-    all(i->eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
-eq(x::T, y::T) where {T} = isapprox(x, y)
+    all(i -> eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
+
+# Robust approx - if approx is not supported, try equality comparison
+eq(x::T, y::T) where {T} =
+    try
+        isapprox(x, y)
+    catch e
+        if !isa(e, MethodError)
+            throw(e)
+        end
+        isequal(x, y)
+    end
 
 function withtempdir(f::Function)
     d = mktempdir()

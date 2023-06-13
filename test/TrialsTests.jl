@@ -8,13 +8,15 @@ using Test
 # Trial #
 #########
 
-trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(evals = 2))
+trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(evals=2))
 push!(trial1, 2, 1, 4, 5)
-push!(trial1, 21, 0, 41, 51)
+push!(trial1, 21, 0, 41, 51, "Return Value")
 
-trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(time_tolerance = 0.15))
-push!(trial2, 21, 0, 41, 51)
+
+trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(time_tolerance=0.15))
+push!(trial2, 21, 0, 41, 51, "Return Value")
 push!(trial2, 2, 1, 4, 5)
+
 
 push!(trial2, 21, 0, 41, 51)
 @test length(trial2) == 3
@@ -22,18 +24,18 @@ deleteat!(trial2, 3)
 @test length(trial1) == length(trial2) == 2
 sort!(trial2)
 
-@test trial1.params == BenchmarkTools.Parameters(evals = trial1.params.evals)
-@test trial2.params == BenchmarkTools.Parameters(time_tolerance = trial2.params.time_tolerance)
+@test trial1.params == BenchmarkTools.Parameters(evals=trial1.params.evals)
+@test trial2.params == BenchmarkTools.Parameters(time_tolerance=trial2.params.time_tolerance)
 @test trial1.times == trial2.times == [2.0, 21.0]
 @test trial1.gctimes == trial2.gctimes == [1.0, 0.0]
-@test trial1.memory == trial2.memory ==  4
+@test trial1.memory == trial2.memory == 4
 @test trial1.allocs == trial2.allocs == 5
 
 trial2.params = trial1.params
 
 @test trial1 == trial2
 
-@test trial1[2] == push!(BenchmarkTools.Trial(BenchmarkTools.Parameters(evals = 2)), 21, 0, 4, 5)
+@test trial1[2] == push!(BenchmarkTools.Trial(BenchmarkTools.Parameters(evals=2)), 21, 0, 4, 5, "Return Value")
 @test trial1[1:end] == trial1
 
 @test time(trial1) == time(trial2) == 2.0
@@ -59,11 +61,11 @@ rmskew!(trial3)
 randtrial = BenchmarkTools.Trial(BenchmarkTools.Parameters())
 
 for _ in 1:40
-    push!(randtrial, rand(1:20), 1, 1, 1)
+    push!(randtrial, rand(1:20), 1, 1, 1, "Return Value")
 end
 
 while mean(randtrial) <= median(randtrial)
-    push!(randtrial, rand(10:20), 1, 1, 1)
+    push!(randtrial, rand(10:20), 1, 1, 1, "Return Value")
 end
 
 rmskew!(randtrial)
@@ -80,6 +82,7 @@ tmax = maximum(randtrial)
 @test memory(tmin) == memory(tmed) == memory(tmean) == memory(tmax) == memory(tvar) == memory(tstd) == memory(randtrial)
 @test allocs(tmin) == allocs(tmed) == allocs(tmean) == allocs(tmax) == allocs(tvar) == allocs(tstd) == allocs(randtrial)
 @test params(tmin) == params(tmed) == params(tmean) == params(tmax) == params(tvar) == params(tstd) == params(randtrial)
+@test return_value(tmin) == return_value(tmax)
 
 @test tmin <= tmed
 @test tmean <= tmed # this should be true since we called rmoutliers!(randtrial) earlier

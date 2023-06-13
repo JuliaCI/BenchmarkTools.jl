@@ -97,13 +97,13 @@ function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
     trial = Trial(params)
     params.gcsample && gcscrub()
     s = b.samplefunc(b.quote_vals, params)
-    push!(trial, s[1:end-1]...)
+    push!(trial, s...)
     return_val = s[end]
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-         params.gcsample && gcscrub()
-         push!(trial, b.samplefunc(b.quote_vals, params)[1:end-1]...)
-         iters += 1
+        params.gcsample && gcscrub()
+        push!(trial, b.samplefunc(b.quote_vals, params)...)
+        iters += 1
     end
     return trial, return_val
 end
