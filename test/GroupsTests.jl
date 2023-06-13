@@ -324,4 +324,52 @@ g1["c"] = tc
   "c" => TrialEstimate(1.000 ns)
   ⋮"""
 
+# EasyConfig-style benchmark groups #
+#-----------------------------------#
+
+g1 = BenchmarkGroup()
+for T in [Float32, Float64], n in [10, 100], m in [5, 20]
+  g1["sum"][T][n][m] = @benchmarkable sum(x) setup=(x=randn($T, $n, $m))
+end
+
+# Test that the groups were created:
+for T in [Float32, Float64], n in [10, 100], m in [5, 20]
+  @test "sum" in keys(g1.data)
+  @test string(T) in keys(g1["sum"].data)
+  @test n in keys(g1["sum"][T].data)
+  @test m in keys(g1["sum"][T][n].data)
+  @test typeof(g1["sum"][T][n][m]) == BenchmarkTools.Benchmark
+end
+
+# Expected side effect is that accessing groups creates them:
+g1["ssum"]
+@test "ssum" in keys(g1.data)
+g1["ssum2"][Int32]
+@test "ssum2" in keys(g1.data)
+@test "Int32" in keys(g1["ssum2"].data)
+
+# So we can clear the empty groups with `clear_empty!`:
+clear_empty!(g1)
+
+# Now it is clean
+@test !("ssum" in keys(g1.data))
+@test !("ssum2" in keys(g1.data))
+
+# Likewise with multi-key groups:
+g1[1, 2, 3][1, 2, 3][1, 2, 3] = BenchmarkGroup()
+@test (1, 2, 3) in keys(g1.data)
+@test (1, 2, 3) in keys(g1[1, 2, 3].data)
+clear_empty!(g1)
+@test !((1, 2, 3) in keys(g1.data))
+
+# But other groups should still be present:
+for T in [Float32, Float64], n in [10, 100], m in [5, 20]
+  @test "sum" in keys(g1.data)
+  @test string(T) in keys(g1["sum"].data)
+  @test n in keys(g1["sum"][T].data)
+  @test m in keys(g1["sum"][T][n].data)
+  @test typeof(g1["sum"][T][n][m]) == BenchmarkTools.Benchmark
+end
+
+
 # end # module

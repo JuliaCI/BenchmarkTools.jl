@@ -23,16 +23,43 @@ function addgroup!(suite::BenchmarkGroup, id, args...)
     return g
 end
 
+"""
+    clear_empty!(group::BenchmarkGroup)
+
+Recursively remove any empty subgroups from `group`.
+
+Use this to prune a `BenchmarkGroup` after accessing the incorrect
+fields, such as `g=BenchmarkGroup(); g[1]`, without storing
+anything to `g[1]`, which will create an empty subgroup `g[1]`.
+"""
+function clear_empty!(group::BenchmarkGroup)
+    for (k, v) in pairs(group)
+        if v isa BenchmarkGroup && isempty(v)
+            delete!(group, k)
+        end
+    end
+    group
+end
+clear_empty!(x) = x
+
 # Dict-like methods #
 #-------------------#
 
 Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
 Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.data))
 Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), empty(group.data))
-Base.isempty(group::BenchmarkGroup) = isempty(group.data)
+
+"""
+    isempty(group::BenchmarkGroup)
+
+Return `true` if `group` is empty. This will first
+run `clear_empty!` on `group` to recursively remove any empty subgroups.
+"""
+Base.isempty(group::BenchmarkGroup) = isempty(clear_empty!(group).data)
+
 Base.length(group::BenchmarkGroup) = length(group.data)
-Base.getindex(group::BenchmarkGroup, k) = getindex(group.data, makekey(k))
-Base.getindex(group::BenchmarkGroup, k...) = getindex(group.data, makekey(k))
+Base.getindex(group::BenchmarkGroup, k) = get!(group.data, makekey(k), BenchmarkGroup())
+Base.getindex(group::BenchmarkGroup, k...) = get!(group.data, makekey(k), BenchmarkGroup())
 Base.setindex!(group::BenchmarkGroup, v, k) = setindex!(group.data, v, makekey(k))
 Base.setindex!(group::BenchmarkGroup, v, k...) = setindex!(group.data, v, makekey(k))
 Base.delete!(group::BenchmarkGroup, k) = delete!(group.data, makekey(k))
