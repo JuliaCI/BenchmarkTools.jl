@@ -871,7 +871,7 @@ A common workflow used in BenchmarkTools is the following:
    ```
 7. Compare the new results with the results saved in step 3 to determine regression status
     ```julia
-    old_results = BenchmarkTools.load("results.json")
+    old_results = BenchmarkTools.load("old_results.json")
     BenchmarkTools.judge(median(results), old_results)
     ```
 
