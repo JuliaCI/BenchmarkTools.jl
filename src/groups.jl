@@ -391,7 +391,7 @@ function benchmarkset_block(title, ex::Expr)
     stack = GlobalRef(BenchmarkTools, :benchmark_stack)
     quote
         let $(Symbol("#root#")) = last($stack)
-            $(Symbol("#root#"))[$title] = $(Symbol("#suite#")) = BenchmarkGroup()
+            $(Symbol("#suite#")) = $(Symbol("#root#"))[$title]
             push!($stack, $(Symbol("#suite#")))
             $ex
             pop!($stack)
