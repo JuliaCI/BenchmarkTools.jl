@@ -356,7 +356,7 @@ clear_empty!(g1)
 @test !("ssum2" in keys(g1.data))
 
 # Likewise with multi-key groups:
-g1[1, 2, 3][1, 2, 3]
+g1[1, 2, 3][1, 2, 3][1, 2, 3] = BenchmarkGroup()
 @test (1, 2, 3) in keys(g1.data)
 @test (1, 2, 3) in keys(g1[1, 2, 3].data)
 clear_empty!(g1)
