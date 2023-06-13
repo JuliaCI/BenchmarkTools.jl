@@ -142,8 +142,7 @@ Base.copy(t::TrialEstimate) = TrialEstimate(
     t.gctime,
     t.memory,
     t.allocs,
-    # copy does not have a method for strings, but as of v1.9 is marked as mutable.
-    hasmethod(copy, (typeof(t.return_value), )) ? copy(t.return_value) : t.return_value,
+    deepcopy(t.return_value),
 )
 
 function Base.minimum(trial::Trial)
