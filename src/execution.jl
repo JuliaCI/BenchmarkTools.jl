@@ -247,9 +247,11 @@ Tune a `Benchmark` instance.
 function tune!(b::Benchmark, p::Parameters = b.params;
                progressid=nothing, nleaves=NaN, ndone=NaN,  # ignored
                verbose::Bool = false, pad = "", kwargs...)
-    warmup(b, verbose = false)
-    estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
-    b.params.evals = guessevals(estimate)
+    if !b.params.evals_set
+        warmup(b, verbose=false)
+        estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
+        b.params.evals = guessevals(estimate)
+    end
     return b
 end
 
@@ -268,6 +270,9 @@ function prunekwargs(args...)
         for ex in params
             if isa(ex, Expr) && ex.head == :(=)
                 ex.head = :kw
+                if ex.args[1] == :evals
+                    push!(params, :(evals_set = 1))
+                end
             end
         end
         if isa(core, Expr) && core.head == :kw

@@ -63,6 +63,16 @@ loadparams!(oldgroups, params(groups))
 
 @test oldgroups == oldgroupscopy == groups
 
+# Explicitly set evals should not get tuned
+
+b = @benchmarkable sin(1) evals=1
+tune!(b)
+@test b.params.evals == 1
+
+b = @benchmarkable sin(1) evals=10
+tune!(b)
+@test b.params.evals == 10
+
 #######
 # run #
 #######
