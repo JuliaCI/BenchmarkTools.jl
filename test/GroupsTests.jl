@@ -293,6 +293,16 @@ g2[[1, "a", :b]] = "hello"  # should create higher levels on the fly
     @test haskey(g1["test set"], "test case 1")
     @test haskey(g1["test set"], "test case 2")
 end
+
+@testset "benchmarkset for loop" begin
+  g1 = @benchmarkset "test set" for k in 1:2
+     @case "test case $k" $k + $k
+  end
+
+  @test haskey(g1, "test set")
+  @test haskey(g1["test set"], "test case 1")
+  @test haskey(g1["test set"], "test case 2")
+end
 # pretty printing #
 #-----------------#
 
