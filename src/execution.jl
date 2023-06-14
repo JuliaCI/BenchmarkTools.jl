@@ -273,7 +273,7 @@ function prunekwargs(args...)
             if isa(ex, Expr) && ex.head == :(=)
                 ex.head = :kw
                 if ex.args[1] == :evals
-                    push!(params, :(evals_set = 1))
+                    push!(params, :(evals_set = true))
                 end
             end
         end
