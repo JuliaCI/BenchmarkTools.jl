@@ -237,10 +237,10 @@ In the above example, we wish to benchmark Julia's in-place sorting method. With
 
 Note that the `setup` and `teardown` phases are **executed for each sample, not each evaluation**. Thus, the sorting example above wouldn't produce the intended results if `evals/sample > 1` (it'd suffer from the same problem of benchmarking against an already sorted vector).
 
-If your setup involves several objects, you need to wrap them in a tuple as follows:
+If your setup involves several objects, you need to separate the assignments with semicolons, as follows:
 
 ```julia
-julia> @btime x + y setup = ((x, y) = (1, 2))  # works
+julia> @btime x + y setup = (x=1; y=2)  # works
   1.238 ns (0 allocations: 0 bytes)
 3
 
