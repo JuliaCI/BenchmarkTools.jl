@@ -243,11 +243,13 @@ tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...) =
     tune!(b::Benchmark, p::Parameters = b.params; verbose::Bool = false, pad = "", kwargs...)
 
 Tune a `Benchmark` instance.
+
+If the number of evals in the parameters `p` has been set manually, this function does nothing.
 """
 function tune!(b::Benchmark, p::Parameters = b.params;
                progressid=nothing, nleaves=NaN, ndone=NaN,  # ignored
                verbose::Bool = false, pad = "", kwargs...)
-    if !b.params.evals_set
+    if !p.evals_set
         warmup(b, verbose=false)
         estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
         b.params.evals = guessevals(estimate)
