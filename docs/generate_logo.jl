@@ -6,13 +6,10 @@ using Luxor
 JULIA_COLORS = [Luxor.julia_blue, Luxor.julia_green, Luxor.julia_red, Luxor.julia_purple]
 
 function draw_logo(; path, dark=false)
-    if dark == true
-        error("dark logo not supported")
-    end
     Drawing(500, 500, path)
     origin()
     squircle(O, 250, 250, :clip, rt=0.3)
-    sethue("white")
+    sethue(dark ? "black" : "white")
     paint()
 
     @layer begin
@@ -30,11 +27,11 @@ function draw_logo(; path, dark=false)
                 :fill)
         end
 
-        sethue("white")
+        sethue(dark ? "black" : "white")
         setline(25)
         line(O, polar(400, deg2rad(290)), :strokepreserve)
         setline(14)
-        sethue("black")
+        sethue(dark ? "white" : "black")
         strokepath()
         circle(O, 30, :fill)
     end
@@ -44,3 +41,4 @@ function draw_logo(; path, dark=false)
 end
 
 draw_logo(path=joinpath(@__DIR__, "src", "assets", "logo.svg"), dark=false)
+draw_logo(path=joinpath(@__DIR__, "src", "assets", "logo-dark.svg"), dark=true)
