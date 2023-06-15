@@ -1,8 +1,8 @@
 # BenchmarkTools.jl
 
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="docs/build/assets/logo-dark.svg" width="100" height="100">
-<img alt="BenchmarkTools logo" src="docs/build/assets/logo.svg" width="100" height="100">
+<source media="(prefers-color-scheme: dark)" srcset="docs/src/assets/logo-dark.svg" width="100" height="100">
+<img alt="BenchmarkTools logo" src="docs/src/assets/logo.svg" width="100" height="100">
 </picture>
 
 [![][docs-stable-img]][docs-stable-url]
