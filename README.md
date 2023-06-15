@@ -1,4 +1,4 @@
-# BenchmarkTools.jl
+# BenchmarkTools.jl <img src="./docs/src/assets/logo.svg" width="100" height="100">
 
 [![][docs-stable-img]][docs-stable-url]
 [![][docs-dev-img]][docs-dev-url]
