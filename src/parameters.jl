@@ -9,6 +9,7 @@ mutable struct Parameters
     seconds::Float64
     samples::Int
     evals::Int
+    evals_set::Bool
     overhead::Float64
     gctrial::Bool
     gcsample::Bool
@@ -16,17 +17,18 @@ mutable struct Parameters
     memory_tolerance::Float64
 end
 
-const DEFAULT_PARAMETERS = Parameters(5.0, 10000, 1, 0, true, false, 0.05, 0.01)
+const DEFAULT_PARAMETERS = Parameters(5.0, 10000, 1, false, 0, true, false, 0.05, 0.01)
 
 function Parameters(; seconds = DEFAULT_PARAMETERS.seconds,
                     samples = DEFAULT_PARAMETERS.samples,
                     evals = DEFAULT_PARAMETERS.evals,
+                    evals_set = DEFAULT_PARAMETERS.evals_set,
                     overhead = DEFAULT_PARAMETERS.overhead,
                     gctrial = DEFAULT_PARAMETERS.gctrial,
                     gcsample = DEFAULT_PARAMETERS.gcsample,
                     time_tolerance = DEFAULT_PARAMETERS.time_tolerance,
                     memory_tolerance = DEFAULT_PARAMETERS.memory_tolerance)
-    return Parameters(seconds, samples, evals, overhead, gctrial,
+    return Parameters(seconds, samples, evals, evals_set, overhead, gctrial,
                       gcsample, time_tolerance, memory_tolerance)
 end
 
@@ -57,8 +59,17 @@ function Base.:(==)(a::Parameters, b::Parameters)
            a.memory_tolerance == b.memory_tolerance
 end
 
-Base.copy(p::Parameters) = Parameters(p.seconds, p.samples, p.evals, p.overhead, p.gctrial,
-                                      p.gcsample, p.time_tolerance, p.memory_tolerance)
+Base.copy(p::Parameters) = Parameters(
+    p.seconds,
+    p.samples,
+    p.evals,
+    p.evals_set,
+    p.overhead,
+    p.gctrial,
+    p.gcsample,
+    p.time_tolerance,
+    p.memory_tolerance
+)
 
 function loadparams!(a::Parameters, b::Parameters, fields...)
     fields = isempty(fields) ? fieldnames(Parameters) : fields

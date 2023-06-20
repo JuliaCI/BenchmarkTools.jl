@@ -63,6 +63,27 @@ loadparams!(oldgroups, params(groups))
 
 @test oldgroups == oldgroupscopy == groups
 
+# Explicitly set evals should not get tuned
+
+b = @benchmarkable sin(1) evals=1
+tune!(b)
+@test params(b).evals == 1
+
+b = @benchmarkable sin(1) evals=10
+tune!(b)
+@test params(b).evals == 10
+
+function test_length_and_push!(x::AbstractVector)
+    length(x) == 2 || error("setup not correctly executed")
+    push!(x, randn())
+end
+
+b_fail = @benchmarkable test_length_and_push!(y) setup=(y=randn(2))
+@test_throws Exception tune!(b_fail)
+
+b_pass = @benchmarkable test_length_and_push!(y) setup=(y=randn(2)) evals=1
+@test tune!(b_pass) isa BenchmarkTools.Benchmark
+
 #######
 # run #
 #######
@@ -80,6 +101,12 @@ testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false))
 testexpected(run(groups["sin"][first(sizes)]; seconds = 1, gctrial = false, time_tolerance = 0.10, samples = 2, evals = 2, gcsample = false))
 
 testexpected(run(groups["sum"][first(sizes)], BenchmarkTools.DEFAULT_PARAMETERS))
+
+# Mutating benchmark
+
+b_pass = @benchmarkable test_length_and_push!(y) setup=(y=randn(2)) evals=1
+tune!(b_pass)
+@test run(b_pass) isa BenchmarkTools.Trial
 
 ###########
 # warmup #
