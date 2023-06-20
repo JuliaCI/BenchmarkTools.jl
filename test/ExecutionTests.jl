@@ -162,8 +162,9 @@ tune!(b)
 # test kwargs separated by `,`
 @benchmark(output=sin(x), setup=(x=1.0; output=0.0), teardown=(@test output == sin(x)))
 
-for (tf, rex1, rex2) in ((false, r"0.5 ns +Histogram: frequency by time +8 ns",        r"Histogram: frequency"),
-                         (true,  r"0.5 ns +Histogram: log\(frequency\) by time +8 ns", r"Histogram: log\(frequency\)"))
+for (tf, rex1, rex2) in ((false, r"0.5 ns ",        r"  [0-9_]+ samples, each"),
+                         (missing, r"0.5 ns ",        r"  [0-9_]+ samples, each"),
+                         (true,  r"0.5 ns +log\(counts\) from ", r"log\(counts\) from [0-9_]+ samples"))
     io = IOBuffer()
     ioctx = IOContext(io, :histmin=>0.5, :histmax=>8, :logbins=>tf)
     @show tf
@@ -177,13 +178,6 @@ for (tf, rex1, rex2) in ((false, r"0.5 ns +Histogram: frequency by time +8 ns", 
     ioctx = IOContext(io, :logbins=>tf)
     # A flat distribution won't trigger log by default
     b = BenchmarkTools.Trial(BenchmarkTools.DEFAULT_PARAMETERS, 0.001 * (1:100) * 1e9, zeros(100), 0, 0)
-    show(ioctx, MIME("text/plain"), b)
-    str = String(take!(io))
-    idx = findfirst(rex2, str)
-    @test isa(idx, UnitRange)
-    # A peaked distribution will trigger log by default
-    t = [fill(1, 21); 2]
-    b = BenchmarkTools.Trial(BenchmarkTools.DEFAULT_PARAMETERS, t/sum(t)*1e9*BenchmarkTools.DEFAULT_PARAMETERS.seconds, zeros(100), 0, 0)
     show(ioctx, MIME("text/plain"), b)
     str = String(take!(io))
     idx = findfirst(rex2, str)
