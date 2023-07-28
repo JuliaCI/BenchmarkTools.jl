@@ -9,6 +9,13 @@ using UUIDs: uuid4
 using Printf
 using Profile
 
+import LinuxPerf
+import Random
+
+# TODO: delete the following line once https://github.com/JuliaPerf/LinuxPerf.jl/pull/32
+# is merged and a new release of LinuxPerf has been made.
+const parse_groups = LinuxPerf.parse_groups
+
 const BENCHMARKTOOLS_VERSION = if VERSION >= v"1.9"
     pkgversion(BenchmarkTools)
 else
@@ -17,7 +24,6 @@ end
 
 ##############
 # Parameters #
-##############
 
 include("parameters.jl")
 
