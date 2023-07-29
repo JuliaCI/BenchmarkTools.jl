@@ -542,6 +542,7 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, quote_
                 __memory,
                 __allocs,
                 __return_val,
+                __return_val_2,
                 __linux_perf_stats,
             )
         end
