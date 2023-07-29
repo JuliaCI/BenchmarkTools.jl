@@ -595,6 +595,7 @@ function generate_benchmark_definition(
                 __memory,
                 __allocs,
                 __return_val,
+                __return_val_2,
                 __linux_perf_stats,
             )
         end
