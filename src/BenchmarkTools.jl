@@ -9,7 +9,6 @@ using UUIDs: uuid4
 using Printf
 using Profile
 
-
 const BENCHMARKTOOLS_VERSION = v"1.0.0"
 
 ##############
@@ -27,19 +26,19 @@ export loadparams!
 include("trials.jl")
 
 export gctime,
-       memory,
-       allocs,
-       params,
-       ratio,
-       judge,
-       isinvariant,
-       isregression,
-       isimprovement,
-       median,
-       mean,
-       rmskew!,
-       rmskew,
-       trim
+    memory,
+    allocs,
+    params,
+    ratio,
+    judge,
+    isinvariant,
+    isregression,
+    isimprovement,
+    median,
+    mean,
+    rmskew!,
+    rmskew,
+    trim
 
 ##################
 # Benchmark Data #
@@ -48,15 +47,15 @@ export gctime,
 include("groups.jl")
 
 export BenchmarkGroup,
-       invariants,
-       regressions,
-       improvements,
-       @tagged,
-       addgroup!,
-       leaves,
-       @benchmarkset,
-       @case,
-       clear_empty!
+    invariants,
+    regressions,
+    improvements,
+    @tagged,
+    addgroup!,
+    leaves,
+    @benchmarkset,
+    @case,
+    clear_empty!
 
 ######################
 # Execution Strategy #
@@ -64,14 +63,7 @@ export BenchmarkGroup,
 
 include("execution.jl")
 
-export tune!,
-       warmup,
-       @ballocated,
-       @benchmark,
-       @benchmarkable,
-       @belapsed,
-       @btime,
-       @bprofile
+export tune!, warmup, @ballocated, @benchmark, @benchmarkable, @belapsed, @btime, @bprofile
 
 #################
 # Serialization #

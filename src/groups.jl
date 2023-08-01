@@ -6,7 +6,11 @@ const KeyTypes = Union{String,Int,Float64}
 makekey(v::KeyTypes) = v
 makekey(v::Real) = (v2 = Float64(v); v2 == v ? v2 : string(v))
 makekey(v::Integer) = typemin(Int) <= v <= typemax(Int) ? Int(v) : string(v)
-makekey(v::Tuple) = (Any[i isa Tuple ? string(i) : makekey(i) for i in v]...,)::Tuple{Vararg{KeyTypes}}
+function makekey(v::Tuple)
+    return (
+        Any[i isa Tuple ? string(i) : makekey(i) for i in v]...,
+    )::Tuple{Vararg{KeyTypes}}
+end
 makekey(v::Any) = string(v)::String
 
 struct BenchmarkGroup
@@ -14,7 +18,9 @@ struct BenchmarkGroup
     data::Dict{Any,Any}
 end
 
-BenchmarkGroup(tags::Vector, args::Pair...) = BenchmarkGroup(tags, Dict{Any,Any}((makekey(k) => v for (k, v) in args)))
+function BenchmarkGroup(tags::Vector, args::Pair...)
+    return BenchmarkGroup(tags, Dict{Any,Any}((makekey(k) => v for (k, v) in args)))
+end
 BenchmarkGroup(args::Pair...) = BenchmarkGroup([], args...)
 
 function addgroup!(suite::BenchmarkGroup, id, args...)
@@ -38,7 +44,7 @@ function clear_empty!(group::BenchmarkGroup)
             delete!(group, k)
         end
     end
-    group
+    return group
 end
 clear_empty!(x) = x
 
@@ -113,7 +119,9 @@ allocs(group::BenchmarkGroup) = mapvals(allocs, group)
 params(group::BenchmarkGroup) = mapvals(params, group)
 
 ratio(groups::BenchmarkGroup...) = mapvals(ratio, groups...)
-judge(groups::BenchmarkGroup...; kwargs...) = mapvals((x...) -> judge(x...; kwargs...), groups...)
+function judge(groups::BenchmarkGroup...; kwargs...)
+    return mapvals((x...) -> judge(x...; kwargs...), groups...)
+end
 
 rmskew!(group::BenchmarkGroup) = mapvals!(rmskew!, group)
 rmskew(group::BenchmarkGroup) = mapvals(rmskew, group)
@@ -136,14 +144,24 @@ regressions(x) = x
 improvements(f, x) = x
 improvements(x) = x
 
-invariants(f, group::BenchmarkGroup) = mapvals!((x) -> invariants(f, x), filtervals((x) -> isinvariant(f, x), group))
+function invariants(f, group::BenchmarkGroup)
+    return mapvals!((x) -> invariants(f, x), filtervals((x) -> isinvariant(f, x), group))
+end
 invariants(group::BenchmarkGroup) = mapvals!(invariants, filtervals(isinvariant, group))
 
-regressions(f, group::BenchmarkGroup) = mapvals!((x) -> regressions(f, x), filtervals((x) -> isregression(f, x), group))
+function regressions(f, group::BenchmarkGroup)
+    return mapvals!((x) -> regressions(f, x), filtervals((x) -> isregression(f, x), group))
+end
 regressions(group::BenchmarkGroup) = mapvals!(regressions, filtervals(isregression, group))
 
-improvements(f, group::BenchmarkGroup) = mapvals!((x) -> improvements(f, x), filtervals((x) -> isimprovement(f, x), group))
-improvements(group::BenchmarkGroup) = mapvals!(improvements, filtervals(isimprovement, group))
+function improvements(f, group::BenchmarkGroup)
+    return mapvals!(
+        (x) -> improvements(f, x), filtervals((x) -> isimprovement(f, x), group)
+    )
+end
+function improvements(group::BenchmarkGroup)
+    return mapvals!(improvements, filtervals(isimprovement, group))
+end
 
 function loadparams!(group::BenchmarkGroup, paramsgroup::BenchmarkGroup, fields...)
     for (k, v) in group
@@ -241,8 +259,14 @@ function tagunion(args...)
     return result
 end
 
-function loadtagged!(f::TagFilter, dest::BenchmarkGroup, src::BenchmarkGroup,
-                     group::BenchmarkGroup, keys::Vector, tags::Vector)
+function loadtagged!(
+    f::TagFilter,
+    dest::BenchmarkGroup,
+    src::BenchmarkGroup,
+    group::BenchmarkGroup,
+    keys::Vector,
+    tags::Vector,
+)
     if f.predicate(tags)
         child_dest = createchild!(dest, src, keys)
         for (k, v) in group
@@ -274,7 +298,7 @@ function createchild!(dest, src, keys)
             isgroup = isa(src_child, BenchmarkGroup)
             dest_child = isgroup ? similar(src_child) : src_child
             dest[k] = dest_child
-            !(isgroup) && return
+            !(isgroup) && return nothing
         else
             dest_child = dest[k]
         end
@@ -293,14 +317,18 @@ function Base.getindex(group::BenchmarkGroup, x::BenchmarkGroup)
     return result
 end
 
-Base.setindex!(group::BenchmarkGroup, v, k::BenchmarkGroup) = error("A BenchmarkGroup cannot be a key in a BenchmarkGroup")
+function Base.setindex!(group::BenchmarkGroup, v, k::BenchmarkGroup)
+    return error("A BenchmarkGroup cannot be a key in a BenchmarkGroup")
+end
 
 # pretty printing #
 #-----------------#
 
 tagrepr(tags) = string("[", join(map(repr, tags), ", "), "]")
 
-Base.summary(io::IO, group::BenchmarkGroup) = print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
+function Base.summary(io::IO, group::BenchmarkGroup)
+    return print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
+end
 
 function Base.show(io::IO, group::BenchmarkGroup)
     limit = get(io, :limit, true)
@@ -325,12 +353,13 @@ function Base.show(io::IO, group::BenchmarkGroup)
     for (k, v) in group
         println(io)
         print(io, pad, "  ", repr(k), " => ")
-        show(IOContext(io, :pad => "\t"*pad), v)
+        show(IOContext(io, :pad => "\t" * pad), v)
         count += 1
-        count > nbound && length(group) > count && (println(io); print(io, pad, "  ⋮"); break)
+        count > nbound &&
+            length(group) > count &&
+            (println(io); print(io, pad, "  ⋮"); break)
     end
 end
-
 
 const benchmark_stack = []
 
@@ -348,7 +377,7 @@ end
 ```
 """
 macro benchmarkset(title, ex)
-    esc(benchmarkset_m(title, ex))
+    return esc(benchmarkset_m(title, ex))
 end
 
 """
@@ -357,7 +386,7 @@ end
 Mark an expression as a benchmark case. Must be used inside [`@benchmarkset`](@ref).
 """
 macro case(title, xs...)
-    esc(:($(Symbol("#suite#"))[$title] = @benchmarkable $(xs...)))
+    return esc(:($(Symbol("#suite#"))[$title] = @benchmarkable $(xs...)))
 end
 
 function benchmarkset_m(title, ex::Expr)
@@ -381,7 +410,7 @@ function benchmarkset_m(title, ex::Expr)
     elseif ex.head === :for
         quote
             $init
-            $(Expr(ex.head, ex.args[1], benchmarkset_block(title, ex.args[2]))) 
+            $(Expr(ex.head, ex.args[1], benchmarkset_block(title, ex.args[2])))
             $exec
         end
     end

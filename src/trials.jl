@@ -20,7 +20,9 @@ function Base.:(==)(a::Trial, b::Trial)
            a.allocs == b.allocs
 end
 
-Base.copy(t::Trial) = Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+function Base.copy(t::Trial)
+    return Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+end
 
 function Base.push!(t::Trial, time, gctime, memory, allocs)
     push!(t.times, time)
@@ -37,7 +39,9 @@ function Base.deleteat!(t::Trial, i)
 end
 
 Base.length(t::Trial) = length(t.times)
-Base.getindex(t::Trial, i::Number) = push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
+function Base.getindex(t::Trial, i::Number)
+    return push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
+end
 Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.lastindex(t::Trial) = length(t)
 
@@ -80,7 +84,9 @@ function rmskew(t::Trial)
     return st[1:(skewcutoff(st) - 1)]
 end
 
-trim(t::Trial, percentage = 0.1) = t[1:max(1, floor(Int, length(t) - (length(t) * percentage)))]
+function trim(t::Trial, percentage=0.1)
+    return t[1:max(1, floor(Int, length(t) - (length(t) * percentage)))]
+end
 
 #################
 # TrialEstimate #
@@ -106,7 +112,9 @@ function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
            a.allocs == b.allocs
 end
 
-Base.copy(t::TrialEstimate) = TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
+function Base.copy(t::TrialEstimate)
+    return TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
+end
 
 function Base.minimum(trial::Trial)
     i = argmin(trial.times)
@@ -118,7 +126,9 @@ function Base.maximum(trial::Trial)
     return TrialEstimate(trial, trial.times[i], trial.gctimes[i])
 end
 
-Statistics.median(trial::Trial) = TrialEstimate(trial, median(trial.times), median(trial.gctimes))
+function Statistics.median(trial::Trial)
+    return TrialEstimate(trial, median(trial.times), median(trial.gctimes))
+end
 Statistics.mean(trial::Trial) = TrialEstimate(trial, mean(trial.times), mean(trial.gctimes))
 Statistics.var(trial::Trial) = TrialEstimate(trial, var(trial.times), var(trial.gctimes))
 Statistics.std(trial::Trial) = TrialEstimate(trial, std(trial.times), std(trial.gctimes))
@@ -169,12 +179,17 @@ end
 function ratio(a::TrialEstimate, b::TrialEstimate)
     ttol = max(params(a).time_tolerance, params(b).time_tolerance)
     mtol = max(params(a).memory_tolerance, params(b).memory_tolerance)
-    p = Parameters(params(a); time_tolerance = ttol, memory_tolerance = mtol)
-    return TrialRatio(p, ratio(time(a), time(b)), ratio(gctime(a), gctime(b)),
-                      ratio(memory(a), memory(b)), ratio(allocs(a), allocs(b)))
+    p = Parameters(params(a); time_tolerance=ttol, memory_tolerance=mtol)
+    return TrialRatio(
+        p,
+        ratio(time(a), time(b)),
+        ratio(gctime(a), gctime(b)),
+        ratio(memory(a), memory(b)),
+        ratio(allocs(a), allocs(b)),
+    )
 end
 
-gcratio(t::TrialEstimate) =  ratio(gctime(t), time(t))
+gcratio(t::TrialEstimate) = ratio(gctime(t), time(t))
 
 ##################
 # TrialJudgement #
@@ -193,9 +208,7 @@ function TrialJudgement(r::TrialRatio)
 end
 
 function Base.:(==)(a::TrialJudgement, b::TrialJudgement)
-    return a.ratio == b.ratio &&
-           a.time == b.time &&
-           a.memory == b.memory
+    return a.ratio == b.ratio && a.time == b.time && a.memory == b.memory
 end
 
 Base.copy(t::TrialJudgement) = TrialJudgement(copy(t.params), t.time, t.memory)
@@ -232,16 +245,12 @@ isregression(t::TrialJudgement) = isregression(time, t) || isregression(memory, 
 isinvariant(f, t::TrialJudgement) = f(t) == :invariant
 isinvariant(t::TrialJudgement) = isinvariant(time, t) && isinvariant(memory, t)
 
-const colormap = (
-    regression = :red,
-    improvement = :green,
-    invariant = :normal,
-)
+const colormap = (regression=:red, improvement=:green, invariant=:normal)
 
-printtimejudge(io, t::TrialJudgement) =
-    printstyled(io, time(t); color=colormap[time(t)])
-printmemoryjudge(io, t::TrialJudgement) =
-    printstyled(io, memory(t); color=colormap[memory(t)])
+printtimejudge(io, t::TrialJudgement) = printstyled(io, time(t); color=colormap[time(t)])
+function printmemoryjudge(io, t::TrialJudgement)
+    return printstyled(io, memory(t); color=colormap[memory(t)])
+end
 
 ###################
 # Pretty Printing #
@@ -295,26 +304,34 @@ function bindata(sorteddata, nbins, min, max)
     Δ = (max - min) / nbins
     bins = zeros(nbins)
     lastpos = 0
-    for i ∈ 1:nbins
+    for i in 1:nbins
         pos = searchsortedlast(sorteddata, min + i * Δ)
         bins[i] = pos - lastpos
         lastpos = pos
     end
-    bins
+    return bins
 end
 bindata(sorteddata, nbins) = bindata(sorteddata, nbins, first(sorteddata), last(sorteddata))
 
 function asciihist(bins, height=1)
     histbars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
     if minimum(bins) == 0
-        barheights = 2 .+ round.(Int, (height * length(histbars) - 2) * bins ./ maximum(bins))
+        barheights =
+            2 .+ round.(Int, (height * length(histbars) - 2) * bins ./ maximum(bins))
         barheights[bins .== 0] .= 1
     else
-        barheights = 1 .+ round.(Int, (height * length(histbars) - 1) * bins ./ maximum(bins))
+        barheights =
+            1 .+ round.(Int, (height * length(histbars) - 1) * bins ./ maximum(bins))
     end
-    heightmatrix = [min(length(histbars), barheights[b] - (h-1) * length(histbars))
-                    for h in height:-1:1, b in 1:length(bins)]
-    map(height -> if height < 1; ' ' else histbars[height] end, heightmatrix)
+    heightmatrix = [
+        min(length(histbars), barheights[b] - (h - 1) * length(histbars)) for
+        h in height:-1:1, b in 1:length(bins)
+    ]
+    return map(height -> if height < 1
+        ' '
+    else
+        histbars[height]
+    end, heightmatrix)
 end
 
 _summary(io, t, args...) = withtypename(() -> print(io, args...), io, t)
@@ -322,10 +339,11 @@ _summary(io, t, args...) = withtypename(() -> print(io, args...), io, t)
 Base.summary(io::IO, t::Trial) = _summary(io, t, prettytime(time(t)))
 Base.summary(io::IO, t::TrialEstimate) = _summary(io, t, prettytime(time(t)))
 Base.summary(io::IO, t::TrialRatio) = _summary(io, t, prettypercent(time(t)))
-Base.summary(io::IO, t::TrialJudgement) = withtypename(io, t) do
-    print(io, prettydiff(time(ratio(t))), " => ")
-    printtimejudge(io, t)
-end
+Base.summary(io::IO, t::TrialJudgement) =
+    withtypename(io, t) do
+        print(io, prettydiff(time(ratio(t))), " => ")
+        printtimejudge(io, t)
+    end
 
 _show(io, t) =
     if get(io, :compact, true)
@@ -340,10 +358,27 @@ Base.show(io::IO, t::TrialRatio) = _show(io, t)
 Base.show(io::IO, t::TrialJudgement) = _show(io, t)
 
 function Base.show(io::IO, ::MIME"text/plain", t::Trial)
-
     pad = get(io, :pad, "")
-    print(io, "BenchmarkTools.Trial: ", length(t), " sample", if length(t) > 1 "s" else "" end,
-          " with ", t.params.evals, " evaluation", if t.params.evals > 1 "s" else "" end ,".\n")
+    print(
+        io,
+        "BenchmarkTools.Trial: ",
+        length(t),
+        " sample",
+        if length(t) > 1
+            "s"
+        else
+            ""
+        end,
+        " with ",
+        t.params.evals,
+        " evaluation",
+        if t.params.evals > 1
+            "s"
+        else
+            ""
+        end,
+        ".\n",
+    )
 
     perm = sortperm(t.times)
     times = t.times[perm]
@@ -358,7 +393,8 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
 
         medtime, medgc = prettytime(time(med)), prettypercent(gcratio(med))
         avgtime, avggc = prettytime(time(avg)), prettypercent(gcratio(avg))
-        stdtime, stdgc = prettytime(time(std)), prettypercent(Statistics.std(gctimes ./ times))
+        stdtime, stdgc = prettytime(time(std)),
+        prettypercent(Statistics.std(gctimes ./ times))
         mintime, mingc = prettytime(time(min)), prettypercent(gcratio(min))
         maxtime, maxgc = prettytime(time(max)), prettypercent(gcratio(max))
 
@@ -367,17 +403,17 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     elseif length(t) == 1
         print(io, pad, " Single result which took ")
         printstyled(io, prettytime(times[1]); color=:blue)
-        print(io, " (", prettypercent(gctimes[1]/times[1]), " GC) ")
+        print(io, " (", prettypercent(gctimes[1] / times[1]), " GC) ")
         print(io, "to evaluate,\n")
         print(io, pad, " with a memory estimate of ")
         printstyled(io, prettymemory(t.memory[1]); color=:yellow)
         print(io, ", over ")
         printstyled(io, t.allocs[1]; color=:yellow)
         print(io, " allocations.")
-        return
+        return nothing
     else
         print(io, pad, " No results.")
-        return
+        return nothing
     end
 
     lmaxtimewidth = maximum(length.((medtime, avgtime, mintime)))
@@ -408,7 +444,13 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     printstyled(io, "("; color=:light_black)
     printstyled(io, "median"; color=:blue, bold=true)
     printstyled(io, "):     "; color=:light_black)
-    printstyled(io, lpad(medtime, lmaxtimewidth), rpad(" ", rmaxtimewidth + 5); color=:blue, bold=true)
+    printstyled(
+        io,
+        lpad(medtime, lmaxtimewidth),
+        rpad(" ", rmaxtimewidth + 5);
+        color=:blue,
+        bold=true,
+    )
     printstyled(io, "┊"; color=:light_black)
     print(io, " GC ")
     printstyled(io, "("; color=:light_black)
@@ -440,20 +482,24 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     histheight = 2
     histwidth = 42 + lmaxtimewidth + rmaxtimewidth
 
-    histtimes = times[1:round(Int, histquantile*end)]
+    histtimes = times[1:round(Int, histquantile * end)]
     histmin = get(io, :histmin, first(histtimes))
     histmax = get(io, :histmax, last(histtimes))
     logbins = get(io, :logbins, nothing)
     bins = bindata(histtimes, histwidth - 1, histmin, histmax)
-    append!(bins, [1, floor((1-histquantile) * length(times))])
+    append!(bins, [1, floor((1 - histquantile) * length(times))])
     # if median size of (bins with >10% average data/bin) is less than 5% of max bin size, log the bin sizes
-    if logbins === true || (logbins === nothing && median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) < 0.05)
+    if logbins === true || (
+        logbins === nothing &&
+        median(filter(b -> b > 0.1 * length(times) / histwidth, bins)) / maximum(bins) <
+        0.05
+    )
         bins, logbins = log.(1 .+ bins), true
     else
         logbins = false
     end
     hist = asciihist(bins, histheight)
-    hist[:,end-1] .= ' '
+    hist[:, end - 1] .= ' '
     maxbin = maximum(bins)
 
     delta1 = (histmax - histmin) / (histwidth - 1)
@@ -469,26 +515,40 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         print(io, "\n", pad, "  ")
         for (i, bar) in enumerate(view(hist, r, :))
             color = :default
-            if i == avgpos color = :green end
-            if i == medpos color = :blue end
+            if i == avgpos
+                color = :green
+            end
+            if i == medpos
+                color = :blue
+            end
             printstyled(io, bar; color=color)
         end
     end
 
     remtrailingzeros(timestr) = replace(timestr, r"\.?0+ " => " ")
-    minhisttime, maxhisttime = remtrailingzeros.(prettytime.(round.([histmin, histmax], sigdigits=3)))
+    minhisttime, maxhisttime =
+        remtrailingzeros.(prettytime.(round.([histmin, histmax], sigdigits=3)))
 
     print(io, "\n", pad, "  ", minhisttime)
-    caption = "Histogram: " * ( logbins ? "log(frequency)" : "frequency" ) * " by time"
+    caption = "Histogram: " * (logbins ? "log(frequency)" : "frequency") * " by time"
     if logbins
-        printstyled(io, " " ^ ((histwidth - length(caption)) ÷ 2 - length(minhisttime)); color=:light_black)
+        printstyled(
+            io,
+            " "^((histwidth - length(caption)) ÷ 2 - length(minhisttime));
+            color=:light_black,
+        )
         printstyled(io, "Histogram: "; color=:light_black)
         printstyled(io, "log("; bold=true, color=:light_black)
         printstyled(io, "frequency"; color=:light_black)
         printstyled(io, ")"; bold=true, color=:light_black)
         printstyled(io, " by time"; color=:light_black)
     else
-        printstyled(io, " " ^ ((histwidth - length(caption)) ÷ 2 - length(minhisttime)), caption; color=:light_black)
+        printstyled(
+            io,
+            " "^((histwidth - length(caption)) ÷ 2 - length(minhisttime)),
+            caption;
+            color=:light_black,
+        )
     end
     print(io, lpad(maxhisttime, ceil(Int, (histwidth - length(caption)) / 2) - 1), " ")
     printstyled(io, "<"; bold=true)
@@ -501,16 +561,24 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     print(io, ", allocs estimate")
     printstyled(io, ": "; color=:light_black)
     printstyled(io, allocsstr; color=:yellow)
-    print(io, ".")
+    return print(io, ".")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
     println(io, "BenchmarkTools.TrialEstimate: ")
     pad = get(io, :pad, "")
     println(io, pad, "  time:             ", prettytime(time(t)))
-    println(io, pad, "  gctime:           ", prettytime(gctime(t)), " (", prettypercent(gctime(t) / time(t)),")")
+    println(
+        io,
+        pad,
+        "  gctime:           ",
+        prettytime(gctime(t)),
+        " (",
+        prettypercent(gctime(t) / time(t)),
+        ")",
+    )
     println(io, pad, "  memory:           ", prettymemory(memory(t)))
-    print(io,   pad, "  allocs:           ", allocs(t))
+    return print(io, pad, "  allocs:           ", allocs(t))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
@@ -519,7 +587,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
     println(io, pad, "  time:             ", time(t))
     println(io, pad, "  gctime:           ", gctime(t))
     println(io, pad, "  memory:           ", memory(t))
-    print(io,   pad, "  allocs:           ", allocs(t))
+    return print(io, pad, "  allocs:           ", allocs(t))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
@@ -528,7 +596,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
     print(io, pad, "  time:   ", prettydiff(time(ratio(t))), " => ")
     printtimejudge(io, t)
     println(io, " (", prettypercent(params(t).time_tolerance), " tolerance)")
-    print(io,   pad, "  memory: ", prettydiff(memory(ratio(t))), " => ")
+    print(io, pad, "  memory: ", prettydiff(memory(ratio(t))), " => ")
     printmemoryjudge(io, t)
-    println(io, " (", prettypercent(params(t).memory_tolerance), " tolerance)")
+    return println(io, " (", prettypercent(params(t).memory_tolerance), " tolerance)")
 end

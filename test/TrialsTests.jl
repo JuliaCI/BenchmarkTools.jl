@@ -8,11 +8,11 @@ using Test
 # Trial #
 #########
 
-trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(evals = 2))
+trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2))
 push!(trial1, 2, 1, 4, 5)
 push!(trial1, 21, 0, 41, 51)
 
-trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(time_tolerance = 0.15))
+trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; time_tolerance=0.15))
 push!(trial2, 21, 0, 41, 51)
 push!(trial2, 2, 1, 4, 5)
 
@@ -22,18 +22,20 @@ deleteat!(trial2, 3)
 @test length(trial1) == length(trial2) == 2
 sort!(trial2)
 
-@test trial1.params == BenchmarkTools.Parameters(evals = trial1.params.evals)
-@test trial2.params == BenchmarkTools.Parameters(time_tolerance = trial2.params.time_tolerance)
+@test trial1.params == BenchmarkTools.Parameters(; evals=trial1.params.evals)
+@test trial2.params ==
+    BenchmarkTools.Parameters(; time_tolerance=trial2.params.time_tolerance)
 @test trial1.times == trial2.times == [2.0, 21.0]
 @test trial1.gctimes == trial2.gctimes == [1.0, 0.0]
-@test trial1.memory == trial2.memory ==  4
+@test trial1.memory == trial2.memory == 4
 @test trial1.allocs == trial2.allocs == 5
 
 trial2.params = trial1.params
 
 @test trial1 == trial2
 
-@test trial1[2] == push!(BenchmarkTools.Trial(BenchmarkTools.Parameters(evals = 2)), 21, 0, 4, 5)
+@test trial1[2] ==
+    push!(BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2)), 21, 0, 4, 5)
 @test trial1[1:end] == trial1
 
 @test time(trial1) == time(trial2) == 2.0
@@ -43,8 +45,9 @@ trial2.params = trial1.params
 @test params(trial1) == params(trial2) == trial1.params
 
 # outlier trimming
-trial3 = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1, 2, 3, 10, 11],
-                              [1, 1, 1, 1, 1], 1, 1)
+trial3 = BenchmarkTools.Trial(
+    BenchmarkTools.Parameters(), [1, 2, 3, 10, 11], [1, 1, 1, 1, 1], 1, 1
+)
 
 trimtrial3 = rmskew(trial3)
 rmskew!(trial3)
@@ -77,9 +80,27 @@ tmax = maximum(randtrial)
 
 @test time(tmin) == time(randtrial)
 @test gctime(tmin) == gctime(randtrial)
-@test memory(tmin) == memory(tmed) == memory(tmean) == memory(tmax) == memory(tvar) == memory(tstd) == memory(randtrial)
-@test allocs(tmin) == allocs(tmed) == allocs(tmean) == allocs(tmax) == allocs(tvar) == allocs(tstd) == allocs(randtrial)
-@test params(tmin) == params(tmed) == params(tmean) == params(tmax) == params(tvar) == params(tstd) == params(randtrial)
+@test memory(tmin) ==
+    memory(tmed) ==
+    memory(tmean) ==
+    memory(tmax) ==
+    memory(tvar) ==
+    memory(tstd) ==
+    memory(randtrial)
+@test allocs(tmin) ==
+    allocs(tmed) ==
+    allocs(tmean) ==
+    allocs(tmax) ==
+    allocs(tvar) ==
+    allocs(tstd) ==
+    allocs(randtrial)
+@test params(tmin) ==
+    params(tmed) ==
+    params(tmean) ==
+    params(tmax) ==
+    params(tvar) ==
+    params(tstd) ==
+    params(randtrial)
 
 @test tmin <= tmed
 @test tmean <= tmed # this should be true since we called rmoutliers!(randtrial) earlier
@@ -92,12 +113,16 @@ tmax = maximum(randtrial)
 randrange = 1.0:0.01:10.0
 x, y = rand(randrange), rand(randrange)
 
-@test (ratio(x, y) == x/y) && (ratio(y, x) == y/x)
+@test (ratio(x, y) == x / y) && (ratio(y, x) == y / x)
 @test (ratio(x, x) == 1.0) && (ratio(y, y) == 1.0)
 @test ratio(0.0, 0.0) == 1.0
 
-ta = BenchmarkTools.TrialEstimate(BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int))
-tb = BenchmarkTools.TrialEstimate(BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int))
+ta = BenchmarkTools.TrialEstimate(
+    BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int)
+)
+tb = BenchmarkTools.TrialEstimate(
+    BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int)
+)
 tr = ratio(ta, tb)
 
 @test time(tr) == ratio(time(ta), time(tb))
@@ -113,8 +138,12 @@ tr = ratio(ta, tb)
 # TrialJudgement #
 ##################
 
-ta = BenchmarkTools.TrialEstimate(BenchmarkTools.Parameters(time_tolerance = 0.50, memory_tolerance = 0.50), 0.49, 0.0, 2, 1)
-tb = BenchmarkTools.TrialEstimate(BenchmarkTools.Parameters(time_tolerance = 0.05, memory_tolerance = 0.05), 1.00, 0.0, 1, 1)
+ta = BenchmarkTools.TrialEstimate(
+    BenchmarkTools.Parameters(; time_tolerance=0.50, memory_tolerance=0.50), 0.49, 0.0, 2, 1
+)
+tb = BenchmarkTools.TrialEstimate(
+    BenchmarkTools.Parameters(; time_tolerance=0.05, memory_tolerance=0.05), 1.00, 0.0, 1, 1
+)
 tr = ratio(ta, tb)
 tj_ab = judge(ta, tb)
 tj_r = judge(tr)
@@ -124,8 +153,8 @@ tj_r = judge(tr)
 @test memory(tj_ab) == memory(tj_r) == :regression
 @test tj_ab == tj_r
 
-tj_ab_2 = judge(ta, tb; time_tolerance = 2.0, memory_tolerance = 2.0)
-tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
+tj_ab_2 = judge(ta, tb; time_tolerance=2.0, memory_tolerance=2.0)
+tj_r_2 = judge(tr; time_tolerance=2.0, memory_tolerance=2.0)
 
 @test tj_ab_2 == tj_r_2
 @test ratio(tj_ab_2) == ratio(tj_r_2)
@@ -181,7 +210,7 @@ tj_r_2 = judge(tr; time_tolerance = 2.0, memory_tolerance = 2.0)
 # pretty printing #
 ###################
 
-@test BenchmarkTools.prettypercent(.3120123) == "31.20%"
+@test BenchmarkTools.prettypercent(0.3120123) == "31.20%"
 
 @test BenchmarkTools.prettydiff(0.0) == "-100.00%"
 @test BenchmarkTools.prettydiff(1.0) == "+0.00%"
@@ -210,30 +239,32 @@ BenchmarkTools.TrialEstimate:
 
 @test sprint(show, ta) == "TrialEstimate(0.490 ns)"
 @test sprint(
-    show, ta;
-    context = IOContext(
-        devnull, :compact => true, :typeinfo => BenchmarkTools.TrialEstimate)
+    show,
+    ta;
+    context=IOContext(devnull, :compact => true, :typeinfo => BenchmarkTools.TrialEstimate),
 ) == "0.490 ns"
 
 @test sprint(show, [ta, tb]) == "BenchmarkTools.TrialEstimate[0.490 ns, 1.000 ns]"
 
 trial1sample = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1], [1], 1, 1)
-@test try display(trial1sample); true catch e false end
+@test try
+    display(trial1sample)
+    true
+catch e
+    false
+end
 
 @static if VERSION < v"1.6-"
-
-@test sprint(show, "text/plain", [ta, tb]) == """
-2-element Array{BenchmarkTools.TrialEstimate,1}:
- 0.490 ns
- 1.000 ns"""
+    @test sprint(show, "text/plain", [ta, tb]) == """
+    2-element Array{BenchmarkTools.TrialEstimate,1}:
+     0.490 ns
+     1.000 ns"""
 
 else
-
-@test sprint(show, "text/plain", [ta, tb]) == """
-2-element Vector{BenchmarkTools.TrialEstimate}:
- 0.490 ns
- 1.000 ns"""
-
+    @test sprint(show, "text/plain", [ta, tb]) == """
+    2-element Vector{BenchmarkTools.TrialEstimate}:
+     0.490 ns
+     1.000 ns"""
 end
 
 trial = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1.0, 1.01], [0.0, 0.0], 0, 0)

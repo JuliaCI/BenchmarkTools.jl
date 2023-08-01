@@ -21,18 +21,28 @@ function loadparams!(b::Benchmark, params::Parameters, fields...)
 end
 
 function Base.show(io::IO, b::Benchmark)
-    str = string("Benchmark(evals=", params(b).evals,
-                 ", seconds=", params(b).seconds,
-                 ", samples=", params(b).samples, ")")
-    print(io, str)
+    str = string(
+        "Benchmark(evals=",
+        params(b).evals,
+        ", seconds=",
+        params(b).seconds,
+        ", samples=",
+        params(b).samples,
+        ")",
+    )
+    return print(io, str)
 end
 
 ######################
 # compatiblity hacks #
 ######################
 
-run_result(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_run, b, p; kwargs...)
-lineartrial(b::Benchmark, p::Parameters = b.params; kwargs...) = Base.invokelatest(_lineartrial, b, p; kwargs...)
+function run_result(b::Benchmark, p::Parameters=b.params; kwargs...)
+    return Base.invokelatest(_run, b, p; kwargs...)
+end
+function lineartrial(b::Benchmark, p::Parameters=b.params; kwargs...)
+    return Base.invokelatest(_lineartrial, b, p; kwargs...)
+end
 
 ##############################
 # progress logging utilities #
@@ -64,9 +74,9 @@ function _withprogress(
     f,
     name::AbstractString,
     group::BenchmarkGroup;
-    progressid = nothing,
-    nleaves = NaN,
-    ndone = NaN,
+    progressid=nothing,
+    nleaves=NaN,
+    ndone=NaN,
     _...,
 )
     if progressid !== nothing
@@ -89,7 +99,7 @@ end
 # Note that trials executed via `run` and `lineartrial` are always executed at top-level
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
-function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
+function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     params.gctrial && gcscrub()
@@ -97,50 +107,59 @@ function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
     trial = Trial(params)
     params.gcsample && gcscrub()
     s = b.samplefunc(b.quote_vals, params)
-    push!(trial, s[1:end-1]...)
+    push!(trial, s[1:(end - 1)]...)
     return_val = s[end]
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-         params.gcsample && gcscrub()
-         push!(trial, b.samplefunc(b.quote_vals, params)[1:end-1]...)
-         iters += 1
+        params.gcsample && gcscrub()
+        push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
+        iters += 1
     end
     return trial, return_val
 end
-
 
 """
     run(b::Benchmark[, p::Parameters = b.params]; kwargs...)
 
 Run the benchmark defined by [`@benchmarkable`](@ref).
 """
-Base.run(b::Benchmark, p::Parameters = b.params; progressid=nothing, nleaves=NaN, ndone=NaN, kwargs...) =
-    run_result(b, p; kwargs...)[1]
+function Base.run(
+    b::Benchmark,
+    p::Parameters=b.params;
+    progressid=nothing,
+    nleaves=NaN,
+    ndone=NaN,
+    kwargs...,
+)
+    return run_result(b, p; kwargs...)[1]
+end
 
 """
     run(group::BenchmarkGroup[, args...]; verbose::Bool = false, pad = "", kwargs...)
 
 Run the benchmark group, with benchmark parameters set to `group`'s by default.
 """
-Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs...) =
+function Base.run(group::BenchmarkGroup, args...; verbose::Bool=false, pad="", kwargs...)
     _withprogress("Benchmarking", group; kwargs...) do progressid, nleaves, ndone
         result = similar(group)
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
         i = 1
         for id in keys(group)
-            @logmsg(ProgressLevel, "Benchmarking", progress = ndone / nleaves, _id = progressid)
+            @logmsg(
+                ProgressLevel, "Benchmarking", progress = ndone / nleaves, _id = progressid
+            )
             verbose &&
                 println(pad, "($(i)/$(length(group))) benchmarking ", repr(id), "...")
             took_seconds = @elapsed begin
                 result[id] = run(
                     group[id],
                     args...;
-                    verbose = verbose,
-                    pad = pad * "  ",
+                    verbose=verbose,
+                    pad=pad * "  ",
                     kwargs...,
-                    progressid = progressid,
-                    nleaves = nleaves,
-                    ndone = ndone,
+                    progressid=progressid,
+                    nleaves=nleaves,
+                    ndone=ndone,
                 )
             end
             ndone += group[id] isa BenchmarkGroup ? length(leaves(group[id])) : 1
@@ -148,8 +167,9 @@ Base.run(group::BenchmarkGroup, args...; verbose::Bool = false, pad = "", kwargs
         end
         return result
     end
+end
 
-function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUTION, kwargs...)
+function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION, kwargs...)
     params = Parameters(p; kwargs...)
     estimates = zeros(maxevals)
     completed = 0
@@ -165,11 +185,8 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
     return estimates[1:completed]
 end
 
-function warmup(item; verbose::Bool = true)
-    return run(item;
-               verbose = verbose, samples = 1,
-               evals = 1, gctrial = false,
-               gcsample = false)
+function warmup(item; verbose::Bool=true)
+    return run(item; verbose=verbose, samples=1, evals=1, gctrial=false, gcsample=false)
 end
 
 ####################
@@ -202,9 +219,15 @@ end
 logistic(u, l, k, t, t0) = round(Int, ((u - l) / (1 + exp(-k * (t - t0)))) + l)
 
 const EVALS = Vector{Int}(undef, 9000) # any `t > length(EVALS)` should get an `evals` of 1
-for t in 1:400    (EVALS[t] = logistic(1006, 195, -0.025, t, 200)) end # EVALS[1] == 1000, EVALS[400] == 200
-for t in 401:1000 (EVALS[t] = logistic(204, -16, -0.01, t, 800))   end # EVALS[401] == 200, EVALS[1000] == 10
-for i in 1:8      (EVALS[((i*1000)+1):((i+1)*1000)] .= 11 - i)     end # linearly decrease from EVALS[1000]
+for t in 1:400
+    (EVALS[t] = logistic(1006, 195, -0.025, t, 200))
+end # EVALS[1] == 1000, EVALS[400] == 200
+for t in 401:1000
+    (EVALS[t] = logistic(204, -16, -0.01, t, 800))
+end # EVALS[401] == 200, EVALS[1000] == 10
+for i in 1:8
+    (EVALS[((i * 1000) + 1):((i + 1) * 1000)] .= 11 - i)
+end # linearly decrease from EVALS[1000]
 
 guessevals(t) = t <= length(EVALS) ? EVALS[t] : 1
 
@@ -217,7 +240,7 @@ evaluations than are performed when running a trial. In fact, the majority of to
 benchmarking time is usually spent tuning parameters, rather than actually running
 trials.
 """
-tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...) =
+function tune!(group::BenchmarkGroup; verbose::Bool=false, pad="", kwargs...)
     _withprogress("Tuning", group; kwargs...) do progressid, nleaves, ndone
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
         i = 1
@@ -226,18 +249,19 @@ tune!(group::BenchmarkGroup; verbose::Bool = false, pad = "", kwargs...) =
             verbose && println(pad, "($(i)/$(length(group))) tuning ", repr(id), "...")
             took_seconds = @elapsed tune!(
                 group[id];
-                verbose = verbose,
-                pad = pad * "  ",
+                verbose=verbose,
+                pad=pad * "  ",
                 kwargs...,
-                progressid = progressid,
-                nleaves = nleaves,
-                ndone = ndone,
+                progressid=progressid,
+                nleaves=nleaves,
+                ndone=ndone,
             )
             ndone += group[id] isa BenchmarkGroup ? length(leaves(group[id])) : 1
             verbose && (println(pad, "done (took ", took_seconds, " seconds)"); i += 1)
         end
         return group
     end
+end
 
 """
     tune!(b::Benchmark, p::Parameters = b.params; verbose::Bool = false, pad = "", kwargs...)
@@ -246,11 +270,18 @@ Tune a `Benchmark` instance.
 
 If the number of evals in the parameters `p` has been set manually, this function does nothing.
 """
-function tune!(b::Benchmark, p::Parameters = b.params;
-               progressid=nothing, nleaves=NaN, ndone=NaN,  # ignored
-               verbose::Bool = false, pad = "", kwargs...)
+function tune!(
+    b::Benchmark,
+    p::Parameters=b.params;
+    progressid=nothing,
+    nleaves=NaN,
+    ndone=NaN,  # ignored
+    verbose::Bool=false,
+    pad="",
+    kwargs...,
+)
     if !p.evals_set
-        warmup(b, verbose=false)
+        warmup(b; verbose=false)
         estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
         b.params.evals = guessevals(estimate)
     end
@@ -294,7 +325,7 @@ function haskw(params, name::Symbol)
 end
 hasevals(params) = haskw(params, :evals)
 
-function collectvars(ex::Expr, vars::Vector{Symbol} = Symbol[])
+function collectvars(ex::Expr, vars::Vector{Symbol}=Symbol[])
     if ex.head == :(=)
         lhs = first(ex.args)
         if isa(lhs, Symbol)
@@ -395,12 +426,14 @@ BenchmarkTools.Trial:
 macro benchmark(args...)
     _, params = prunekwargs(args...)
     tmp = gensym()
-    return esc(quote
-        local $tmp = $BenchmarkTools.@benchmarkable $(args...)
-        $BenchmarkTools.warmup($tmp)
-        $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
-        $BenchmarkTools.run($tmp)
-    end)
+    return esc(
+        quote
+            local $tmp = $BenchmarkTools.@benchmarkable $(args...)
+            $BenchmarkTools.warmup($tmp)
+            $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
+            $BenchmarkTools.run($tmp)
+        end,
+    )
 end
 
 function benchmarkable_parts(args)
@@ -446,15 +479,17 @@ macro benchmarkable(args...)
 
     # generate the benchmark definition
     return quote
-        generate_benchmark_definition($__module__,
-                                      $(Expr(:quote, out_vars)),
-                                      $(Expr(:quote, setup_vars)),
-                                      $(Expr(:quote, quote_vars)),
-                                      $(esc(Expr(:tuple,Expr.(:quote, quote_vals)...))),
-                                      $(esc(Expr(:quote, core))),
-                                      $(esc(Expr(:quote, setup))),
-                                      $(esc(Expr(:quote, teardown))),
-                                      Parameters($(params...)))
+        generate_benchmark_definition(
+            $__module__,
+            $(Expr(:quote, out_vars)),
+            $(Expr(:quote, setup_vars)),
+            $(Expr(:quote, quote_vars)),
+            $(esc(Expr(:tuple, Expr.(:quote, quote_vals)...))),
+            $(esc(Expr(:quote, core))),
+            $(esc(Expr(:quote, setup))),
+            $(esc(Expr(:quote, teardown))),
+            Parameters($(params...)),
+        )
     end
 end
 
@@ -465,15 +500,26 @@ end
 # The double-underscore-prefixed variable names are not particularly hygienic - it's
 # possible for them to conflict with names used in the setup or teardown expressions.
 # A more robust solution would be preferable.
-function generate_benchmark_definition(eval_module, out_vars, setup_vars, quote_vars, quote_vals, core, setup, teardown, params)
+function generate_benchmark_definition(
+    eval_module, out_vars, setup_vars, quote_vars, quote_vals, core, setup, teardown, params
+)
     @nospecialize
     corefunc = gensym("core")
     samplefunc = gensym("sample")
-    type_vars = [gensym() for i in 1:length(quote_vars)+length(setup_vars)]
+    type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
     signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
-    signature_def = Expr(:where, Expr(:call, corefunc,
-                                  [Expr(:(::), var, type) for (var, type) in zip([quote_vars;setup_vars], type_vars)]...)
-                    , type_vars...)
+    signature_def = Expr(
+        :where,
+        Expr(
+            :call,
+            corefunc,
+            [
+                Expr(:(::), var, type) for
+                (var, type) in zip([quote_vars; setup_vars], type_vars)
+            ]...,
+        ),
+        type_vars...,
+    )
     if length(out_vars) == 0
         invocation = signature
         core_body = core
@@ -487,35 +533,50 @@ function generate_benchmark_definition(eval_module, out_vars, setup_vars, quote_
         core_body = :($(core); $(returns))
     end
     @static if isdefined(Base, :donotdelete)
-        invocation = :(let x = $invocation
-                           Base.donotdelete(x)
-                           x
-                       end)
-    end
-    return Core.eval(eval_module, quote
-        @noinline $(signature_def) = begin $(core_body) end
-        @noinline function $(samplefunc)($(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters)
-            $(setup)
-            __evals = __params.evals
-            __gc_start = Base.gc_num()
-            __start_time = time_ns()
-            __return_val = $(invocation)
-            for __iter in 2:__evals
-                $(invocation)
+        invocation = :(
+            let x = $invocation
+                Base.donotdelete(x)
+                x
             end
-            __sample_time = time_ns() - __start_time
-            __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
-            $(teardown)
-            __time = max((__sample_time / __evals) - __params.overhead, 0.001)
-            __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
-            __memory = Int(Base.fld(__gcdiff.allocd, __evals))
-            __allocs = Int(Base.fld(__gcdiff.malloc + __gcdiff.realloc +
-                               __gcdiff.poolalloc + __gcdiff.bigalloc,
-                               __evals))
-            return __time, __gctime, __memory, __allocs, __return_val
-        end
-        $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
-    end)
+        )
+    end
+    return Core.eval(
+        eval_module,
+        quote
+            @noinline $(signature_def) = begin
+                $(core_body)
+            end
+            @noinline function $(samplefunc)(
+                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+            )
+                $(setup)
+                __evals = __params.evals
+                __gc_start = Base.gc_num()
+                __start_time = time_ns()
+                __return_val = $(invocation)
+                for __iter in 2:__evals
+                    $(invocation)
+                end
+                __sample_time = time_ns() - __start_time
+                __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
+                $(teardown)
+                __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+                __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
+                __memory = Int(Base.fld(__gcdiff.allocd, __evals))
+                __allocs = Int(
+                    Base.fld(
+                        __gcdiff.malloc +
+                        __gcdiff.realloc +
+                        __gcdiff.poolalloc +
+                        __gcdiff.bigalloc,
+                        __evals,
+                    ),
+                )
+                return __time, __gctime, __memory, __allocs, __return_val
+            end
+            $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
+        end,
+    )
 end
 
 ######################
@@ -537,9 +598,13 @@ parameters as `@benchmark`.  The returned time
 is the *minimum* elapsed time measured during the benchmark.
 """
 macro belapsed(args...)
-    return esc(quote
-        $BenchmarkTools.time($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))/1e9
-    end)
+    return esc(
+        quote
+            $BenchmarkTools.time(
+                $BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...))
+            ) / 1e9
+        end,
+    )
 end
 
 """
@@ -554,9 +619,13 @@ correspond to the trial with the *minimum* elapsed time measured
 during the benchmark.
 """
 macro ballocated(args...)
-    return esc(quote
-        $BenchmarkTools.memory($BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...)))
-    end)
+    return esc(
+        quote
+            $BenchmarkTools.memory(
+                $BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...))
+            )
+        end,
+    )
 end
 
 """
@@ -577,20 +646,28 @@ macro btime(args...)
     bench, trial, result = gensym(), gensym(), gensym()
     trialmin, trialallocs = gensym(), gensym()
     tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
-    return esc(quote
-        local $bench = $BenchmarkTools.@benchmarkable $(args...)
-        $BenchmarkTools.warmup($bench)
-        $tune_phase
-        local $trial, $result = $BenchmarkTools.run_result($bench)
-        local $trialmin = $BenchmarkTools.minimum($trial)
-        local $trialallocs = $BenchmarkTools.allocs($trialmin)
-        println("  ",
+    return esc(
+        quote
+            local $bench = $BenchmarkTools.@benchmarkable $(args...)
+            $BenchmarkTools.warmup($bench)
+            $tune_phase
+            local $trial, $result = $BenchmarkTools.run_result($bench)
+            local $trialmin = $BenchmarkTools.minimum($trial)
+            local $trialallocs = $BenchmarkTools.allocs($trialmin)
+            println(
+                "  ",
                 $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
-                " (", $trialallocs , " allocation",
-                $trialallocs == 1 ? "" : "s", ": ",
-                $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)), ")")
-        $result
-    end)
+                " (",
+                $trialallocs,
+                " allocation",
+                $trialallocs == 1 ? "" : "s",
+                ": ",
+                $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)),
+                ")",
+            )
+            $result
+        end,
+    )
 end
 
 """
@@ -617,11 +694,13 @@ macro bprofile(args...)
         args = (args..., Expr(:kw, :gcsample, false))
     end
     tmp = gensym()
-    return esc(quote
-        local $tmp = $BenchmarkTools.@benchmarkable $(args...)
-        $BenchmarkTools.warmup($tmp)
-        $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
-        $BenchmarkTools.Profile.clear()
-        $BenchmarkTools.@profile $BenchmarkTools.run($tmp)
-    end)
+    return esc(
+        quote
+            local $tmp = $BenchmarkTools.@benchmarkable $(args...)
+            $BenchmarkTools.warmup($tmp)
+            $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
+            $BenchmarkTools.Profile.clear()
+            $BenchmarkTools.@profile $BenchmarkTools.run($tmp)
+        end,
+    )
 end
