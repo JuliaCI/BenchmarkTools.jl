@@ -1,9 +1,16 @@
 using Aqua
 using BenchmarkTools
+using JuliaFormatter
 using Test
 
 print("Testing code quality...")
 took_seconds = @elapsed Aqua.test_all(BenchmarkTools)
+println("done (took ", took_seconds, " seconds)")
+
+print("Testing code formatting...")
+took_seconds = @elapsed @test JuliaFormatter.format(
+    BenchmarkTools; verbose=false, overwrite=false
+)
 println("done (took ", took_seconds, " seconds)")
 
 print("Testing Parameters...")
