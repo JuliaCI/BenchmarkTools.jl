@@ -1,14 +1,15 @@
 # BenchmarkTools.jl
 
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="docs/src/assets/logo-dark.svg" width="100" height="100">
-<img alt="BenchmarkTools logo" src="docs/src/assets/logo.svg" width="100" height="100">
+<source media="(prefers-color-scheme: dark)" srcset="docs/src/assets/logo-dark.svg" width="100" height="100" align="right">
+<img alt="BenchmarkTools logo" src="docs/src/assets/logo.svg" width="100" height="100" align="right">
 </picture>
 
 [![][docs-stable-img]][docs-stable-url]
 [![][docs-dev-img]][docs-dev-url]
 [![Build Status](https://github.com/JuliaCI/BenchmarkTools.jl/workflows/CI/badge.svg)](https://github.com/JuliaCI/BenchmarkTools.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 [![Code Coverage](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl/branch/master/graph/badge.svg?label=codecov&token=ccN7NZpkBx)](https://codecov.io/gh/JuliaCI/BenchmarkTools.jl)
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 BenchmarkTools makes **performance tracking of Julia code easy** by supplying a framework for **writing and running groups of benchmarks** as well as **comparing benchmark results**.
 

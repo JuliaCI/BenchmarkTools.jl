@@ -1,3 +1,11 @@
+using Aqua
+using BenchmarkTools
+using Test
+
+print("Testing code quality...")
+took_seconds = @elapsed Aqua.test_all(BenchmarkTools)
+println("done (took ", took_seconds, " seconds)")
+
 print("Testing Parameters...")
 took_seconds = @elapsed include("ParametersTests.jl")
 println("done (took ", took_seconds, " seconds)")
