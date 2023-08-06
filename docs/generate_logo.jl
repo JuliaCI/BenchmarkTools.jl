@@ -8,7 +8,7 @@ JULIA_COLORS = [Luxor.julia_blue, Luxor.julia_green, Luxor.julia_red, Luxor.juli
 function draw_logo(; path, dark=false)
     Drawing(500, 500, path)
     origin()
-    squircle(O, 250, 250, :clip, rt=0.3)
+    squircle(O, 250, 250, :clip; rt=0.3)
     sethue(dark ? "black" : "white")
     paint()
 
@@ -20,11 +20,14 @@ function draw_logo(; path, dark=false)
 
         for n in 1:4
             setblend(blend(O - (240, 0), O + (240, 0), "white", JULIA_COLORS[n]))
-            sector(O,
+            sector(
+                O,
                 rescale(n, 1, 3, rmin, rmax),
                 rescale(n, 1, 3, rmin, rmax) + band,
-                3π / 2 - deg2rad(45), 3π / 2 + deg2rad(45),
-                :fill)
+                3π / 2 - deg2rad(45),
+                3π / 2 + deg2rad(45),
+                :fill,
+            )
         end
 
         sethue(dark ? "black" : "white")
@@ -37,8 +40,8 @@ function draw_logo(; path, dark=false)
     end
 
     finish()
-    preview()
+    return preview()
 end
 
-draw_logo(path=joinpath(@__DIR__, "src", "assets", "logo.svg"), dark=false)
-draw_logo(path=joinpath(@__DIR__, "src", "assets", "logo-dark.svg"), dark=true)
+draw_logo(; path=joinpath(@__DIR__, "src", "assets", "logo.svg"), dark=false)
+draw_logo(; path=joinpath(@__DIR__, "src", "assets", "logo-dark.svg"), dark=true)

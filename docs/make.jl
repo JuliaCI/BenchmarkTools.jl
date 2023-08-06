@@ -21,6 +21,4 @@ makedocs(;
     ],
 )
 
-deploydocs(;
-    repo="github.com/JuliaCI/BenchmarkTools.jl",
-)
+deploydocs(; repo="github.com/JuliaCI/BenchmarkTools.jl")

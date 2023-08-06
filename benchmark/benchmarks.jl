@@ -13,8 +13,8 @@ suite["dot"] = BenchmarkGroup(["broadcast", "elementwise"])
 teststr = join(rand(MersenneTwister(1), 'a':'d', 10^4))
 
 # Add some benchmarks to the "string" group
-suite["string"]["replace"] = @benchmarkable replace($teststr, "a", "b") seconds=Float64(π)
-suite["string"]["join"] = @benchmarkable join($teststr, $teststr) samples=42
+suite["string"]["replace"] = @benchmarkable replace($teststr, "a", "b") seconds = Float64(π)
+suite["string"]["join"] = @benchmarkable join($teststr, $teststr) samples = 42
 
 # Add some benchmarks to the "trig"/"dot" group
 for f in (sin, cos, tan)
@@ -30,8 +30,8 @@ end
 paramspath = joinpath(dirname(@__FILE__), "params.json")
 
 if isfile(paramspath)
-    loadparams!(suite, BenchmarkTools.load(paramspath)[1], :evals);
+    loadparams!(suite, BenchmarkTools.load(paramspath)[1], :evals)
 else
     tune!(suite)
-    BenchmarkTools.save(paramspath, params(suite));
+    BenchmarkTools.save(paramspath, params(suite))
 end

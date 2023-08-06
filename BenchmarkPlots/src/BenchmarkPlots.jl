@@ -7,7 +7,7 @@ using BenchmarkTools: Trial, BenchmarkGroup
     legend --> false
     yguide --> "t / ns"
     xticks --> false
-    t.times
+    return t.times
 end
 
 @recipe function f(g::BenchmarkGroup, keys=keys(g))

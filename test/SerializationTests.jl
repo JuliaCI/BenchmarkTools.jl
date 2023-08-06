@@ -3,8 +3,9 @@ module SerializationTests
 using BenchmarkTools
 using Test
 
-eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}} =
-    all(i->eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
+function eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}}
+    return all(i -> eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
+end
 eq(x::T, y::T) where {T} = isapprox(x, y)
 
 function withtempdir(f::Function)
@@ -12,9 +13,9 @@ function withtempdir(f::Function)
     try
         cd(f, d)
     finally
-        rm(d, force=true, recursive=true)
+        rm(d; force=true, recursive=true)
     end
-    nothing
+    return nothing
 end
 
 @testset "Successful (de)serialization" begin
@@ -47,7 +48,7 @@ end
 
         results = BenchmarkTools.load(tmp)[1]
         @test results isa BenchmarkGroup
-        @test all(v->v isa BenchmarkGroup, values(results.data))
+        @test all(v -> v isa BenchmarkGroup, values(results.data))
     end
 end
 
@@ -79,9 +80,12 @@ end
     withtempdir() do
         tmp = joinpath(pwd(), "tmp.json")
         open(tmp, "w") do f
-            print(f, """
-            {"never":1,"gonna":[{"give":3,"you":4,"up":5}]}
-            """)
+            print(
+                f,
+                """
+       {"never":1,"gonna":[{"give":3,"you":4,"up":5}]}
+       """,
+            )
         end
         try
             BenchmarkTools.load(tmp)
