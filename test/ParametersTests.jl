@@ -6,18 +6,27 @@ using BenchmarkTools: Parameters
 
 @test BenchmarkTools.DEFAULT_PARAMETERS == Parameters()
 
-p = Parameters(seconds = 1, gctrial = false)
+p = Parameters(; seconds=1, gctrial=false)
 oldseconds = BenchmarkTools.DEFAULT_PARAMETERS.seconds
 oldgctrial = BenchmarkTools.DEFAULT_PARAMETERS.gctrial
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = p.seconds
 BenchmarkTools.DEFAULT_PARAMETERS.gctrial = p.gctrial
 @test p == Parameters()
-@test Parameters(p; evals = 3, time_tolerance = .32) == Parameters(evals = 3, time_tolerance = .32)
+@test Parameters(p; evals=3, time_tolerance=0.32) ==
+    Parameters(; evals=3, time_tolerance=0.32)
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = oldseconds
 BenchmarkTools.DEFAULT_PARAMETERS.gctrial = oldgctrial
 
-p = Parameters(seconds = 1, gctrial = false, samples = 2, evals = 2, overhead = 42,
-               gcsample = false, time_tolerance = 0.043, memory_tolerance = 0.15)
+p = Parameters(;
+    seconds=1,
+    gctrial=false,
+    samples=2,
+    evals=2,
+    overhead=42,
+    gcsample=false,
+    time_tolerance=0.043,
+    memory_tolerance=0.15,
+)
 oldseconds = BenchmarkTools.DEFAULT_PARAMETERS.seconds
 oldgctrial = BenchmarkTools.DEFAULT_PARAMETERS.gctrial
 old_time_tolerance = BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance
