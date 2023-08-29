@@ -95,6 +95,7 @@ function _run(b::Benchmark, p::Parameters; verbose = false, pad = "", kwargs...)
     params.gctrial && gcscrub()
     start_time = Base.time()
     trial = Trial(params)
+    b.samplefunc(b.quote_vals, params) #warmup sample
     params.gcsample && gcscrub()
     s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:end-1]...)
@@ -153,6 +154,7 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
     params = Parameters(p; kwargs...)
     estimates = zeros(maxevals)
     completed = 0
+    b.samplefunc(b.quote_vals, params) #warmup sample
     params.gctrial && gcscrub()
     start_time = time()
     for evals in eachindex(estimates)
@@ -163,13 +165,6 @@ function _lineartrial(b::Benchmark, p::Parameters = b.params; maxevals = RESOLUT
         ((time() - start_time) > params.seconds) && break
     end
     return estimates[1:completed]
-end
-
-function warmup(item; verbose::Bool = true)
-    return run(item;
-               verbose = verbose, samples = 1,
-               evals = 1, gctrial = false,
-               gcsample = false)
 end
 
 ####################
@@ -250,7 +245,6 @@ function tune!(b::Benchmark, p::Parameters = b.params;
                progressid=nothing, nleaves=NaN, ndone=NaN,  # ignored
                verbose::Bool = false, pad = "", kwargs...)
     if !p.evals_set
-        warmup(b, verbose=false)
         estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
         b.params.evals = guessevals(estimate)
     end
@@ -397,7 +391,6 @@ macro benchmark(args...)
     tmp = gensym()
     return esc(quote
         local $tmp = $BenchmarkTools.@benchmarkable $(args...)
-        $BenchmarkTools.warmup($tmp)
         $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
         $BenchmarkTools.run($tmp)
     end)
@@ -579,7 +572,6 @@ macro btime(args...)
     tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
     return esc(quote
         local $bench = $BenchmarkTools.@benchmarkable $(args...)
-        $BenchmarkTools.warmup($bench)
         $tune_phase
         local $trial, $result = $BenchmarkTools.run_result($bench)
         local $trialmin = $BenchmarkTools.minimum($trial)
@@ -619,7 +611,6 @@ macro bprofile(args...)
     tmp = gensym()
     return esc(quote
         local $tmp = $BenchmarkTools.@benchmarkable $(args...)
-        $BenchmarkTools.warmup($tmp)
         $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
         $BenchmarkTools.Profile.clear()
         $BenchmarkTools.@profile $BenchmarkTools.run($tmp)

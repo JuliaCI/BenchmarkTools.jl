@@ -65,7 +65,6 @@ export BenchmarkGroup,
 include("execution.jl")
 
 export tune!,
-       warmup,
        @ballocated,
        @benchmark,
        @benchmarkable,
