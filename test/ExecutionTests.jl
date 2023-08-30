@@ -167,7 +167,7 @@ is_warm = false
 
 is_warm = false
 
-@test (@belapsed needs_warm() seconds=1) < 1
+@test (@belapsed needs_warm() seconds = 1) < 1
 
 ##############
 # @benchmark #
