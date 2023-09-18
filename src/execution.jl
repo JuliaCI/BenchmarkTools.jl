@@ -557,7 +557,7 @@ end
 """
     @ballocations expression [other parameters...]
 
-Similar to the `@allocs` macro included with Julia (v1.9+),
+Similar to the `@allocations` macro included with Julia (v1.9+),
 this returns the *number of allocations* when executing
 a given expression. It uses the `@benchmark` macro, however,
 and accepts all of the same additional parameters as `@benchmark`.
