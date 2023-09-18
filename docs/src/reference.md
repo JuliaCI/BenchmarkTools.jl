@@ -7,4 +7,6 @@ Private = false
 
 ```@docs
 Base.run
+BenchmarkTools.save
+BenchmarkTools.load
 ```

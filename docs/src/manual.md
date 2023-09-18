@@ -888,10 +888,23 @@ A common workflow used in BenchmarkTools is the following:
 
 1. Start a Julia session
 2. Execute a benchmark suite using an old version of your package
-3. Save the results somehow (e.g. in a JSON file)
+    ```julia
+    old_results = run(suite, verbose = true)
+    ```
+4. Save the results somehow (e.g. in a JSON file)
+    ```julia
+    BenchmarkTools.save("old_results.json", old_results)
+    ```
 4. Start a new Julia session
 5. Execute a benchmark suite using a new version of your package
-6. Compare the new results with the results saved in step 3 to determine regression status
+   ```julia
+   results = run(suite, verbose = true)
+   ```
+7. Compare the new results with the results saved in step 3 to determine regression status
+    ```julia
+    old_results = BenchmarkTools.load("old_results.json")
+    BenchmarkTools.judge(minimum(results), minimum(old_results))
+    ```
 
 There are a couple of problems with this workflow, and all of which revolve around parameter tuning (which would occur during steps 2 and 5):
 
