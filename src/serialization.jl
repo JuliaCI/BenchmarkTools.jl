@@ -79,6 +79,11 @@ function badext(filename)
     throw(ArgumentError(msg))
 end
 
+"""
+    BenchmarkTools.save(filename, args...)
+
+Save serialized benchmarking objects (e.g. results or parameters) to a JSON file.
+"""
 function save(filename::AbstractString, args...)
     endswith(filename, ".json") || badext(filename)
     open(filename, "w") do io
@@ -104,6 +109,11 @@ function save(io::IO, args...)
     JSON.print(io, [VERSIONS, goodargs])
 end
 
+"""
+    BenchmarkTools.load(filename)
+
+Load serialized benchmarking objects (e.g. results or parameters) from a JSON file.
+"""
 function load(filename::AbstractString, args...)
     endswith(filename, ".json") || badext(filename)
     open(filename, "r") do f
