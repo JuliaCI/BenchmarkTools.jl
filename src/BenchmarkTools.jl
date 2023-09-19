@@ -52,7 +52,6 @@ export BenchmarkGroup,
     improvements,
     @tagged,
     addgroup!,
-    leaves,
     @benchmarkset,
     @case,
     clear_empty!
