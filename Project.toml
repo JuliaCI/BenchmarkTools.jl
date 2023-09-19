@@ -12,6 +12,7 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
 JSON = "0.18, 0.19, 0.20, 0.21"
+Statistics = "1"
 julia = "1"
 
 [extras]
