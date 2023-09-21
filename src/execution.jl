@@ -138,6 +138,9 @@ end
     run(group::BenchmarkGroup[, args...]; verbose::Bool = false, pad = "", kwargs...)
 
 Run the benchmark group, with benchmark parameters set to `group`'s by default.
+
+If the benchmark group has a non-negative `seed`, the global seed will be reset before
+running each benchmark.
 """
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool=false, pad="", kwargs...)
     _withprogress("Benchmarking", group; kwargs...) do progressid, nleaves, ndone

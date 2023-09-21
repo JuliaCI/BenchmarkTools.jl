@@ -596,6 +596,44 @@ BenchmarkTools.BenchmarkGroup:
   "trig" => BenchmarkGroup(["math", "triangles"])
 ```
 
+### Consistent randomness within a `BenchmarkGroup`
+
+When benchmarking using random data, it is sometimes important to ensure that
+the same random numbers are used for each benchmark in a group. To do this, you
+can supply a `seed` to the `BenchmarkGroup`, and the global seed will then be
+reset for each benchmark, meaning each benchmark will receive the same set of
+random numbers:
+
+```julia
+julia> bg1 = BenchmarkGroup();
+
+julia> bg1["a"] = @benchmarkable sleep(k) setup=(k=rand(0.001:0.001:0.1));
+
+julia> bg1["b"] = @benchmarkable sleep(k) setup=(k=rand(0.001:0.001:0.1));
+
+julia> res1 = run(bg1)
+2-element BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "b" => Trial(3.171 ms)
+  "a" => Trial(2.233 ms)
+
+julia> bg2 = BenchmarkGroup(seed=1);
+
+julia> bg2["a"] = @benchmarkable sleep(k) setup=(k=rand(0.001:0.001:0.1));
+
+julia> bg2["b"] = @benchmarkable sleep(k) setup=(k=rand(0.001:0.001:0.1));
+
+julia> res = run(bg2)
+2-element BenchmarkTools.BenchmarkGroup:
+  tags: []
+  "b" => Trial(2.228 ms)
+  "a" => Trial(2.172 ms)
+```
+
+Note how the identical benchmarks in `bg1` time in at different times, due to
+the random numbers, while `bg2` ends up nearly the same, since they operated on
+the same list of random numbers.
+
 ### Working with trial data in a `BenchmarkGroup`
 
 Following from the previous section, we see that running our benchmark suite returns a
