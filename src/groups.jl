@@ -16,12 +16,14 @@ makekey(v::Any) = string(v)::String
 struct BenchmarkGroup
     tags::Vector{Any}
     data::Dict{Any,Any}
+    seed::Int
 end
 
-function BenchmarkGroup(tags::Vector, args::Pair...)
-    return BenchmarkGroup(tags, Dict{Any,Any}((makekey(k) => v for (k, v) in args)))
+function BenchmarkGroup(tags::Vector, args::Pair...; seed=-1)
+    return BenchmarkGroup(tags, Dict{Any,Any}((makekey(k) => v for (k, v) in args)), seed)
 end
-BenchmarkGroup(args::Pair...) = BenchmarkGroup([], args...)
+BenchmarkGroup(args::Pair...; seed=-1) = BenchmarkGroup([], args...; seed)
+BenchmarkGroup(tags, args; seed=-1) = BenchmarkGroup(tags, args, seed)
 
 function addgroup!(suite::BenchmarkGroup, id, args...)
     g = BenchmarkGroup(args...)
@@ -51,9 +53,15 @@ clear_empty!(x) = x
 # Dict-like methods #
 #-------------------#
 
-Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup) = a.tags == b.tags && a.data == b.data
-Base.copy(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), copy(group.data))
-Base.similar(group::BenchmarkGroup) = BenchmarkGroup(copy(group.tags), empty(group.data))
+function Base.:(==)(a::BenchmarkGroup, b::BenchmarkGroup)
+    return a.tags == b.tags && a.data == b.data && a.seed == b.seed
+end
+function Base.copy(group::BenchmarkGroup)
+    return BenchmarkGroup(copy(group.tags), copy(group.data), group.seed)
+end
+function Base.similar(group::BenchmarkGroup)
+    return BenchmarkGroup(copy(group.tags), empty(group.data), group.seed)
+end
 
 """
     isempty(group::BenchmarkGroup)
@@ -310,7 +318,7 @@ end
 #----------------------------#
 
 function Base.getindex(group::BenchmarkGroup, x::BenchmarkGroup)
-    result = BenchmarkGroup()
+    result = BenchmarkGroup(; seed=group.seed)
     for (k, v) in x
         result[k] = isa(v, BenchmarkGroup) ? group[k][v] : group[k]
     end

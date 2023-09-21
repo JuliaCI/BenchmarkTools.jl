@@ -432,4 +432,22 @@ for T in [Float32, Float64], n in [10, 100], m in [5, 20]
     @test typeof(g1["sum"][T][n][m]) == BenchmarkTools.Benchmark
 end
 
+results = Dict("a" => Int[], "b" => Int[])
+bg = BenchmarkGroup(
+    "a" => @benchmarkable(push!(results["a"], rand(Int)), samples = 10, evals = 1),
+    "b" => @benchmarkable(push!(results["b"], rand(Int)), samples = 10, evals = 1),
+    ;
+    seed=1234,
+)
+run(bg)
+@test results["a"] == results["b"]
+bg = BenchmarkGroup(
+    "a" => @benchmarkable(push!(results["a"], rand(Int)), samples = 10, evals = 1),
+    "b" => @benchmarkable(push!(results["b"], rand(Int)), samples = 10, evals = 1),
+    ;
+    # No seed specified
+)
+run(bg)
+@test results["a"] != results["b"]
+
 # end # module
