@@ -22,7 +22,7 @@ end
 function BenchmarkGroup(tags::Vector, args::Pair...; seed=-1)
     return BenchmarkGroup(tags, Dict{Any,Any}((makekey(k) => v for (k, v) in args)), seed)
 end
-BenchmarkGroup(args::Pair...; seed=-1) = BenchmarkGroup([], args...; seed)
+BenchmarkGroup(args::Pair...; seed=-1) = BenchmarkGroup([], args...; seed=seed)
 BenchmarkGroup(tags, args; seed=-1) = BenchmarkGroup(tags, args, seed)
 
 function addgroup!(suite::BenchmarkGroup, id, args...)
