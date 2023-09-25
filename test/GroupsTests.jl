@@ -2,7 +2,6 @@
 
 using BenchmarkTools
 using BenchmarkTools: TrialEstimate, Parameters
-using Statistics
 using Test
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
