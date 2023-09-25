@@ -353,7 +353,7 @@ BenchmarkTools.Trial
   allocs: Int64 19
 ```
 
-As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `maximum`, `median`, `mean`, and `std` functions:
+As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `maximum`, `median`, `mean`, and `std` functions (Note that `median`, `mean`, and `std` are reexported in `BenchmarkTools` from `Statistics`):
 
 ```julia
 julia> minimum(t)
