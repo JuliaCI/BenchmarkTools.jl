@@ -353,13 +353,20 @@ BenchmarkTools.Trial
   allocs: Int64 19
 ```
 
-As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `median`, `mean`, `maximum`, and `std` functions:
+As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `maximum`, `median`, `mean`, and `std` functions:
 
 ```julia
 julia> minimum(t)
 BenchmarkTools.TrialEstimate: 
   time:             26.549 μs
   gctime:           0.000 ns (0.00%)
+  memory:           16.36 KiB
+  allocs:           19
+
+julia> maximum(t)
+BenchmarkTools.TrialEstimate: 
+  time:             1.503 ms
+  gctime:           1.401 ms (93.21%)
   memory:           16.36 KiB
   allocs:           19
 
@@ -374,13 +381,6 @@ julia> mean(t)
 BenchmarkTools.TrialEstimate: 
   time:             31.777 μs
   gctime:           415.686 ns (1.31%)
-  memory:           16.36 KiB
-  allocs:           19
-
-julia> maximum(t)
-BenchmarkTools.TrialEstimate: 
-  time:             1.503 ms
-  gctime:           1.401 ms (93.21%)
   memory:           16.36 KiB
   allocs:           19
 
