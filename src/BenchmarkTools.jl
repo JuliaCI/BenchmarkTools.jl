@@ -36,6 +36,8 @@ export gctime,
     isimprovement,
     median,
     mean,
+    std,
+    var,
     rmskew!,
     rmskew,
     trim
