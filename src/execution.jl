@@ -103,6 +103,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     params.gctrial && gcscrub()
+    params.seed >= 0 && Random.seed!(params.seed)
     start_time = Base.time()
     trial = Trial(params)
     params.gcsample && gcscrub()
@@ -138,9 +139,6 @@ end
     run(group::BenchmarkGroup[, args...]; verbose::Bool = false, pad = "", kwargs...)
 
 Run the benchmark group, with benchmark parameters set to `group`'s by default.
-
-If the benchmark group has a non-negative `seed`, the global seed will be reset before
-running each benchmark.
 """
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool=false, pad="", kwargs...)
     _withprogress("Benchmarking", group; kwargs...) do progressid, nleaves, ndone
@@ -148,7 +146,6 @@ function Base.run(group::BenchmarkGroup, args...; verbose::Bool=false, pad="", k
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
         i = 1
         for id in keys(group)
-            group.seed >= 0 && Random.seed!(group.seed)
             @logmsg(
                 ProgressLevel, "Benchmarking", progress = ndone / nleaves, _id = progressid
             )
@@ -249,7 +246,6 @@ function tune!(group::BenchmarkGroup; verbose::Bool=false, pad="", kwargs...)
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
         i = 1
         for id in keys(group)
-            group.seed >= 0 && Random.seed!(group.seed)
             @logmsg(ProgressLevel, "Tuning", progress = ndone / nleaves, _id = progressid)
             verbose && println(pad, "($(i)/$(length(group))) tuning ", repr(id), "...")
             took_seconds = @elapsed tune!(
