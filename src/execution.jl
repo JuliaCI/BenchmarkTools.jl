@@ -666,7 +666,7 @@ macro btime(args...)
             else
                 println(
                     "  ",
-                    $BenchmarkTools.prettytime($BenchmarkTools.time($trialmed)),
+                    $BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)),
                     " (mean time; miniumum is ",
                     $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
                     ", ",
