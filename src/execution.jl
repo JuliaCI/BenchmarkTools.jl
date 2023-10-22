@@ -655,7 +655,7 @@ macro btime(args...)
             $tune_phase
             local $trial, $result = $BenchmarkTools.run_result($bench)
             local $trialmin = $BenchmarkTools.minimum($trial)
-            local $trialmed = $BenchmarkTools.mean($trial)
+            local $trialmean = $BenchmarkTools.mean($trial)
             local $trialallocs = $BenchmarkTools.allocs($trialmin)
             if $trialallocs == 0
                 println(
