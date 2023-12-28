@@ -118,9 +118,9 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
     return_val = trial_contents.__return_val
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-        params.gcsample && gcscrub()
-        push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
-        iters += 1
+         params.gcsample && gcscrub()
+         push!(trial, b.samplefunc(b.quote_vals, params))
+         iters += 1
     end
     return trial, return_val
 end
@@ -570,23 +570,23 @@ function generate_benchmark_definition(
                                __evals))
             if $(experimental_enable_linux_perf)
                 # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
-                __linux_perf_groups = LinuxPerf.set_default_spaces(
+                __linux_perf_groups = BenchmarkTools.LinuxPerf.set_default_spaces(
                     $(linux_perf_opts.events),
                     $(linux_perf_opts.spaces),
                 )
-                __linux_perf_bench = LinuxPerf.make_bench_threaded(
+                __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
                     __linux_perf_groups;
                     threads = $(linux_perf_opts.threads),
                 )
-                LinuxPerf.enable!(__linux_perf_bench)
+                BenchmarkTools.LinuxPerf.enable!(__linux_perf_bench)
                 # We'll just run it one time.
                 __return_val_2 = $(invocation)
-                LinuxPerf.disable!(__linux_perf_bench)
+                BenchmarkTools.LinuxPerf.disable!(__linux_perf_bench)
                 # trick the compiler not to eliminate the code
                 if rand() < 0
                     __linux_perf_stats =  __return_val_2
                 else
-                    __linux_perf_stats =  LinuxPerf.Stats(__linux_perf_bench)
+                    __linux_perf_stats =  BenchmarkTools.LinuxPerf.Stats(__linux_perf_bench)
                 end
             end
             return (;

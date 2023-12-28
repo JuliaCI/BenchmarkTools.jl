@@ -11,7 +11,7 @@ mutable struct Trial
     linux_perf_stats::Union{LinuxPerf.Stats, Nothing}
 end
 
-Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
+Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int), nothing)
 
 function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
@@ -31,6 +31,7 @@ const TrialContents = NamedTuple{(
     :__memory,
     :__allocs,
     :__return_val,
+    :__return_val_2,
     :__linux_perf_stats,
 )}
 
@@ -43,7 +44,7 @@ function Base.push!(t::Trial, trial_contents::TrialContents)
     push!(t.gctimes, gctime)
     memory < t.memory && (t.memory = memory)
     allocs < t.allocs && (t.allocs = allocs)
-    trial.linux_perf_stats = trial_contents.__linux_perf_stats
+    t.linux_perf_stats = trial_contents.__linux_perf_stats
     return t
 end
 
