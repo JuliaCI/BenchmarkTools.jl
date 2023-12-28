@@ -118,9 +118,9 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
     return_val = trial_contents.__return_val
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-         params.gcsample && gcscrub()
-         push!(trial, b.samplefunc(b.quote_vals, params))
-         iters += 1
+        params.gcsample && gcscrub()
+        push!(trial, b.samplefunc(b.quote_vals, params))
+        iters += 1
     end
     return trial, return_val
 end
@@ -540,67 +540,82 @@ function generate_benchmark_definition(
         core_body = :($(core); $(returns))
     end
     @static if isdefined(Base, :donotdelete)
-        invocation = :(let x = $invocation
-                           Base.donotdelete(x)
-                           x
-                       end)
+        invocation = :(
+            let x = $invocation
+                Base.donotdelete(x)
+                x
+            end
+        )
     end
     experimental_enable_linux_perf = true # TODO: take this as input from the user
     # TODO: let the user actually provide these options.
     linux_perf_opts = LinuxPerf.parse_pstats_options([])
-    return Core.eval(eval_module, quote
-        @noinline $(signature_def) = begin $(core_body) end
-        @noinline function $(samplefunc)($(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters)
-            $(setup)
-            __evals = __params.evals
-            __gc_start = Base.gc_num()
-            __start_time = time_ns()
-            __return_val = $(invocation)
-            for __iter in 2:__evals
-                $(invocation)
+    return Core.eval(
+        eval_module,
+        quote
+            @noinline $(signature_def) = begin
+                $(core_body)
             end
-            __sample_time = time_ns() - __start_time
-            __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
-            $(teardown)
-            __time = max((__sample_time / __evals) - __params.overhead, 0.001)
-            __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
-            __memory = Int(Base.fld(__gcdiff.allocd, __evals))
-            __allocs = Int(Base.fld(__gcdiff.malloc + __gcdiff.realloc +
-                               __gcdiff.poolalloc + __gcdiff.bigalloc,
-                               __evals))
-            if $(experimental_enable_linux_perf)
-                # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
-                __linux_perf_groups = BenchmarkTools.LinuxPerf.set_default_spaces(
-                    $(linux_perf_opts.events),
-                    $(linux_perf_opts.spaces),
-                )
-                __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
-                    __linux_perf_groups;
-                    threads = $(linux_perf_opts.threads),
-                )
-                BenchmarkTools.LinuxPerf.enable!(__linux_perf_bench)
-                # We'll just run it one time.
-                __return_val_2 = $(invocation)
-                BenchmarkTools.LinuxPerf.disable!(__linux_perf_bench)
-                # trick the compiler not to eliminate the code
-                if rand() < 0
-                    __linux_perf_stats =  __return_val_2
-                else
-                    __linux_perf_stats =  BenchmarkTools.LinuxPerf.Stats(__linux_perf_bench)
-                end
-            end
-            return (;
-                __time,
-                __gctime,
-                __memory,
-                __allocs,
-                __return_val,
-                __return_val_2,
-                __linux_perf_stats,
+            @noinline function $(samplefunc)(
+                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
             )
-        end
-        $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
-    end)
+                $(setup)
+                __evals = __params.evals
+                __gc_start = Base.gc_num()
+                __start_time = time_ns()
+                __return_val = $(invocation)
+                for __iter in 2:__evals
+                    $(invocation)
+                end
+                __sample_time = time_ns() - __start_time
+                __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
+                $(teardown)
+                __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+                __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
+                __memory = Int(Base.fld(__gcdiff.allocd, __evals))
+                __allocs = Int(
+                    Base.fld(
+                        __gcdiff.malloc +
+                        __gcdiff.realloc +
+                        __gcdiff.poolalloc +
+                        __gcdiff.bigalloc,
+                        __evals,
+                    ),
+                )
+                if $(experimental_enable_linux_perf)
+                    # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
+                    __linux_perf_groups = BenchmarkTools.LinuxPerf.set_default_spaces(
+                        $(linux_perf_opts.events), $(linux_perf_opts.spaces)
+                    )
+                    __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
+                        __linux_perf_groups; threads=$(linux_perf_opts.threads)
+                    )
+                    BenchmarkTools.LinuxPerf.enable!(__linux_perf_bench)
+                    # We'll just run it one time.
+                    __return_val_2 = $(invocation)
+                    BenchmarkTools.LinuxPerf.disable!(__linux_perf_bench)
+                    # trick the compiler not to eliminate the code
+                    if rand() < 0
+                        __linux_perf_stats = __return_val_2
+                    else
+                        __linux_perf_stats = BenchmarkTools.LinuxPerf.Stats(
+                            __linux_perf_bench
+                        )
+                    end
+                end
+                return (;
+                    __time,
+                    __gctime,
+                    __memory,
+                    __allocs,
+                    __return_val,
+                    __return_val_2,
+                    __linux_perf_stats,
+                )
+            end
+            $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
+        end,
+    )
 end
 
 ######################

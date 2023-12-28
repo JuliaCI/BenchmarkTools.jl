@@ -8,10 +8,12 @@ mutable struct Trial
     gctimes::Vector{Float64}
     memory::Int
     allocs::Int
-    linux_perf_stats::Union{LinuxPerf.Stats, Nothing}
+    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
-Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int), nothing)
+function Trial(params::Parameters)
+    return Trial(params, Float64[], Float64[], typemax(Int), typemax(Int), nothing)
+end
 
 function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
@@ -38,7 +40,7 @@ const TrialContents = NamedTuple{(
 function Base.push!(t::Trial, trial_contents::TrialContents)
     time = trial_contents.__time
     gctime = trial_contents.__gctime
-    memory =  trial_contents.__memory
+    memory = trial_contents.__memory
     allocs = trial_contents.__allocs
     push!(t.times, time)
     push!(t.gctimes, gctime)

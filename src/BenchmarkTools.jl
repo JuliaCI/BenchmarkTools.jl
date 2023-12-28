@@ -9,8 +9,8 @@ using UUIDs: uuid4
 using Printf
 using Profile
 
-import LinuxPerf
-import Random
+using LinuxPerf: LinuxPerf
+using Random: Random
 
 const BENCHMARKTOOLS_VERSION = if VERSION >= v"1.9"
     pkgversion(BenchmarkTools)
