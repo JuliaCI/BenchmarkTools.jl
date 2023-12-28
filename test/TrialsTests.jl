@@ -1,6 +1,7 @@
 module TrialsTests
 
 using BenchmarkTools
+using BenchmarkTools: TrialContents
 using Test
 
 #########
@@ -46,7 +47,7 @@ trial2.params = trial1.params
 
 # outlier trimming
 trial3 = BenchmarkTools.Trial(
-    BenchmarkTools.Parameters(), [1, 2, 3, 10, 11], [1, 1, 1, 1, 1], 1, 1
+    BenchmarkTools.Parameters(), [1, 2, 3, 10, 11], [1, 1, 1, 1, 1], 1, 1, nothing
 )
 
 trimtrial3 = rmskew(trial3)
@@ -62,11 +63,11 @@ rmskew!(trial3)
 randtrial = BenchmarkTools.Trial(BenchmarkTools.Parameters())
 
 for _ in 1:40
-    push!(randtrial, TrialContents(rand(1:20), 1, 1, 1))
+    push!(randtrial, TrialContents(rand(1:20), 1, 1, 1, nothing, nothing, nothing))
 end
 
 while mean(randtrial) <= median(randtrial)
-    push!(randtrial, TrialContents(rand(10:20), 1, 1, 1))
+    push!(randtrial, TrialContents(rand(10:20), 1, 1, 1, nothing, nothing, nothing))
 end
 
 rmskew!(randtrial)
@@ -231,7 +232,7 @@ tj_r_2 = judge(tr; time_tolerance=2.0, memory_tolerance=2.0)
 @test BenchmarkTools.prettymemory(1073741824) == "1.00 GiB"
 
 @test sprint(show, "text/plain", ta) == sprint(show, ta; context=:compact => false) == """
-BenchmarkTools.TrialEstimate:
+BenchmarkTools.TrialEstimate: 
   time:             0.490 ns
   gctime:           0.000 ns (0.00%)
   memory:           2 bytes
@@ -246,7 +247,7 @@ BenchmarkTools.TrialEstimate:
 
 @test sprint(show, [ta, tb]) == "BenchmarkTools.TrialEstimate[0.490 ns, 1.000 ns]"
 
-trial1sample = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1], [1], 1, 1)
+trial1sample = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1], [1], 1, 1, nothing)
 @test try
     display(trial1sample)
     true
@@ -267,14 +268,16 @@ else
      1.000 ns"""
 end
 
-trial = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1.0, 1.01], [0.0, 0.0], 0, 0)
+trial = BenchmarkTools.Trial(
+    BenchmarkTools.Parameters(), [1.0, 1.01], [0.0, 0.0], 0, 0, nothing
+)
 @test sprint(show, "text/plain", trial) == """
 BenchmarkTools.Trial: 2 samples with 1 evaluation.
  Range (min … max):  1.000 ns … 1.010 ns  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     1.005 ns             ┊ GC (median):    0.00%
  Time  (mean ± σ):   1.005 ns ± 0.007 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
 
-  █                                                       █
+  █                                                       █  
   █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
   1 ns           Histogram: frequency by time       1.01 ns <
 

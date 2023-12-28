@@ -39,7 +39,7 @@ g2["a"] = t2a
 g2["b"] = t2b
 g2["c"] = tc
 
-trial = BenchmarkTools.Trial(Parameters(), [1, 2, 5], [0, 1, 1], 3, 56)
+trial = BenchmarkTools.Trial(Parameters(), [1, 2, 5], [0, 1, 1], 3, 56, nothing)
 
 gtrial = BenchmarkGroup([], Dict("t" => trial))
 

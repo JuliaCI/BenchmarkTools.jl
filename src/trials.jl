@@ -34,7 +34,14 @@ function Base.:(==)(a::Trial, b::Trial)
 end
 
 function Base.copy(t::Trial)
-    return Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+    return Trial(
+        copy(t.params),
+        copy(t.times),
+        copy(t.gctimes),
+        t.memory,
+        t.allocs,
+        nothing, # There is no copy method for LinuxPerf.Stats or LinuxPerf.ThreadStats
+    )
 end
 
 function Base.push!(t::Trial, trial_contents::TrialContents)
@@ -65,7 +72,9 @@ function Base.getindex(t::Trial, i::Number)
         ),
     )
 end
-Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
+function Base.getindex(t::Trial, i)
+    return Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs, nothing)
+end
 Base.lastindex(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
