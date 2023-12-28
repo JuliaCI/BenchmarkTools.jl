@@ -11,6 +11,16 @@ mutable struct Trial
     linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
+struct TrialContents
+    time
+    gctime
+    memory
+    allocs
+    return_val
+    return_val_2
+    linux_perf_stats
+end
+
 function Trial(params::Parameters)
     return Trial(params, Float64[], Float64[], typemax(Int), typemax(Int), nothing)
 end
@@ -27,26 +37,16 @@ function Base.copy(t::Trial)
     return Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
 end
 
-const TrialContents = NamedTuple{(
-    :__time,
-    :__gctime,
-    :__memory,
-    :__allocs,
-    :__return_val,
-    :__return_val_2,
-    :__linux_perf_stats,
-)}
-
 function Base.push!(t::Trial, trial_contents::TrialContents)
-    time = trial_contents.__time
-    gctime = trial_contents.__gctime
-    memory = trial_contents.__memory
-    allocs = trial_contents.__allocs
+    time = trial_contents.time
+    gctime = trial_contents.gctime
+    memory = trial_contents.memory
+    allocs = trial_contents.allocs
     push!(t.times, time)
     push!(t.gctimes, gctime)
     memory < t.memory && (t.memory = memory)
     allocs < t.allocs && (t.allocs = allocs)
-    t.linux_perf_stats = trial_contents.__linux_perf_stats
+    t.linux_perf_stats = trial_contents.linux_perf_stats
     return t
 end
 
@@ -58,7 +58,12 @@ end
 
 Base.length(t::Trial) = length(t.times)
 function Base.getindex(t::Trial, i::Number)
-    return push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
+    return push!(
+        Trial(t.params),
+        TrialContents(
+            t.times[i], t.gctimes[i], t.memory, t.allocs, nothing, nothing, nothing
+        ),
+    )
 end
 Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
 Base.lastindex(t::Trial) = length(t)

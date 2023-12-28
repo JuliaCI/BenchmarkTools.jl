@@ -6,16 +6,15 @@ using Test
 #########
 # Trial #
 #########
-
 trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2))
-push!(trial1, 2, 1, 4, 5)
-push!(trial1, 21, 0, 41, 51)
+push!(trial1, TrialContents(2, 1, 4, 5, nothing, nothing, nothing))
+push!(trial1, TrialContents(21, 0, 41, 51, nothing, nothing, nothing))
 
 trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; time_tolerance=0.15))
-push!(trial2, 21, 0, 41, 51)
-push!(trial2, 2, 1, 4, 5)
+push!(trial2, TrialContents(21, 0, 41, 51, nothing, nothing, nothing))
+push!(trial2, TrialContents(2, 1, 4, 5, nothing, nothing, nothing))
 
-push!(trial2, 21, 0, 41, 51)
+push!(trial2, TrialContents(21, 0, 41, 51, nothing, nothing, nothing))
 @test length(trial2) == 3
 deleteat!(trial2, 3)
 @test length(trial1) == length(trial2) == 2
@@ -33,8 +32,10 @@ trial2.params = trial1.params
 
 @test trial1 == trial2
 
-@test trial1[2] ==
-    push!(BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2)), 21, 0, 4, 5)
+@test trial1[2] == push!(
+    BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2)),
+    TrialContents(21, 0, 4, 5, nothing, nothing, nothing),
+)
 @test trial1[1:end] == trial1
 
 @test time(trial1) == time(trial2) == 2.0
@@ -61,11 +62,11 @@ rmskew!(trial3)
 randtrial = BenchmarkTools.Trial(BenchmarkTools.Parameters())
 
 for _ in 1:40
-    push!(randtrial, rand(1:20), 1, 1, 1)
+    push!(randtrial, TrialContents(rand(1:20), 1, 1, 1))
 end
 
 while mean(randtrial) <= median(randtrial)
-    push!(randtrial, rand(10:20), 1, 1, 1)
+    push!(randtrial, TrialContents(rand(10:20), 1, 1, 1))
 end
 
 rmskew!(randtrial)
@@ -230,7 +231,7 @@ tj_r_2 = judge(tr; time_tolerance=2.0, memory_tolerance=2.0)
 @test BenchmarkTools.prettymemory(1073741824) == "1.00 GiB"
 
 @test sprint(show, "text/plain", ta) == sprint(show, ta; context=:compact => false) == """
-BenchmarkTools.TrialEstimate: 
+BenchmarkTools.TrialEstimate:
   time:             0.490 ns
   gctime:           0.000 ns (0.00%)
   memory:           2 bytes
@@ -273,7 +274,7 @@ BenchmarkTools.Trial: 2 samples with 1 evaluation.
  Time  (median):     1.005 ns             ┊ GC (median):    0.00%
  Time  (mean ± σ):   1.005 ns ± 0.007 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
 
-  █                                                       █  
+  █                                                       █
   █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
   1 ns           Histogram: frequency by time       1.01 ns <
 
