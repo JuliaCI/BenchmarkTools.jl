@@ -11,14 +11,14 @@ mutable struct Trial
     linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
-struct TrialContents
-    time
-    gctime
-    memory
-    allocs
-    return_val
-    return_val_2
-    linux_perf_stats
+struct TrialContents{A, B}
+    time::Float64
+    gctime::Float64
+    memory::Int
+    allocs::Int
+    return_val::A
+    return_val_2::B
+    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
 function Trial(params::Parameters)
