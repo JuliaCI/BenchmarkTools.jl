@@ -1,5 +1,7 @@
 const VERSIONS = Dict(
-    "Julia" => string(VERSION), "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION)
+    "Julia" => string(VERSION),
+    "BenchmarkTools" => string(BENCHMARKTOOLS_VERSION),
+    "LinuxPerf" => string(LINUXPERF_VERSION),
 )
 
 # TODO: Add any new types as they're added
@@ -29,6 +31,24 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     return [string(nameof(typeof(x))), d]
 end
 
+# Should this be in LinuxPerf?
+JSON.lower(::typeof(LinuxPerf.parse_groups)) = "LinuxPerf.parse_groups"
+
+# Should this be in LinuxPerf?
+# Need this to deserialize LinuxPerf.Stats
+Base.convert(::Type{LinuxPerf.Stats}, d::Dict{String}) = LinuxPerf.Stats(d["threads"])
+function Base.convert(::Type{LinuxPerf.ThreadStats}, d::Dict{String})
+    return LinuxPerf.ThreadStats(d["pid"], d["groups"])
+end
+function Base.convert(::Type{LinuxPerf.EventType}, d::Dict{String})
+    return LinuxPerf.EventType(d["category"], d["event"])
+end
+function Base.convert(::Type{LinuxPerf.Counter}, d::Dict{String})
+    return LinuxPerf.Counter(
+        convert(LinuxPerf.EventType, d["event"]), d["running"], d["enabled"], d["value"]
+    )
+end
+
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
 safeeval(@nospecialize x) = x
 safeeval(x::QuoteNode) = x.value
@@ -50,8 +70,27 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
+        if ft == Union{Nothing,LinuxPerf.Stats}
+            xsi = if isnothing(fields[fn])
+                nothing
+            else
+                convert(ft, fields[fn])
+            end
+        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
+        elseif fn == "linux_perf_options"
+            field_val = fields[fn]
+            xsi = (
+                events=Expr(
+                    Symbol(field_val["events"]["head"]),
+                    LinuxPerf.parse_groups,
+                    field_val["events"]["args"][2],
+                ),
+                spaces=Expr(
+                    Symbol(field_val["spaces"]["head"]), field_val["spaces"]["args"]...
+                ),
+                threads=field_val["threads"],
+            )
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
