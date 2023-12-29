@@ -8,14 +8,14 @@ using Test
 # Trial #
 #########
 trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2))
-push!(trial1, TrialContents(2, 1, 4, 5, nothing, nothing, nothing))
-push!(trial1, TrialContents(21, 0, 41, 51, nothing, nothing, nothing))
+push!(trial1, TrialContents(2.0, 1.0, 4, 5, nothing, nothing, nothing))
+push!(trial1, TrialContents(21.0, 0.0, 41, 51, nothing, nothing, nothing))
 
 trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; time_tolerance=0.15))
-push!(trial2, TrialContents(21, 0, 41, 51, nothing, nothing, nothing))
-push!(trial2, TrialContents(2, 1, 4, 5, nothing, nothing, nothing))
+push!(trial2, TrialContents(21.0, 0.0, 41, 51, nothing, nothing, nothing))
+push!(trial2, TrialContents(2.0, 1.0, 4, 5, nothing, nothing, nothing))
 
-push!(trial2, TrialContents(21, 0, 41, 51, nothing, nothing, nothing))
+push!(trial2, TrialContents(21.0, 0.0, 41, 51, nothing, nothing, nothing))
 @test length(trial2) == 3
 deleteat!(trial2, 3)
 @test length(trial1) == length(trial2) == 2
@@ -35,7 +35,7 @@ trial2.params = trial1.params
 
 @test trial1[2] == push!(
     BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2)),
-    TrialContents(21, 0, 4, 5, nothing, nothing, nothing),
+    TrialContents(21.0, 0.0, 4, 5, nothing, nothing, nothing),
 )
 @test trial1[1:end] == trial1
 
@@ -63,11 +63,11 @@ rmskew!(trial3)
 randtrial = BenchmarkTools.Trial(BenchmarkTools.Parameters())
 
 for _ in 1:40
-    push!(randtrial, TrialContents(rand(1:20), 1, 1, 1, nothing, nothing, nothing))
+    push!(randtrial, TrialContents(rand(1.0:20.0), 1.0, 1, 1, nothing, nothing, nothing))
 end
 
 while mean(randtrial) <= median(randtrial)
-    push!(randtrial, TrialContents(rand(10:20), 1, 1, 1, nothing, nothing, nothing))
+    push!(randtrial, TrialContents(rand(10.0:20.0), 1.0, 1, 1, nothing, nothing, nothing))
 end
 
 rmskew!(randtrial)

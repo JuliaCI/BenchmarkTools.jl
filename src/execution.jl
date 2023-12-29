@@ -582,7 +582,8 @@ function generate_benchmark_definition(
                 if $(params.experimental_enable_linux_perf)
                     # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
                     __linux_perf_groups = BenchmarkTools.LinuxPerf.set_default_spaces(
-                        $(params.linux_perf_options.events), $(params.linux_perf_options.spaces)
+                        $(params.linux_perf_options.events),
+                        $(params.linux_perf_options.spaces),
                     )
                     __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
                         __linux_perf_groups; threads=$(params.linux_perf_options.threads)
