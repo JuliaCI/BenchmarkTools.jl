@@ -130,22 +130,24 @@ mutable struct TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
+    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
 function TrialEstimate(trial::Trial, t, gct)
-    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial))
+    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial), trial.linux_perf_stats)
 end
 
+# Should we compare linux_perf_stats here?
 function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
     return a.params == b.params &&
            a.time == b.time &&
            a.gctime == b.gctime &&
            a.memory == b.memory &&
-           a.allocs == b.allocs
+           a.allocs == b.allocs 
 end
 
 function Base.copy(t::TrialEstimate)
-    return TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
+    return TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.linux_perf_stats) # TODO: copy linux_perf_stats
 end
 
 function Base.minimum(trial::Trial)
