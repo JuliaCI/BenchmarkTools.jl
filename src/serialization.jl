@@ -40,12 +40,13 @@ Base.convert(::Type{LinuxPerf.Stats}, d::Dict{String}) = LinuxPerf.Stats(d["thre
 function Base.convert(::Type{LinuxPerf.ThreadStats}, d::Dict{String})
     return LinuxPerf.ThreadStats(d["pid"], d["groups"])
 end
-function Base.convert(::Type{LinuxPerf.EventType}, d::Dict{String})
-    return LinuxPerf.EventType(d["category"], d["event"])
-end
-function Base.convert(::Type{LinuxPerf.Counter}, d::Dict{String})
+JSON.lower(counter::LinuxPerf.Counter) = [counter.event.category, counter.event.event, counter.value, counter.enabled, counter.running]
+function Base.convert(::Type{LinuxPerf.Counter}, v::Vector)
     return LinuxPerf.Counter(
-        convert(LinuxPerf.EventType, d["event"]), d["value"], d["enabled"], d["running"]
+        LinuxPerf.EventType(v[1], v[2]),
+        v[3],
+        v[4],
+        v[5],
     )
 end
 
