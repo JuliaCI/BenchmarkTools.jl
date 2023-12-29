@@ -6,14 +6,17 @@ using Test
 function eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}}
     return all(i -> eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
 end
-function eq(x::@NamedTuple{events::Expr, spaces::Expr, threads::Bool}, y::@NamedTuple{events::Expr, spaces::Expr, threads::Bool})
-    x == y
+function eq(
+    x::@NamedTuple{events::Expr, spaces::Expr, threads::Bool},
+    y::@NamedTuple{events::Expr, spaces::Expr, threads::Bool},
+)
+    return x == y
 end
 function eq(x::LinuxPerf.Stats, y::LinuxPerf.Stats)
-    all(a->eq(a[1], a[2]), zip(x.threads, y.threads))
+    return all(a -> eq(a[1], a[2]), zip(x.threads, y.threads))
 end
 function eq(x::LinuxPerf.ThreadStats, y::LinuxPerf.ThreadStats)
-    x.pid == y.pid && x.groups == y.groups
+    return x.pid == y.pid && x.groups == y.groups
 end
 eq(x::T, y::T) where {T} = isapprox(x, y)
 

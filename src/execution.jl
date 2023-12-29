@@ -589,10 +589,12 @@ function generate_benchmark_definition(
                     __linux_perf_bench = nothing
                     try
                         __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
-                            __linux_perf_groups; threads=$(params.linux_perf_options.threads)
+                            __linux_perf_groups;
+                            threads=$(params.linux_perf_options.threads),
                         )
                     catch e
-                        if e isa ErrorException && startswith(e.msg, "perf_event_open error : ")
+                        if e isa ErrorException &&
+                            startswith(e.msg, "perf_event_open error : ")
                             @warn "Perf is disabled"
                         else
                             rethrow()
