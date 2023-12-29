@@ -586,27 +586,41 @@ function generate_benchmark_definition(
                         $(params.linux_perf_options.events),
                         $(params.linux_perf_options.spaces),
                     )
-                    __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
-                        __linux_perf_groups; threads=$(params.linux_perf_options.threads)
-                    )
+                    __linux_perf_bench = nothing
                     try
-                        BenchmarkTools.LinuxPerf.enable!(__linux_perf_bench)
-                        # We'll just run it one time.
-                        __return_val_2 = $(invocation)
-                        BenchmarkTools.LinuxPerf.disable!(__linux_perf_bench)
-                        # trick the compiler not to eliminate the code
-                        if rand() < 0
-                            __linux_perf_stats = __return_val_2
+                        __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
+                            __linux_perf_groups; threads=$(params.linux_perf_options.threads)
+                        )
+                    catch e
+                        if e isa ErrorException && startswith(e.msg, "perf_event_open error : ")
+                            @warn "Perf is disabled"
                         else
-                            __linux_perf_stats = BenchmarkTools.LinuxPerf.Stats(
-                                __linux_perf_bench
-                            )
+                            rethrow()
                         end
-                    catch
-                        rethrow()
-                    finally
-                        close(__linux_perf_bench)
+                    end
+
+                    if isnothing(__linux_perf_bench)
                         $(teardown)
+                    else
+                        try
+                            BenchmarkTools.LinuxPerf.enable!(__linux_perf_bench)
+                            # We'll just run it one time.
+                            __return_val_2 = $(invocation)
+                            BenchmarkTools.LinuxPerf.disable!(__linux_perf_bench)
+                            # trick the compiler not to eliminate the code
+                            if rand() < 0
+                                __linux_perf_stats = __return_val_2
+                            else
+                                __linux_perf_stats = BenchmarkTools.LinuxPerf.Stats(
+                                    __linux_perf_bench
+                                )
+                            end
+                        catch
+                            rethrow()
+                        finally
+                            close(__linux_perf_bench)
+                            $(teardown)
+                        end
                     end
                 else
                     __return_val_2 = nothing
