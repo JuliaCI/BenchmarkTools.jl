@@ -11,7 +11,7 @@ mutable struct Trial
     linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
-struct TrialContents{A, B}
+struct TrialContents{A,B}
     time::Float64
     gctime::Float64
     memory::Int

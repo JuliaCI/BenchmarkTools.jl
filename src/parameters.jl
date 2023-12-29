@@ -20,7 +20,19 @@ mutable struct Parameters
 end
 
 # TODO: determine whether perf is available
-const DEFAULT_PARAMETERS = Parameters(5.0, 10000, 1, false, 0, true, false, 0.05, 0.01, Sys.islinux(), LinuxPerf.parse_pstats_options([]))
+const DEFAULT_PARAMETERS = Parameters(
+    5.0,
+    10000,
+    1,
+    false,
+    0,
+    true,
+    false,
+    0.05,
+    0.01,
+    Sys.islinux(),
+    LinuxPerf.parse_pstats_options([]),
+)
 
 function Parameters(;
     seconds=DEFAULT_PARAMETERS.seconds,
@@ -74,8 +86,11 @@ function Parameters(
         time_tolerance != nothing ? time_tolerance : default.time_tolerance
     params.memory_tolerance =
         memory_tolerance != nothing ? memory_tolerance : default.memory_tolerance
-    params.experimental_enable_linux_perf =
-        experimental_enable_linux_perf != nothing ? experimental_enable_linux_perf : default.experimental_enable_linux_perf
+    params.experimental_enable_linux_perf = if experimental_enable_linux_perf != nothing
+        experimental_enable_linux_perf
+    else
+        default.experimental_enable_linux_perf
+    end
     params.linux_perf_options =
         linux_perf_options != nothing ? linux_perf_options : default.linux_perf_options
     return params::BenchmarkTools.Parameters
