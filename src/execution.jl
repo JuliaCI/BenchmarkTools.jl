@@ -580,7 +580,6 @@ function generate_benchmark_definition(
                     ),
                 )
                 if $(params.experimental_enable_linux_perf)
-                    $(setup)
                     # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
                     __linux_perf_groups = BenchmarkTools.LinuxPerf.set_default_spaces(
                         $(params.linux_perf_options.events),
@@ -601,10 +600,9 @@ function generate_benchmark_definition(
                         end
                     end
 
-                    if isnothing(__linux_perf_bench)
-                        $(teardown)
-                    else
+                    if !isnothing(__linux_perf_bench)
                         try
+                            $(setup)
                             BenchmarkTools.LinuxPerf.enable!(__linux_perf_bench)
                             # We'll just run it one time.
                             __return_val_2 = $(invocation)
