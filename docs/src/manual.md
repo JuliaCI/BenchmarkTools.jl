@@ -85,6 +85,8 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `gcsample`: If `true`, run `gc()` before each sample. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.gcsample = false`.
 - `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
 - `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
+- `experimental_enable_linux_perf`: 
+- `linux_perf_opts`:
 
 To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 
