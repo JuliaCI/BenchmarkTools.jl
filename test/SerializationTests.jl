@@ -18,6 +18,9 @@ end
 function eq(x::LinuxPerf.ThreadStats, y::LinuxPerf.ThreadStats)
     return x.pid == y.pid && x.groups == y.groups
 end
+eq(x::Nothing, y) = isnothing(y)
+eq(x, y::Nothing) = isnothing(x)
+eq(x::Nothing, y::Nothing) = true
 eq(x::T, y::T) where {T} = isapprox(x, y)
 
 function withtempdir(f::Function)
