@@ -45,7 +45,7 @@ function Base.convert(::Type{LinuxPerf.EventType}, d::Dict{String})
 end
 function Base.convert(::Type{LinuxPerf.Counter}, d::Dict{String})
     return LinuxPerf.Counter(
-        convert(LinuxPerf.EventType, d["event"]), d["running"], d["enabled"], d["value"]
+        convert(LinuxPerf.EventType, d["event"]), d["value"], d["enabled"], d["running"]
     )
 end
 
@@ -185,7 +185,7 @@ function load(io::IO, args...)
             ),
         )
     end
-    parsed = JSON.parse(io)
+    parsed = JSON.parse(io; dicttype=Dict)
     if !isa(parsed, Vector) ||
         length(parsed) != 2 ||
         !isa(parsed[1], Dict) ||
