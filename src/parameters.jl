@@ -19,7 +19,24 @@ mutable struct Parameters
     linux_perf_options::@NamedTuple{events::Expr, spaces::Expr, threads::Bool}
 end
 
-# TODO: determine whether perf is available
+function perf_available()
+    if !Sys.islinux()
+        return false
+    end
+
+    try
+        opts = LinuxPerf.parse_pstats_options([])
+        groups = BenchmarkTools.LinuxPerf.set_default_spaces(
+            opts.events,
+            opts.spaces,
+        )
+        bench = make_bench_threaded(groups, threads = opts.threads)
+        return true
+    catch
+        return false
+    end
+end
+
 const DEFAULT_PARAMETERS = Parameters(
     5.0,
     10000,
@@ -30,7 +47,7 @@ const DEFAULT_PARAMETERS = Parameters(
     false,
     0.05,
     0.01,
-    Sys.islinux(),
+    perf_available(),
     LinuxPerf.parse_pstats_options([]),
 )
 
