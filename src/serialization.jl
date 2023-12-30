@@ -31,28 +31,6 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     return [string(nameof(typeof(x))), d]
 end
 
-# Should this be in LinuxPerf?
-JSON.lower(::typeof(LinuxPerf.parse_groups)) = "LinuxPerf.parse_groups"
-
-# Should this be in LinuxPerf?
-# Need this to deserialize LinuxPerf.Stats
-Base.convert(::Type{LinuxPerf.Stats}, d::Dict{String}) = LinuxPerf.Stats(d["threads"])
-function Base.convert(::Type{LinuxPerf.ThreadStats}, d::Dict{String})
-    return LinuxPerf.ThreadStats(d["pid"], d["groups"])
-end
-function JSON.lower(counter::LinuxPerf.Counter)
-    return [
-        counter.event.category,
-        counter.event.event,
-        counter.value,
-        counter.enabled,
-        counter.running,
-    ]
-end
-function Base.convert(::Type{LinuxPerf.Counter}, v::Vector)
-    return LinuxPerf.Counter(LinuxPerf.EventType(v[1], v[2]), v[3], v[4], v[5])
-end
-
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
 safeeval(@nospecialize x) = x
 safeeval(x::QuoteNode) = x.value

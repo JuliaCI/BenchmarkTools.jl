@@ -2,18 +2,6 @@
 # Trial #
 #########
 
-# Move into LinuxPerf.jl
-Base.copy(stats::LinuxPerf.Stats) = LinuxPerf.Stats(copy(stats.threads))
-function Base.copy(thread_stats::LinuxPerf.ThreadStats)
-    return LinuxPerf.ThreadStats(thread_stats.pid, copy(thread_stats.groups))
-end
-function Base.copy(counter::LinuxPerf.Counter)
-    return LinuxPerf.Counter(
-        copy(counter.event), counter.value, counter.enabled, counter.running
-    )
-end
-Base.copy(event::LinuxPerf.EventType) = LinuxPerf.EventType(event.category, event.event)
-
 mutable struct Trial
     params::Parameters
     times::Vector{Float64}
