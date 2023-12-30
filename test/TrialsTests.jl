@@ -1,21 +1,21 @@
 module TrialsTests
 
 using BenchmarkTools
-using BenchmarkTools: TrialContents
 using Test
 
 #########
 # Trial #
 #########
+
 trial1 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2))
-push!(trial1, TrialContents(2.0, 1.0, 4, 5, nothing, nothing, nothing))
-push!(trial1, TrialContents(21.0, 0.0, 41, 51, nothing, nothing, nothing))
+push!(trial1, 2, 1, 4, 5)
+push!(trial1, 21, 0, 41, 51)
 
 trial2 = BenchmarkTools.Trial(BenchmarkTools.Parameters(; time_tolerance=0.15))
-push!(trial2, TrialContents(21.0, 0.0, 41, 51, nothing, nothing, nothing))
-push!(trial2, TrialContents(2.0, 1.0, 4, 5, nothing, nothing, nothing))
+push!(trial2, 21, 0, 41, 51)
+push!(trial2, 2, 1, 4, 5)
 
-push!(trial2, TrialContents(21.0, 0.0, 41, 51, nothing, nothing, nothing))
+push!(trial2, 21, 0, 41, 51)
 @test length(trial2) == 3
 deleteat!(trial2, 3)
 @test length(trial1) == length(trial2) == 2
@@ -33,10 +33,8 @@ trial2.params = trial1.params
 
 @test trial1 == trial2
 
-@test trial1[2] == push!(
-    BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2)),
-    TrialContents(21.0, 0.0, 4, 5, nothing, nothing, nothing),
-)
+@test trial1[2] ==
+    push!(BenchmarkTools.Trial(BenchmarkTools.Parameters(; evals=2)), 21, 0, 4, 5)
 @test trial1[1:end] == trial1
 
 @test time(trial1) == time(trial2) == 2.0
@@ -63,11 +61,11 @@ rmskew!(trial3)
 randtrial = BenchmarkTools.Trial(BenchmarkTools.Parameters())
 
 for _ in 1:40
-    push!(randtrial, TrialContents(rand(1.0:20.0), 1.0, 1, 1, nothing, nothing, nothing))
+    push!(randtrial, rand(1:20), 1, 1, 1)
 end
 
 while mean(randtrial) <= median(randtrial)
-    push!(randtrial, TrialContents(rand(10.0:20.0), 1.0, 1, 1, nothing, nothing, nothing))
+    push!(randtrial, rand(10:20), 1, 1, 1)
 end
 
 rmskew!(randtrial)

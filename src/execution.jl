@@ -16,6 +16,7 @@ end
 
 mutable struct Benchmark
     samplefunc
+    linux_perf_func
     quote_vals
     params::Parameters
 end
@@ -113,15 +114,21 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
     start_time = Base.time()
     trial = Trial(params)
     params.gcsample && gcscrub()
-    trial_contents = b.samplefunc(b.quote_vals, params)
-    push!(trial, trial_contents)
-    return_val = trial_contents.return_val
+    s = b.samplefunc(b.quote_vals, params)
+    push!(trial, s[1:(end - 1)]...)
+    return_val = s[end]
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
         params.gcsample && gcscrub()
-        push!(trial, b.samplefunc(b.quote_vals, params))
+        push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
         iters += 1
     end
+
+    if p.experimental_enable_linux_perf
+        params.gcsample && gcscrub()
+        trial.linux_perf_stats = b.linux_perf_func(b.quote_vals, params)
+    end
+
     return trial, return_val
 end
 
@@ -185,7 +192,7 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     for evals in eachindex(estimates)
         params.gcsample && gcscrub()
         params.evals = evals
-        estimates[evals] = b.samplefunc(b.quote_vals, params).time
+        estimates[evals] = first(b.samplefunc(b.quote_vals, params))
         completed += 1
         ((time() - start_time) > params.seconds) && break
     end
@@ -513,6 +520,7 @@ function generate_benchmark_definition(
     @nospecialize
     corefunc = gensym("core")
     samplefunc = gensym("sample")
+    linux_perf_func = gensym("perf")
     type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
     signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
     signature_def = Expr(
@@ -579,64 +587,57 @@ function generate_benchmark_definition(
                         __evals,
                     ),
                 )
-                if $(params.experimental_enable_linux_perf)
-                    # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
-                    __linux_perf_groups = BenchmarkTools.LinuxPerf.set_default_spaces(
-                        $(params.linux_perf_options.events),
-                        $(params.linux_perf_options.spaces),
-                    )
-                    __linux_perf_bench = nothing
-                    try
-                        __linux_perf_bench = BenchmarkTools.LinuxPerf.make_bench_threaded(
-                            __linux_perf_groups;
-                            threads=$(params.linux_perf_options.threads),
-                        )
-                    catch e
-                        if e isa ErrorException &&
-                            startswith(e.msg, "perf_event_open error : ")
-                            @warn "Perf is disabled"
-                        else
-                            rethrow()
-                        end
-                    end
-
-                    if !isnothing(__linux_perf_bench)
-                        try
-                            $(setup)
-                            BenchmarkTools.LinuxPerf.enable!(__linux_perf_bench)
-                            # We'll just run it one time.
-                            __return_val_2 = $(invocation)
-                            BenchmarkTools.LinuxPerf.disable!(__linux_perf_bench)
-                            # trick the compiler not to eliminate the code
-                            if rand() < 0
-                                __linux_perf_stats = __return_val_2
-                            else
-                                __linux_perf_stats = BenchmarkTools.LinuxPerf.Stats(
-                                    __linux_perf_bench
-                                )
-                            end
-                        catch
-                            rethrow()
-                        finally
-                            close(__linux_perf_bench)
-                            $(teardown)
-                        end
-                    end
-                else
-                    __return_val_2 = nothing
-                    __linux_perf_stats = nothing
-                end
-                return BenchmarkTools.TrialContents(
-                    __time,
-                    __gctime,
-                    __memory,
-                    __allocs,
-                    __return_val,
-                    __return_val_2,
-                    __linux_perf_stats,
-                )
+                return __time, __gctime, __memory, __allocs, __return_val
             end
-            $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
+            @noinline function $(linux_perf_func)(
+                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+            )
+                # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
+                __linux_perf_groups = $LinuxPerf.set_default_spaces(
+                    eval(__params.linux_perf_options.events),
+                    eval(__params.linux_perf_options.spaces),
+                )
+                __linux_perf_bench = nothing
+                try
+                    __linux_perf_bench = $LinuxPerf.make_bench_threaded(
+                        __linux_perf_groups;
+                        threads=eval(__params.linux_perf_options.threads),
+                    )
+                catch e
+                    if e isa ErrorException &&
+                        startswith(e.msg, "perf_event_open error : ")
+                        @warn "Perf is disabled" # Really we only want to do this if we defaulted to running with perf, otherwise we should just throw.
+                    # Given we now more accurately determine if perf is available can we do away with this hack?
+                    else
+                        rethrow()
+                    end
+                end
+
+                if !isnothing(__linux_perf_bench)
+                    $(setup)
+                    try
+                        $LinuxPerf.enable!(__linux_perf_bench)
+                        # We'll just run it one time.
+                        __return_val_2 = $(invocation)
+                        $LinuxPerf.disable!(__linux_perf_bench)
+                        # trick the compiler not to eliminate the code
+                        if rand() < 0
+                            __linux_perf_stats = __return_val_2
+                        else
+                            __linux_perf_stats = $LinuxPerf.Stats(__linux_perf_bench)
+                        end
+                        return __linux_perf_stats
+                    catch
+                        rethrow()
+                    finally
+                        close(__linux_perf_bench)
+                        $(teardown)
+                    end
+                end
+            end
+            $BenchmarkTools.Benchmark(
+                $(samplefunc), $(linux_perf_func), $(quote_vals), $(params)
+            )
         end,
     )
 end

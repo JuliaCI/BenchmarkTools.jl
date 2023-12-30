@@ -30,7 +30,7 @@ function perf_available()
     try
         opts = DEFAULT_LINUX_PERF_OPTIONS
         groups = LinuxPerf.set_default_spaces(eval(opts.events), eval(opts.spaces))
-        bench = LinuxPerf.make_bench_threaded(groups, threads = eval(opts.threads))
+        bench = LinuxPerf.make_bench_threaded(groups; threads=eval(opts.threads))
         return true
     catch
         return false

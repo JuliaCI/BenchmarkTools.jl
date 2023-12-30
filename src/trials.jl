@@ -11,16 +11,6 @@ mutable struct Trial
     linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
-struct TrialContents{A,B}
-    time::Float64
-    gctime::Float64
-    memory::Int
-    allocs::Int
-    return_val::A
-    return_val_2::B
-    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
-end
-
 function Trial(params::Parameters)
     return Trial(params, Float64[], Float64[], typemax(Int), typemax(Int), nothing)
 end
@@ -44,16 +34,11 @@ function Base.copy(t::Trial)
     )
 end
 
-function Base.push!(t::Trial, trial_contents::TrialContents)
-    time = trial_contents.time
-    gctime = trial_contents.gctime
-    memory = trial_contents.memory
-    allocs = trial_contents.allocs
+function Base.push!(t::Trial, time, gctime, memory, allocs)
     push!(t.times, time)
     push!(t.gctimes, gctime)
     memory < t.memory && (t.memory = memory)
     allocs < t.allocs && (t.allocs = allocs)
-    t.linux_perf_stats = trial_contents.linux_perf_stats
     return t
 end
 
@@ -65,17 +50,8 @@ end
 
 Base.length(t::Trial) = length(t.times)
 function Base.getindex(t::Trial, i::Number)
-    return push!(
-        Trial(t.params),
-        TrialContents(
-            t.times[i],
-            t.gctimes[i],
-            t.memory,
-            t.allocs,
-            nothing,
-            nothing,
-            t.linux_perf_stats,
-        ),
+    return Trial(
+        t.params, [t.times[i]], [t.gctimes[i]], t.memory, t.allocs, t.linux_perf_stats
     )
 end
 function Base.getindex(t::Trial, i)
