@@ -138,7 +138,11 @@ function Base.copy(p::Parameters)
         p.time_tolerance,
         p.memory_tolerance,
         p.experimental_enable_linux_perf,
-        p.linux_perf_options, # Is this really a copy, the values contain Expr's which store Vector's.
+        (
+            events = copy(p.linux_perf_options.events),
+            spaces = copy(p.linux_perf_options.spaces),
+            threads = copy(p.linux_perf_options.threads)
+        ),
     )
 end
 
