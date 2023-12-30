@@ -119,10 +119,10 @@ x, y = rand(randrange), rand(randrange)
 @test ratio(0.0, 0.0) == 1.0
 
 ta = BenchmarkTools.TrialEstimate(
-    BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int)
+    BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int), nothing
 )
 tb = BenchmarkTools.TrialEstimate(
-    BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int)
+    BenchmarkTools.Parameters(), rand(), rand(), rand(Int), rand(Int), nothing
 )
 tr = ratio(ta, tb)
 
@@ -140,10 +140,20 @@ tr = ratio(ta, tb)
 ##################
 
 ta = BenchmarkTools.TrialEstimate(
-    BenchmarkTools.Parameters(; time_tolerance=0.50, memory_tolerance=0.50), 0.49, 0.0, 2, 1
+    BenchmarkTools.Parameters(; time_tolerance=0.50, memory_tolerance=0.50),
+    0.49,
+    0.0,
+    2,
+    1,
+    nothing,
 )
 tb = BenchmarkTools.TrialEstimate(
-    BenchmarkTools.Parameters(; time_tolerance=0.05, memory_tolerance=0.05), 1.00, 0.0, 1, 1
+    BenchmarkTools.Parameters(; time_tolerance=0.05, memory_tolerance=0.05),
+    1.00,
+    0.0,
+    1,
+    1,
+    nothing,
 )
 tr = ratio(ta, tb)
 tj_ab = judge(ta, tb)
