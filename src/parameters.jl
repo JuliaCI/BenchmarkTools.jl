@@ -24,6 +24,7 @@ function perf_available()
         return false
     end
 
+    bench = nothing
     try
         opts = LinuxPerf.parse_pstats_options([])
         groups = BenchmarkTools.LinuxPerf.set_default_spaces(opts.events, opts.spaces)
@@ -31,6 +32,10 @@ function perf_available()
         return true
     catch
         return false
+    finally
+        if !isnothing(bench)
+            close(bench)
+        end
     end
 end
 
