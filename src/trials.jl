@@ -134,7 +134,9 @@ mutable struct TrialEstimate
 end
 
 function TrialEstimate(trial::Trial, t, gct)
-    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial), trial.linux_perf_stats)
+    return TrialEstimate(
+        params(trial), t, gct, memory(trial), allocs(trial), trial.linux_perf_stats
+    )
 end
 
 # Should we compare linux_perf_stats here?

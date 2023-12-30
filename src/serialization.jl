@@ -40,14 +40,17 @@ Base.convert(::Type{LinuxPerf.Stats}, d::Dict{String}) = LinuxPerf.Stats(d["thre
 function Base.convert(::Type{LinuxPerf.ThreadStats}, d::Dict{String})
     return LinuxPerf.ThreadStats(d["pid"], d["groups"])
 end
-JSON.lower(counter::LinuxPerf.Counter) = [counter.event.category, counter.event.event, counter.value, counter.enabled, counter.running]
+function JSON.lower(counter::LinuxPerf.Counter)
+    return [
+        counter.event.category,
+        counter.event.event,
+        counter.value,
+        counter.enabled,
+        counter.running,
+    ]
+end
 function Base.convert(::Type{LinuxPerf.Counter}, v::Vector)
-    return LinuxPerf.Counter(
-        LinuxPerf.EventType(v[1], v[2]),
-        v[3],
-        v[4],
-        v[5],
-    )
+    return LinuxPerf.Counter(LinuxPerf.EventType(v[1], v[2]), v[3], v[4], v[5])
 end
 
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
@@ -186,7 +189,7 @@ function load(io::IO, args...)
             ),
         )
     end
-    parsed = JSON.parse(io; dicttype=Dict)
+    parsed = JSON.parse(io)
     if !isa(parsed, Vector) ||
         length(parsed) != 2 ||
         !isa(parsed[1], Dict) ||

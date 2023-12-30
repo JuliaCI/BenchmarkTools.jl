@@ -26,11 +26,8 @@ function perf_available()
 
     try
         opts = LinuxPerf.parse_pstats_options([])
-        groups = BenchmarkTools.LinuxPerf.set_default_spaces(
-            opts.events,
-            opts.spaces,
-        )
-        bench = make_bench_threaded(groups, threads = opts.threads)
+        groups = BenchmarkTools.LinuxPerf.set_default_spaces(opts.events, opts.spaces)
+        bench = make_bench_threaded(groups; threads=opts.threads)
         return true
     catch
         return false
@@ -139,9 +136,9 @@ function Base.copy(p::Parameters)
         p.memory_tolerance,
         p.experimental_enable_linux_perf,
         (
-            events = copy(p.linux_perf_options.events),
-            spaces = copy(p.linux_perf_options.spaces),
-            threads = copy(p.linux_perf_options.threads)
+            events=copy(p.linux_perf_options.events),
+            spaces=copy(p.linux_perf_options.spaces),
+            threads=copy(p.linux_perf_options.threads),
         ),
     )
 end
