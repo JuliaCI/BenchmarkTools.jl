@@ -1,7 +1,7 @@
 # Trigger several successive GC sweeps. This is more comprehensive than running just a
 # single sweep, since freeable objects may need more than one sweep to be appropriately
 # marked and freed.
-gcscrub() = (GC.gc(); GC.gc(); GC.gc(); GC.gc())
+gcscrub() = (GC.gc(); GC.gc(); GC.gc())
 
 #############
 # Benchmark #
