@@ -353,13 +353,20 @@ BenchmarkTools.Trial
   allocs: Int64 19
 ```
 
-As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `median`, `mean`, `maximum`, and `std` functions:
+As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `maximum`, `median`, `mean`, and `std` functions (Note that `median`, `mean`, and `std` are reexported in `BenchmarkTools` from `Statistics`):
 
 ```julia
 julia> minimum(t)
 BenchmarkTools.TrialEstimate: 
   time:             26.549 μs
   gctime:           0.000 ns (0.00%)
+  memory:           16.36 KiB
+  allocs:           19
+
+julia> maximum(t)
+BenchmarkTools.TrialEstimate: 
+  time:             1.503 ms
+  gctime:           1.401 ms (93.21%)
   memory:           16.36 KiB
   allocs:           19
 
@@ -374,13 +381,6 @@ julia> mean(t)
 BenchmarkTools.TrialEstimate: 
   time:             31.777 μs
   gctime:           415.686 ns (1.31%)
-  memory:           16.36 KiB
-  allocs:           19
-
-julia> maximum(t)
-BenchmarkTools.TrialEstimate: 
-  time:             1.503 ms
-  gctime:           1.401 ms (93.21%)
   memory:           16.36 KiB
   allocs:           19
 
@@ -888,10 +888,23 @@ A common workflow used in BenchmarkTools is the following:
 
 1. Start a Julia session
 2. Execute a benchmark suite using an old version of your package
-3. Save the results somehow (e.g. in a JSON file)
+    ```julia
+    old_results = run(suite, verbose = true)
+    ```
+4. Save the results somehow (e.g. in a JSON file)
+    ```julia
+    BenchmarkTools.save("old_results.json", old_results)
+    ```
 4. Start a new Julia session
 5. Execute a benchmark suite using a new version of your package
-6. Compare the new results with the results saved in step 3 to determine regression status
+   ```julia
+   results = run(suite, verbose = true)
+   ```
+7. Compare the new results with the results saved in step 3 to determine regression status
+    ```julia
+    old_results = BenchmarkTools.load("old_results.json")
+    BenchmarkTools.judge(minimum(results), minimum(old_results))
+    ```
 
 There are a couple of problems with this workflow, and all of which revolve around parameter tuning (which would occur during steps 2 and 5):
 

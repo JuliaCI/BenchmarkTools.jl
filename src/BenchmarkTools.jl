@@ -9,7 +9,11 @@ using UUIDs: uuid4
 using Printf
 using Profile
 
-const BENCHMARKTOOLS_VERSION = v"1.0.0"
+const BENCHMARKTOOLS_VERSION = if VERSION >= v"1.9"
+    pkgversion(BenchmarkTools)
+else
+    v"1.4.0"
+end
 
 ##############
 # Parameters #
@@ -36,6 +40,8 @@ export gctime,
     isimprovement,
     median,
     mean,
+    std,
+    var,
     rmskew!,
     rmskew,
     trim
@@ -52,7 +58,6 @@ export BenchmarkGroup,
     improvements,
     @tagged,
     addgroup!,
-    leaves,
     @benchmarkset,
     @case,
     clear_empty!
