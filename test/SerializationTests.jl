@@ -6,12 +6,7 @@ using Test
 function eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}}
     return all(i -> eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
 end
-function eq(
-    x::@NamedTuple{events::Expr, spaces::Expr, threads::Bool},
-    y::@NamedTuple{events::Expr, spaces::Expr, threads::Bool},
-)
-    return x == y
-end
+eq(x::Vector{String}, y::Vector{String}) = x == y
 function eq(x::LinuxPerf.Stats, y::LinuxPerf.Stats)
     return all(a -> eq(a[1], a[2]), zip(x.threads, y.threads))
 end

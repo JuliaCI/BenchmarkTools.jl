@@ -124,7 +124,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
         iters += 1
     end
 
-    if p.experimental_enable_linux_perf
+    if p.enable_linux_perf
         params.gcsample && gcscrub()
         trial.linux_perf_stats = b.linux_perf_func(b.quote_vals, params)
     end
@@ -593,15 +593,16 @@ function generate_benchmark_definition(
                 $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
             )
                 # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
+                __linux_perf_options = $LinuxPerf.parse_pstats_options(
+                    __params.linux_perf_options
+                )
                 __linux_perf_groups = $LinuxPerf.set_default_spaces(
-                    eval(__params.linux_perf_options.events),
-                    eval(__params.linux_perf_options.spaces),
+                    eval(__linux_perf_options.events), eval(__linux_perf_options.spaces)
                 )
                 __linux_perf_bench = nothing
                 try
                     __linux_perf_bench = $LinuxPerf.make_bench_threaded(
-                        __linux_perf_groups;
-                        threads=eval(__params.linux_perf_options.threads),
+                        __linux_perf_groups; threads=eval(__linux_perf_options.threads)
                     )
                 catch e
                     if e isa ErrorException &&

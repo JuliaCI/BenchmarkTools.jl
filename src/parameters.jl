@@ -15,11 +15,11 @@ mutable struct Parameters
     gcsample::Bool
     time_tolerance::Float64
     memory_tolerance::Float64
-    experimental_enable_linux_perf::Bool
-    linux_perf_options::@NamedTuple{events::Expr, spaces::Expr, threads::Bool}
+    enable_linux_perf::Bool
+    linux_perf_options::Vector{String}
 end
 
-const DEFAULT_LINUX_PERF_OPTIONS = LinuxPerf.parse_pstats_options([])
+const DEFAULT_LINUX_PERF_OPTIONS = String[]
 
 function perf_available()
     if !Sys.islinux()
@@ -28,7 +28,7 @@ function perf_available()
 
     bench = nothing
     try
-        opts = DEFAULT_LINUX_PERF_OPTIONS
+        opts = LinuxPerf.parse_pstats_options(DEFAULT_LINUX_PERF_OPTIONS)
         groups = LinuxPerf.set_default_spaces(eval(opts.events), eval(opts.spaces))
         bench = LinuxPerf.make_bench_threaded(groups; threads=eval(opts.threads))
         return true
@@ -65,7 +65,7 @@ function Parameters(;
     gcsample=DEFAULT_PARAMETERS.gcsample,
     time_tolerance=DEFAULT_PARAMETERS.time_tolerance,
     memory_tolerance=DEFAULT_PARAMETERS.memory_tolerance,
-    experimental_enable_linux_perf=DEFAULT_PARAMETERS.experimental_enable_linux_perf,
+    enable_linux_perf=DEFAULT_PARAMETERS.enable_linux_perf,
     linux_perf_options=DEFAULT_PARAMETERS.linux_perf_options,
 )
     return Parameters(
@@ -78,7 +78,7 @@ function Parameters(;
         gcsample,
         time_tolerance,
         memory_tolerance,
-        experimental_enable_linux_perf,
+        enable_linux_perf,
         linux_perf_options,
     )
 end
@@ -93,7 +93,7 @@ function Parameters(
     gcsample=nothing,
     time_tolerance=nothing,
     memory_tolerance=nothing,
-    experimental_enable_linux_perf=nothing,
+    enable_linux_perf=nothing,
     linux_perf_options=nothing,
 )
     params = Parameters()
@@ -107,10 +107,10 @@ function Parameters(
         time_tolerance != nothing ? time_tolerance : default.time_tolerance
     params.memory_tolerance =
         memory_tolerance != nothing ? memory_tolerance : default.memory_tolerance
-    params.experimental_enable_linux_perf = if experimental_enable_linux_perf != nothing
-        experimental_enable_linux_perf
+    params.enable_linux_perf = if enable_linux_perf != nothing
+        enable_linux_perf
     else
-        default.experimental_enable_linux_perf
+        default.enable_linux_perf
     end
     params.linux_perf_options =
         linux_perf_options != nothing ? linux_perf_options : default.linux_perf_options
@@ -126,7 +126,7 @@ function Base.:(==)(a::Parameters, b::Parameters)
            a.gcsample == b.gcsample &&
            a.time_tolerance == b.time_tolerance &&
            a.memory_tolerance == b.memory_tolerance &&
-           a.experimental_enable_linux_perf == b.experimental_enable_linux_perf &&
+           a.enable_linux_perf == b.enable_linux_perf &&
            a.linux_perf_options == b.linux_perf_options
 end
 
@@ -141,12 +141,8 @@ function Base.copy(p::Parameters)
         p.gcsample,
         p.time_tolerance,
         p.memory_tolerance,
-        p.experimental_enable_linux_perf,
-        (
-            events=copy(p.linux_perf_options.events),
-            spaces=copy(p.linux_perf_options.spaces),
-            threads=copy(p.linux_perf_options.threads),
-        ),
+        p.enable_linux_perf,
+        copy(p.linux_perf_options),
     )
 end
 

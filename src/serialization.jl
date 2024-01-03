@@ -60,19 +60,6 @@ function recover(x::Vector)
             end
         elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
-        elseif fn == "linux_perf_options"
-            field_val = fields[fn]
-            xsi = (
-                events=Expr(
-                    Symbol(field_val["events"]["head"]),
-                    LinuxPerf.parse_groups,
-                    field_val["events"]["args"][2],
-                ),
-                spaces=Expr(
-                    Symbol(field_val["spaces"]["head"]), field_val["spaces"]["args"]...
-                ),
-                threads=field_val["threads"],
-            )
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
