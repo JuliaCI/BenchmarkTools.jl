@@ -112,7 +112,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
     params.gctrial && gcscrub()
     start_time = Base.time()
     trial = Trial(params)
-    b.samplefunc(b.quote_vals, Parameters(params, evals=1)) #warmup sample
+    b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
     params.gcsample && gcscrub()
     s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:(end - 1)]...)
