@@ -112,7 +112,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
     params.gctrial && gcscrub()
     start_time = Base.time()
     trial = Trial(params)
-    b.samplefunc(b.quote_vals, params) #warmup sample
+    b.samplefunc(b.quote_vals, Parameters(params, evals=1)) #warmup sample
     params.gcsample && gcscrub()
     s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:(end - 1)]...)
@@ -181,6 +181,7 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     params = Parameters(p; kwargs...)
     estimates = zeros(maxevals)
     completed = 0
+    params.evals = 1
     b.samplefunc(b.quote_vals, params) #warmup sample
     params.gctrial && gcscrub()
     start_time = time()

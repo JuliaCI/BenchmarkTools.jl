@@ -148,6 +148,8 @@ tune!(b_pass)
 # warmup #
 ###########
 
+@test_deprecated warmup(@benchmarkable sin(1))
+
 is_warm = false
 function needs_warm()
     global is_warm
