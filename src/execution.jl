@@ -195,7 +195,10 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
 end
 
 function warmup(item; verbose::Bool=true)
-    Base.depwarn("`warmup` is deprecated because `run` now warms up every time automatically", :warmup)
+    Base.depwarn(
+        "`warmup` is deprecated because `run` now warms up every time automatically",
+        :warmup,
+    )
     return run(item; verbose=verbose, samples=1, evals=1, gctrial=false, gcsample=false)
 end
 
