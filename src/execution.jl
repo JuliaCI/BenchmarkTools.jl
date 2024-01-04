@@ -2,7 +2,9 @@
 # single sweep, since freeable objects may need more than one sweep to be appropriately
 # marked and freed.
 function gcscrub()
-    GC.gc(); GC.gc(); GC.gc()
+    GC.gc()
+    GC.gc()
+    GC.gc()
     @static if VERSION < v"1.10"
         GC.gc()
     end
