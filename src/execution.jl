@@ -599,41 +599,28 @@ function generate_benchmark_definition(
                 __linux_perf_groups = $LinuxPerf.set_default_spaces(
                     eval(__linux_perf_options.events), eval(__linux_perf_options.spaces)
                 )
-                __linux_perf_bench = nothing
-                try
-                    __linux_perf_bench = $LinuxPerf.make_bench_threaded(
-                        __linux_perf_groups; threads=eval(__linux_perf_options.threads)
-                    )
-                catch e
-                    if e isa ErrorException &&
-                        startswith(e.msg, "perf_event_open error : ")
-                        @warn "Perf is disabled" # Really we only want to do this if we defaulted to running with perf, otherwise we should just throw.
-                    # Given we now more accurately determine if perf is available can we do away with this hack?
-                    else
-                        rethrow()
-                    end
-                end
+                __linux_perf_bench = $LinuxPerf.make_bench_threaded(
+                    __linux_perf_groups; threads=eval(__linux_perf_options.threads)
+                )
 
-                if !isnothing(__linux_perf_bench)
-                    $(setup)
-                    try
-                        $LinuxPerf.enable!(__linux_perf_bench)
-                        # We'll just run it one time.
-                        __return_val_2 = $(invocation)
-                        $LinuxPerf.disable!(__linux_perf_bench)
-                        # trick the compiler not to eliminate the code
-                        if rand() < 0
-                            __linux_perf_stats = __return_val_2
-                        else
-                            __linux_perf_stats = $LinuxPerf.Stats(__linux_perf_bench)
-                        end
-                        return __linux_perf_stats
-                    catch
-                        rethrow()
-                    finally
-                        close(__linux_perf_bench)
-                        $(teardown)
+                $(setup)
+                try
+                    $LinuxPerf.enable!(__linux_perf_bench)
+                    # We'll just run it one time.
+                    __return_val_2 = $(invocation)
+                    $LinuxPerf.disable!(__linux_perf_bench)
+                    # trick the compiler not to eliminate the code
+                    if rand() < 0
+                        __linux_perf_stats = __return_val_2
+                    else
+                        __linux_perf_stats = $LinuxPerf.Stats(__linux_perf_bench)
                     end
+                    return __linux_perf_stats
+                catch
+                    rethrow()
+                finally
+                    close(__linux_perf_bench)
+                    $(teardown)
                 end
             end
             $BenchmarkTools.Benchmark(

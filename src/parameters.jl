@@ -19,28 +19,6 @@ mutable struct Parameters
     linux_perf_options::Vector{String}
 end
 
-const DEFAULT_LINUX_PERF_OPTIONS = String[]
-
-function perf_available()
-    if !Sys.islinux()
-        return false
-    end
-
-    bench = nothing
-    try
-        opts = LinuxPerf.parse_pstats_options(DEFAULT_LINUX_PERF_OPTIONS)
-        groups = LinuxPerf.set_default_spaces(eval(opts.events), eval(opts.spaces))
-        bench = LinuxPerf.make_bench_threaded(groups; threads=eval(opts.threads))
-        return true
-    catch
-        return false
-    finally
-        if !isnothing(bench)
-            close(bench)
-        end
-    end
-end
-
 const DEFAULT_PARAMETERS = Parameters(
     5.0,
     10000,
@@ -51,8 +29,8 @@ const DEFAULT_PARAMETERS = Parameters(
     false,
     0.05,
     0.01,
-    perf_available(),
-    DEFAULT_LINUX_PERF_OPTIONS,
+    false,
+    String[],
 )
 
 function Parameters(;
