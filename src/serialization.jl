@@ -50,7 +50,9 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
+        if fn == "evals_set"
+            xsi = false
+        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
         else
             xsi = convert(ft, fields[fn])
