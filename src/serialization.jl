@@ -51,7 +51,7 @@ function recover(x::Vector)
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
         if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
-            recover(fields[fn])
+            xsi = recover(fields[fn])
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
