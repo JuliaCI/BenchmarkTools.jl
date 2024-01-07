@@ -5,27 +5,32 @@ const VERSIONS = Dict(
 )
 
 # TODO: Add any new types as they're added
-const SUPPORTED_TYPES = Dict{Symbol,Type}(
-    Base.typename(x).name => x for x in [
-        BenchmarkGroup,
-        Parameters,
-        TagFilter,
-        Trial,
-        TrialEstimate,
-        TrialJudgement,
-        TrialRatio,
-    ]
+const SUPPORTED_TYPES = Set{Type}((
+    BenchmarkGroup,
+    Parameters,
+    TagFilter,
+    Trial,
+    TrialEstimate,
+    TrialJudgement,
+    TrialRatio,
+    LinuxPerf.Stats,
+    LinuxPerf.ThreadStats,
+    LinuxPerf.Counter,
+    LinuxPerf.EventType
+))
+const LOWERED_TO_SUPPORTED_TYPES = Dict{Symbol,Type}(
+    Base.typename(x).name => x for x in SUPPORTED_TYPES
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
-function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
+function JSON.lower(x::Union{SUPPORTED_TYPES...})
     d = Dict{String,Any}()
     T = typeof(x)
     for i in 1:nfields(x)
         name = String(fieldname(T, i))
         field = getfield(x, i)
         ft = typeof(field)
-        value = ft <: get(SUPPORTED_TYPES, nameof(ft), Union{}) ? JSON.lower(field) : field
+        value = (ft in SUPPORTED_TYPES) ? JSON.lower(field) : field
         d[name] = value
     end
     return [string(nameof(typeof(x))), d]
@@ -40,26 +45,25 @@ function safeeval(x::Expr)
     x.head === :tuple && return ((safeeval(a) for a in x.args)...,)
     return x
 end
+recover(::Nothing) = nothing
 function recover(x::Vector)
     length(x) == 2 || throw(ArgumentError("Expecting a vector of length 2"))
     typename = x[1]::String
     fields = x[2]::Dict
     startswith(typename, "BenchmarkTools.") &&
         (typename = typename[(sizeof("BenchmarkTools.") + 1):end])
-    T = SUPPORTED_TYPES[Symbol(typename)]
+    T = LOWERED_TO_SUPPORTED_TYPES[Symbol(typename)]
     fc = fieldcount(T)
     xs = Vector{Any}(undef, fc)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft == Union{Nothing,LinuxPerf.Stats}
-            xsi = if isnothing(fields[fn])
-                nothing
-            else
-                convert(ft, fields[fn])
-            end
-        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
+        if ft == Union{Nothing, LinuxPerf.Stats} || ft in SUPPORTED_TYPES
             xsi = recover(fields[fn])
+        elseif ft == Vector{LinuxPerf.ThreadStats}
+            xsi = recover.(fields[fn])
+        elseif ft == Vector{Vector{LinuxPerf.Counter}}
+            xsi = [[recover(c) for c in t] for t in fields[fn]]
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
@@ -124,7 +128,7 @@ function save(io::IO, args...)
                     "in the order it appears in the input."
             )
             continue
-        elseif !(arg isa get(SUPPORTED_TYPES, nameof(typeof(arg)), Union{}))
+        elseif typeof(arg) ∉ SUPPORTED_TYPES
             throw(ArgumentError("Only BenchmarkTools types can be serialized."))
         end
         push!(goodargs, arg)
