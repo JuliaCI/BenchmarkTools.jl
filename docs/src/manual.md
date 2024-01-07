@@ -86,7 +86,7 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
 - `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
 - `enable_linux_perf`: If `true`, profile using perf once. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.enable_linux_perf = false`.
-- `linux_perf_opts`: Options for perf profiling. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_opts = String[]`. See LinuxPerf.jl for further details.
+- `linux_perf_options`: Options for perf profiling. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_options = String[]`. See LinuxPerf.jl for further details.
 
 To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 
