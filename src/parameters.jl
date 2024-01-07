@@ -20,17 +20,7 @@ mutable struct Parameters
 end
 
 const DEFAULT_PARAMETERS = Parameters(
-    5.0,
-    10000,
-    1,
-    false,
-    0,
-    true,
-    false,
-    0.05,
-    0.01,
-    false,
-    String[],
+    5.0, 10000, 1, false, 0, true, false, 0.05, 0.01, false, String[]
 )
 
 function Parameters(;

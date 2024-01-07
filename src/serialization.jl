@@ -5,35 +5,55 @@ const VERSIONS = Dict(
 )
 
 # TODO: Add any new types as they're added
-const SUPPORTED_TYPES = Set{Type}((
-    BenchmarkGroup,
-    Parameters,
-    TagFilter,
-    Trial,
-    TrialEstimate,
-    TrialJudgement,
-    TrialRatio,
-    LinuxPerf.Stats,
-    LinuxPerf.ThreadStats,
-    LinuxPerf.Counter,
-    LinuxPerf.EventType
-))
-const LOWERED_TO_SUPPORTED_TYPES = Dict{Symbol,Type}(
-    Base.typename(x).name => x for x in SUPPORTED_TYPES
+const SUPPORTED_TYPES = Dict{Symbol,Type}(
+    Base.typename(x).name => x for x in [
+        BenchmarkGroup,
+        Parameters,
+        TagFilter,
+        Trial,
+        TrialEstimate,
+        TrialJudgement,
+        TrialRatio,
+    ]
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
-function JSON.lower(x::Union{SUPPORTED_TYPES...})
+function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     d = Dict{String,Any}()
     T = typeof(x)
     for i in 1:nfields(x)
         name = String(fieldname(T, i))
         field = getfield(x, i)
         ft = typeof(field)
-        value = (ft in SUPPORTED_TYPES) ? JSON.lower(field) : field
+        value = ft <: get(SUPPORTED_TYPES, nameof(ft), Union{}) ? JSON.lower(field) : field
         d[name] = value
     end
     return [string(nameof(typeof(x))), d]
+end
+
+# Recovers LinuxPerf.Stats from serialized form
+function _convert(::Type{Union{Nothing,LinuxPerf.Stats}}, d)
+    if isnothing(d)
+        return nothing
+    end
+    return LinuxPerf.Stats(_convert.(LinuxPerf.ThreadStats, d["threads"]))
+end
+function _convert(::Type{LinuxPerf.ThreadStats}, d::Dict{String})
+    return LinuxPerf.ThreadStats(
+        d["pid"],
+        [
+            [_convert(LinuxPerf.Counter, counter) for counter in group] for
+            group in d["groups"]
+        ],
+    )
+end
+function _convert(::Type{LinuxPerf.Counter}, d::Dict{String})
+    return LinuxPerf.Counter(
+        _convert(LinuxPerf.EventType, d["event"]), d["value"], d["enabled"], d["running"]
+    )
+end
+function _convert(::Type{LinuxPerf.EventType}, d::Dict{String})
+    return LinuxPerf.EventType(d["category"], d["event"])
 end
 
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
@@ -45,25 +65,22 @@ function safeeval(x::Expr)
     x.head === :tuple && return ((safeeval(a) for a in x.args)...,)
     return x
 end
-recover(::Nothing) = nothing
 function recover(x::Vector)
     length(x) == 2 || throw(ArgumentError("Expecting a vector of length 2"))
     typename = x[1]::String
     fields = x[2]::Dict
     startswith(typename, "BenchmarkTools.") &&
         (typename = typename[(sizeof("BenchmarkTools.") + 1):end])
-    T = LOWERED_TO_SUPPORTED_TYPES[Symbol(typename)]
+    T = SUPPORTED_TYPES[Symbol(typename)]
     fc = fieldcount(T)
     xs = Vector{Any}(undef, fc)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft == Union{Nothing, LinuxPerf.Stats} || ft in SUPPORTED_TYPES
+        if ft == Union{Nothing,LinuxPerf.Stats}
+            xsi = _convert(ft, fields[fn])
+        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
-        elseif ft == Vector{LinuxPerf.ThreadStats}
-            xsi = recover.(fields[fn])
-        elseif ft == Vector{Vector{LinuxPerf.Counter}}
-            xsi = [[recover(c) for c in t] for t in fields[fn]]
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
@@ -128,7 +145,7 @@ function save(io::IO, args...)
                     "in the order it appears in the input."
             )
             continue
-        elseif typeof(arg) ∉ SUPPORTED_TYPES
+        elseif !(arg isa get(SUPPORTED_TYPES, nameof(typeof(arg)), Union{}))
             throw(ArgumentError("Only BenchmarkTools types can be serialized."))
         end
         push!(goodargs, arg)
