@@ -30,7 +30,7 @@ function Base.copy(t::Trial)
         copy(t.gctimes),
         t.memory,
         t.allocs,
-        isnothing(t.linux_perf_stats) ? nothing : copy(t.linux_perf_stats),
+        t.linux_perf_stats,
     )
 end
 
@@ -132,12 +132,7 @@ end
 
 function Base.copy(t::TrialEstimate)
     return TrialEstimate(
-        copy(t.params),
-        t.time,
-        t.gctime,
-        t.memory,
-        t.allocs,
-        isnothing(t.linux_perf_stats) ? nothing : copy(t.linux_perf_stats),
+        copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.linux_perf_stats
     )
 end
 

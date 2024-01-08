@@ -110,7 +110,7 @@ function Base.copy(p::Parameters)
         p.time_tolerance,
         p.memory_tolerance,
         p.enable_linux_perf,
-        copy(p.linux_perf_options),
+        p.linux_perf_options,
     )
 end
 
