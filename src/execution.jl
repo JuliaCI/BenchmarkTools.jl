@@ -708,8 +708,17 @@ macro bprofile(args...)
     return esc(
         quote
             local $tmp = $BenchmarkTools.@benchmarkable $(args...)
-            $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
+            $(
+                if hasevals(params)
+                    :($tmp.samplefunc(
+                    $tmp.quote_vals, $BenchmarkTools.Parameters($tmp.params; evals=1)
+                ))
+                else
+                    :($BenchmarkTools.tune!($tmp))
+                end
+            )
             $BenchmarkTools.Profile.clear()
+            #TODO: improve @bprofile to only measure the running code and none of the setup
             $BenchmarkTools.@profile $BenchmarkTools.run($tmp)
         end,
     )
