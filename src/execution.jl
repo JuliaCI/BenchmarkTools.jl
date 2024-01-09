@@ -711,8 +711,8 @@ macro bprofile(args...)
             $(
                 if hasevals(params)
                     :($tmp.samplefunc(
-                    $tmp.quote_vals, $BenchmarkTools.Parameters($tmp.params; evals=1)
-                ))
+                        $tmp.quote_vals, $BenchmarkTools.Parameters($tmp.params; evals=1)
+                    ))
                 else
                     :($BenchmarkTools.tune!($tmp))
                 end
