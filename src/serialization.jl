@@ -84,6 +84,10 @@ function recover(x::Vector)
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
+            elseif fn == "enable_linux_perf" && !haskey(fields, fn)
+                false
+            elseif fn == "linux_perf_options" && !haskey(fields, fn)
+                String[]
             else
                 convert(ft, fields[fn])
             end
