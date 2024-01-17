@@ -53,7 +53,11 @@ function recover(x::Vector)
         if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
         else
-            xsi = convert(ft, fields[fn])
+            xsi = if fn == "evals_set" && !haskey(fields, fn)
+                false
+            else
+                convert(ft, fields[fn])
+            end
         end
         if T == BenchmarkGroup && xsi isa Dict
             for (k, v) in copy(xsi)
