@@ -593,9 +593,7 @@ function generate_benchmark_definition(
                 $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
             )
                 # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
-                __linux_perf_options = $LinuxPerf.parse_pstats_options(
-                    __params.linux_perf_options
-                )
+                __linux_perf_options = $LinuxPerf.parse_pstats_options([])
                 __linux_perf_groups = $LinuxPerf.set_default_spaces(
                     eval(__linux_perf_options.events), eval(__linux_perf_options.spaces)
                 )

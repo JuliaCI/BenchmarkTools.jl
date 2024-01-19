@@ -16,11 +16,10 @@ mutable struct Parameters
     time_tolerance::Float64
     memory_tolerance::Float64
     enable_linux_perf::Bool
-    linux_perf_options::Vector{String}
 end
 
 const DEFAULT_PARAMETERS = Parameters(
-    5.0, 10000, 1, false, 0, true, false, 0.05, 0.01, false, String[]
+    5.0, 10000, 1, false, 0, true, false, 0.05, 0.01, false
 )
 
 function Parameters(;
@@ -34,7 +33,6 @@ function Parameters(;
     time_tolerance=DEFAULT_PARAMETERS.time_tolerance,
     memory_tolerance=DEFAULT_PARAMETERS.memory_tolerance,
     enable_linux_perf=DEFAULT_PARAMETERS.enable_linux_perf,
-    linux_perf_options=DEFAULT_PARAMETERS.linux_perf_options,
 )
     return Parameters(
         seconds,
@@ -47,7 +45,6 @@ function Parameters(;
         time_tolerance,
         memory_tolerance,
         enable_linux_perf,
-        linux_perf_options,
     )
 end
 
@@ -62,7 +59,6 @@ function Parameters(
     time_tolerance=nothing,
     memory_tolerance=nothing,
     enable_linux_perf=nothing,
-    linux_perf_options=nothing,
 )
     params = Parameters()
     params.seconds = seconds != nothing ? seconds : default.seconds
@@ -80,8 +76,6 @@ function Parameters(
     else
         default.enable_linux_perf
     end
-    params.linux_perf_options =
-        linux_perf_options != nothing ? linux_perf_options : default.linux_perf_options
     return params::BenchmarkTools.Parameters
 end
 
@@ -94,8 +88,7 @@ function Base.:(==)(a::Parameters, b::Parameters)
            a.gcsample == b.gcsample &&
            a.time_tolerance == b.time_tolerance &&
            a.memory_tolerance == b.memory_tolerance &&
-           a.enable_linux_perf == b.enable_linux_perf &&
-           a.linux_perf_options == b.linux_perf_options
+           a.enable_linux_perf == b.enable_linux_perf
 end
 
 function Base.copy(p::Parameters)
@@ -110,7 +103,6 @@ function Base.copy(p::Parameters)
         p.time_tolerance,
         p.memory_tolerance,
         p.enable_linux_perf,
-        p.linux_perf_options,
     )
 end
 

@@ -121,7 +121,6 @@ function TrialEstimate(trial::Trial, t, gct)
     )
 end
 
-# Should we compare linux_perf_stats here?
 function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
     return a.params == b.params &&
            a.time == b.time &&
