@@ -603,9 +603,13 @@ function generate_benchmark_definition(
 
                 $(setup)
                 try
+                    __evals = __params.evals
                     $LinuxPerf.enable!(__linux_perf_bench)
-                    # We'll just run it one time.
+                    # We'll run it evals times.
                     __return_val_2 = $(invocation)
+                    for __iter in 2:__evals
+                        $(invocation)
+                    end
                     $LinuxPerf.disable!(__linux_perf_bench)
                     # trick the compiler not to eliminate the code
                     if rand() < 0
