@@ -163,13 +163,23 @@ end
 
 w = @benchmarkable needs_warm()
 w.params.seconds = 1
+
+#test that all measurements from lineartrial used in tune! are warm
+is_warm = false
+@test maximum(lineartrial(w, w.params; kwargs...)) < 1e9
+
+#test that run warms up the benchmark
 tune!(w)
 is_warm = false
 @test minimum(run(w).times) < 1e9
 
+#test that belapsed warms up the benchmark
 is_warm = false
-
 @test (@belapsed needs_warm() seconds = 1) < 1
+
+#test that belapsed warms up the benchmark even when evals are set
+is_warm = false
+@test (@belapsed needs_warm() seconds = 1 evals = 1) < 1
 
 ##############
 # @benchmark #

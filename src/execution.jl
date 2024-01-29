@@ -106,13 +106,15 @@ end
 # Note that trials executed via `run` and `lineartrial` are always executed at top-level
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
-function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
+function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     params.gctrial && gcscrub()
     start_time = Base.time()
     trial = Trial(params)
-    b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
+    if warmup
+        b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
+    end
     params.gcsample && gcscrub()
     s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:(end - 1)]...)
@@ -443,7 +445,7 @@ macro benchmark(args...)
         quote
             local $tmp = $BenchmarkTools.@benchmarkable $(args...)
             $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
-            $BenchmarkTools.run($tmp)
+            $BenchmarkTools.run($tmp, warmup=$(!hasevals(params)))
         end,
     )
 end
@@ -662,7 +664,7 @@ macro btime(args...)
         quote
             local $bench = $BenchmarkTools.@benchmarkable $(args...)
             $tune_phase
-            local $trial, $result = $BenchmarkTools.run_result($bench)
+            local $trial, $result = $BenchmarkTools.run_result($bench, warmup=$(!hasevals(params)))
             local $trialmin = $BenchmarkTools.minimum($trial)
             local $trialallocs = $BenchmarkTools.allocs($trialmin)
             println(
@@ -710,16 +712,14 @@ macro bprofile(args...)
             local $tmp = $BenchmarkTools.@benchmarkable $(args...)
             $(
                 if hasevals(params)
-                    :($tmp.samplefunc(
-                        $tmp.quote_vals, $BenchmarkTools.Parameters($tmp.params; evals=1)
-                    ))
+                    :(run($tmp, $BenchmarkTools.Parameters($tmp.params; evals=1), warmup=false))
                 else
                     :($BenchmarkTools.tune!($tmp))
                 end
             )
             $BenchmarkTools.Profile.clear()
             #TODO: improve @bprofile to only measure the running code and none of the setup
-            $BenchmarkTools.@profile $BenchmarkTools.run($tmp)
+            $BenchmarkTools.@profile $BenchmarkTools.run($tmp, warmup=false)
         end,
     )
 end
