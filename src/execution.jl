@@ -723,7 +723,7 @@ macro bprofile(args...)
             )
             $BenchmarkTools.Profile.clear()
             #TODO: improve @bprofile to only measure the running code and none of the setup
-            $BenchmarkTools.@profile $BenchmarkTools.run($tmp, warmup=false)
+            $BenchmarkTools.@profile $BenchmarkTools.run($tmp, $tmp.params; warmup=false)
         end,
     )
 end
