@@ -166,7 +166,7 @@ w.params.seconds = 1
 
 #test that all measurements from lineartrial used in tune! are warm
 is_warm = false
-@test maximum(lineartrial(w, w.params; kwargs...)) < 1e9
+@test maximum(BenchmarkTools.lineartrial(w, w.params)) < 1e9
 
 #test that run warms up the benchmark
 tune!(w)

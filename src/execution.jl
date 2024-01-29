@@ -445,7 +445,7 @@ macro benchmark(args...)
         quote
             local $tmp = $BenchmarkTools.@benchmarkable $(args...)
             $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
-            $BenchmarkTools.run($tmp; warmup=$(!hasevals(params)))
+            $BenchmarkTools.run($tmp; warmup=$(hasevals(params)))
         end,
     )
 end
@@ -665,7 +665,7 @@ macro btime(args...)
             local $bench = $BenchmarkTools.@benchmarkable $(args...)
             $tune_phase
             local $trial, $result = $BenchmarkTools.run_result(
-                $bench; warmup=$(!hasevals(params))
+                $bench; warmup=$(hasevals(params))
             )
             local $trialmin = $BenchmarkTools.minimum($trial)
             local $trialallocs = $BenchmarkTools.allocs($trialmin)
