@@ -113,7 +113,7 @@ end
         [BenchmarkTools.Parameters(5.0, 10000, 1, true, 0.0, true, false, 0.05, 0.01)]
 end
 
-@testset "Seconds=Inf" begin
+@testset "Inf in Paramters struct" begin
     params = BenchmarkTools.Parameters(Inf, 10000, 1, false, Inf, true, false, Inf, Inf)
 
     io = IOBuffer()
