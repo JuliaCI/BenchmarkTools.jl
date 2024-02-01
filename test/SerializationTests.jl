@@ -113,4 +113,15 @@ end
         [BenchmarkTools.Parameters(5.0, 10000, 1, true, 0.0, true, false, 0.05, 0.01)]
 end
 
+@testset "Seconds=Inf" begin
+    params = BenchmarkTools.Parameters(Inf, 10000, 1, false, Inf, true, false, Inf, Inf)
+
+    io = IOBuffer()
+    BenchmarkTools.save(io, params)
+    json_string = String(take!(io))
+    json_io = IOBuffer(json_string)
+
+    @test BenchmarkTools.load(json_io) == [params]
+end
+
 end # module
