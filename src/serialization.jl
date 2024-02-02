@@ -56,7 +56,7 @@ function recover(x::Vector)
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
             elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
-                isnothing(fields[fn])
+                fields[fn] === nothing
                 # JSON spec doesn't support Inf
                 # These fields should all be >= 0, so we can ignore -Inf case
                 typemax(ft)
