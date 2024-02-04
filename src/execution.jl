@@ -124,7 +124,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
         iters += 1
     end
 
-    if p.enable_linux_perf
+    if params.enable_linux_perf
         params.gcsample && gcscrub()
         trial.linux_perf_stats = b.linux_perf_func(b.quote_vals, params)
     end
