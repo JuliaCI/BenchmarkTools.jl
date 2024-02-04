@@ -1,11 +1,21 @@
 module SerializationTests
 
-using BenchmarkTools
+using BenchmarkTools, LinuxPerf
 using Test
 
 function eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}}
     return all(i -> eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
 end
+eq(x::Vector{String}, y::Vector{String}) = x == y
+function eq(x::LinuxPerf.Stats, y::LinuxPerf.Stats)
+    return all(a -> eq(a[1], a[2]), zip(x.threads, y.threads))
+end
+function eq(x::LinuxPerf.ThreadStats, y::LinuxPerf.ThreadStats)
+    return x.pid == y.pid && x.groups == y.groups
+end
+eq(x::Nothing, y) = isnothing(y)
+eq(x, y::Nothing) = isnothing(x)
+eq(x::Nothing, y::Nothing) = true
 eq(x::T, y::T) where {T} = isapprox(x, y)
 
 function withtempdir(f::Function)
@@ -99,18 +109,20 @@ end
     @test_throws ArgumentError BenchmarkTools.recover([1])
 end
 
-@testset "Backwards Comppatibility with evals_set" begin
+@testset "Backwards Compatibility with evals_set and enable_linux_perf" begin
     json_string = "[{\"Julia\":\"1.11.0-DEV.1116\",\"BenchmarkTools\":\"1.4.0\"},[[\"Parameters\",{\"gctrial\":true,\"time_tolerance\":0.05,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5.0,\"overhead\":0.0,\"memory_tolerance\":0.01}]]]"
     json_io = IOBuffer(json_string)
 
-    @test BenchmarkTools.load(json_io) ==
-        [BenchmarkTools.Parameters(5.0, 10000, 1, false, 0.0, true, false, 0.05, 0.01)]
+    @test BenchmarkTools.load(json_io) == [
+        BenchmarkTools.Parameters(5.0, 10000, 1, false, 0.0, true, false, 0.05, 0.01, false)
+    ]
 
     json_string = "[{\"Julia\":\"1.11.0-DEV.1116\",\"BenchmarkTools\":\"1.4.0\"},[[\"Parameters\",{\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":true,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5.0,\"overhead\":0.0,\"memory_tolerance\":0.01}]]]"
     json_io = IOBuffer(json_string)
 
-    @test BenchmarkTools.load(json_io) ==
-        [BenchmarkTools.Parameters(5.0, 10000, 1, true, 0.0, true, false, 0.05, 0.01)]
+    @test BenchmarkTools.load(json_io) == [
+        BenchmarkTools.Parameters(5.0, 10000, 1, true, 0.0, true, false, 0.05, 0.01, false)
+    ]
 end
 
 end # module

@@ -8,9 +8,12 @@ mutable struct Trial
     gctimes::Vector{Float64}
     memory::Int
     allocs::Int
+    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
-Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
+function Trial(params::Parameters)
+    return Trial(params, Float64[], Float64[], typemax(Int), typemax(Int), nothing)
+end
 
 function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
@@ -21,7 +24,14 @@ function Base.:(==)(a::Trial, b::Trial)
 end
 
 function Base.copy(t::Trial)
-    return Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+    return Trial(
+        copy(t.params),
+        copy(t.times),
+        copy(t.gctimes),
+        t.memory,
+        t.allocs,
+        t.linux_perf_stats,
+    )
 end
 
 function Base.push!(t::Trial, time, gctime, memory, allocs)
@@ -40,9 +50,13 @@ end
 
 Base.length(t::Trial) = length(t.times)
 function Base.getindex(t::Trial, i::Number)
-    return push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
+    return Trial(
+        t.params, [t.times[i]], [t.gctimes[i]], t.memory, t.allocs, t.linux_perf_stats
+    )
 end
-Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
+function Base.getindex(t::Trial, i)
+    return Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs, t.linux_perf_stats)
+end
 Base.lastindex(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
@@ -98,10 +112,13 @@ mutable struct TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
+    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
 end
 
 function TrialEstimate(trial::Trial, t, gct)
-    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial))
+    return TrialEstimate(
+        params(trial), t, gct, memory(trial), allocs(trial), trial.linux_perf_stats
+    )
 end
 
 function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
@@ -113,7 +130,9 @@ function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
 end
 
 function Base.copy(t::TrialEstimate)
-    return TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
+    return TrialEstimate(
+        copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.linux_perf_stats
+    )
 end
 
 function Base.minimum(trial::Trial)

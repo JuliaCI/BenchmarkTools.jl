@@ -16,6 +16,7 @@ end
 
 mutable struct Benchmark
     samplefunc
+    linux_perf_func
     quote_vals
     params::Parameters
 end
@@ -122,6 +123,12 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
         push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
         iters += 1
     end
+
+    if params.enable_linux_perf
+        params.gcsample && gcscrub()
+        trial.linux_perf_stats = b.linux_perf_func(b.quote_vals, params)
+    end
+
     return trial, return_val
 end
 
@@ -513,6 +520,7 @@ function generate_benchmark_definition(
     @nospecialize
     corefunc = gensym("core")
     samplefunc = gensym("sample")
+    linux_perf_func = gensym("perf")
     type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
     signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
     signature_def = Expr(
@@ -581,7 +589,45 @@ function generate_benchmark_definition(
                 )
                 return __time, __gctime, __memory, __allocs, __return_val
             end
-            $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
+            @noinline function $(linux_perf_func)(
+                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+            )
+                # Based on https://github.com/JuliaPerf/LinuxPerf.jl/blob/a7fee0ff261a5b5ce7a903af7b38d1b5c27dd931/src/LinuxPerf.jl#L1043-L1061
+                __linux_perf_options = $LinuxPerf.parse_pstats_options([])
+                __linux_perf_groups = $LinuxPerf.set_default_spaces(
+                    eval(__linux_perf_options.events), eval(__linux_perf_options.spaces)
+                )
+                __linux_perf_bench = $LinuxPerf.make_bench_threaded(
+                    __linux_perf_groups; threads=eval(__linux_perf_options.threads)
+                )
+
+                $(setup)
+                try
+                    __evals = __params.evals
+                    $LinuxPerf.enable!(__linux_perf_bench)
+                    # We'll run it evals times.
+                    __return_val_2 = $(invocation)
+                    for __iter in 2:__evals
+                        $(invocation)
+                    end
+                    $LinuxPerf.disable!(__linux_perf_bench)
+                    # trick the compiler not to eliminate the code
+                    if rand() < 0
+                        __linux_perf_stats = __return_val_2
+                    else
+                        __linux_perf_stats = $LinuxPerf.Stats(__linux_perf_bench)
+                    end
+                    return __linux_perf_stats
+                catch
+                    rethrow()
+                finally
+                    close(__linux_perf_bench)
+                    $(teardown)
+                end
+            end
+            $BenchmarkTools.Benchmark(
+                $(samplefunc), $(linux_perf_func), $(quote_vals), $(params)
+            )
         end,
     )
 end
