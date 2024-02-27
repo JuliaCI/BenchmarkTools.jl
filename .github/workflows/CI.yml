@@ -17,7 +17,7 @@ jobs:
         version:
           - '1.0'
           - '1.6'
-          - '1.9'
+          - '1'
           - 'nightly'
         arch:
           - x64
@@ -31,6 +31,9 @@ jobs:
             arch: x64
             os: ubuntu-20.04
           - version: '1.8'
+            arch: x64
+            os: ubuntu-22.04
+          - version: '1.9'
             arch: x64
             os: ubuntu-22.04
     steps:
@@ -55,26 +58,3 @@ jobs:
       - uses: codecov/codecov-action@v3
         with:
           file: lcov.info
-  # docs:
-  #   name: Documentation
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: julia-actions/setup-julia@v1
-  #       with:
-  #         version: '1'
-  #     - run: |
-  #         julia --project=docs -e '
-  #           using Pkg
-  #           Pkg.develop(PackageSpec(path=pwd()))
-  #           Pkg.instantiate()'
-  #     - run: |
-  #         julia --project=docs -e '
-  #           using Documenter: DocMeta, doctest
-  #           using BenchmarkSets
-  #           DocMeta.setdocmeta!(BenchmarkSets, :DocTestSetup, :(using BenchmarkSets); recursive=true)
-  #           doctest(BenchmarkSets)'
-  #     - run: julia --project=docs docs/make.jl
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
