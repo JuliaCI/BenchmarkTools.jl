@@ -19,15 +19,13 @@ jobs:
           - '1.0'
           - '1.6'
           - '1'
-          - 'nightly'
         arch:
           - x64
         os:
           - ubuntu-latest
+        allow_failure:
+          - false
         include:
-          - allow_failure: true
-          - version: 'nightly'
-            allow_failure: false
           - version: '1.5'
             arch: x64
             os: ubuntu-20.04
@@ -40,6 +38,8 @@ jobs:
           - version: '1.9'
             arch: x64
             os: ubuntu-22.04
+          - version: 'nightly'
+            allow_failure: true
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
