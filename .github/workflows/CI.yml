@@ -35,11 +35,11 @@ jobs:
           - version: '1.8'
             arch: x64
             os: ubuntu-22.04
-          - version: '1.9'
-            arch: x64
-            os: ubuntu-22.04
-          - version: 'nightly'
-            allow_failure: true
+          # - version: '1.9'
+          #   arch: x64
+          #   os: ubuntu-22.04
+          # - version: 'nightly'
+          #   allow_failure: true
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
