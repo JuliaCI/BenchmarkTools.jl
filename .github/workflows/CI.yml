@@ -23,8 +23,8 @@ jobs:
           - x64
         os:
           - ubuntu-latest
+        experimental: [false]
         include:
-          - experimental: 'false'
           - version: '1.5'
             arch: x64
             os: ubuntu-20.04
@@ -38,7 +38,7 @@ jobs:
             arch: x64
             os: ubuntu-22.04
           - version: 'nightly'
-            experimental: 'true'
+            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
