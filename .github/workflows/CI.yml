@@ -23,7 +23,7 @@ jobs:
           - x64
         os:
           - ubuntu-latest
-        experimental: [false]
+        experimental: false
         include:
           - version: '1.5'
             arch: x64
