@@ -11,7 +11,6 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -19,12 +18,12 @@ jobs:
           - '1.0'
           - '1.6'
           - '1'
+          - 'nightly'
         arch:
           - x64
         os:
           - ubuntu-latest
         include:
-          - experimental: false
           - version: '1.5'
             arch: x64
             os: ubuntu-20.04
@@ -37,8 +36,6 @@ jobs:
           - version: '1.9'
             arch: x64
             os: ubuntu-22.04
-          - version: 'nightly'
-            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
