@@ -19,11 +19,9 @@ jobs:
           - '1.0'
           - '1.6'
           - '1'
-        arch:
-          - x64
-        os:
-          - ubuntu-latest
-        experimental: false
+        arch: [x64]
+        os: [ubuntu-latest]
+        experimental: [false]
         include:
           - version: '1.5'
             arch: x64
