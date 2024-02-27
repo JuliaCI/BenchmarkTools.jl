@@ -11,7 +11,7 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.allow_failure }}
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -24,7 +24,7 @@ jobs:
         os:
           - ubuntu-latest
         include:
-          - allow_failure: false
+          - experimental: false
           - version: '1.5'
             arch: x64
             os: ubuntu-20.04
