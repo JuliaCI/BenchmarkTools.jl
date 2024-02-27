@@ -148,12 +148,38 @@ tune!(b_pass)
 # warmup #
 ###########
 
-p = params(warmup(@benchmarkable sin(1)))
+@test_deprecated warmup(@benchmarkable sin(1))
 
-@test p.samples == 1
-@test p.evals == 1
-@test p.gctrial == false
-@test p.gcsample == false
+is_warm = false
+function needs_warm()
+    global is_warm
+    if is_warm
+        sleep(0.1)
+    else
+        sleep(2)
+        is_warm = true
+    end
+end
+
+w = @benchmarkable needs_warm()
+w.params.seconds = 1
+
+#test that all measurements from lineartrial used in tune! are warm
+is_warm = false
+@test maximum(BenchmarkTools.lineartrial(w, w.params)) < 1e9
+
+#test that run warms up the benchmark
+tune!(w)
+is_warm = false
+@test minimum(run(w).times) < 1e9
+
+#test that belapsed warms up the benchmark
+is_warm = false
+@test (@belapsed needs_warm() seconds = 1) < 1
+
+#test that belapsed warms up the benchmark even when evals are set
+is_warm = false
+@test (@belapsed needs_warm() seconds = 1 evals = 1) < 1
 
 ##############
 # @benchmark #
@@ -282,9 +308,8 @@ b = @bprofile likegcd(x, y) setup = (x = rand(2:200); y = rand(2:200))
 io = IOBuffer()
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
-@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; _run", str)
-@test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; warmup", str)
-@test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; tune!", str)
+@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; #?_run", str)
+@test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; #?tune!", str)
 b = @bprofile 1 + 1
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))

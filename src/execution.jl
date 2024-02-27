@@ -106,12 +106,15 @@ end
 # Note that trials executed via `run` and `lineartrial` are always executed at top-level
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
-function _run(b::Benchmark, p::Parameters; verbose=false, pad="", kwargs...)
+function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     params.gctrial && gcscrub()
     start_time = Base.time()
     trial = Trial(params)
+    if warmup
+        b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
+    end
     params.gcsample && gcscrub()
     s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:(end - 1)]...)
@@ -180,6 +183,8 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     params = Parameters(p; kwargs...)
     estimates = zeros(maxevals)
     completed = 0
+    params.evals = 1
+    b.samplefunc(b.quote_vals, params) #warmup sample
     params.gctrial && gcscrub()
     start_time = time()
     for evals in eachindex(estimates)
@@ -193,6 +198,10 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
 end
 
 function warmup(item; verbose::Bool=true)
+    Base.depwarn(
+        "`warmup` is deprecated because `run` now warms up every time automatically",
+        :warmup,
+    )
     return run(item; verbose=verbose, samples=1, evals=1, gctrial=false, gcsample=false)
 end
 
@@ -288,7 +297,6 @@ function tune!(
     kwargs...,
 )
     if !p.evals_set
-        warmup(b; verbose=false)
         estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
         b.params.evals = guessevals(estimate)
     end
@@ -436,9 +444,8 @@ macro benchmark(args...)
     return esc(
         quote
             local $tmp = $BenchmarkTools.@benchmarkable $(args...)
-            $BenchmarkTools.warmup($tmp)
             $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
-            $BenchmarkTools.run($tmp)
+            $BenchmarkTools.run($tmp; warmup=$(hasevals(params)))
         end,
     )
 end
@@ -656,9 +663,10 @@ macro btime(args...)
     return esc(
         quote
             local $bench = $BenchmarkTools.@benchmarkable $(args...)
-            $BenchmarkTools.warmup($bench)
             $tune_phase
-            local $trial, $result = $BenchmarkTools.run_result($bench)
+            local $trial, $result = $BenchmarkTools.run_result(
+                $bench; warmup=$(hasevals(params))
+            )
             local $trialmin = $BenchmarkTools.minimum($trial)
             local $trialallocs = $BenchmarkTools.allocs($trialmin)
             println(
@@ -704,10 +712,18 @@ macro bprofile(args...)
     return esc(
         quote
             local $tmp = $BenchmarkTools.@benchmarkable $(args...)
-            $BenchmarkTools.warmup($tmp)
-            $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
+            $(
+                if hasevals(params)
+                    :(run(
+                        $tmp, $BenchmarkTools.Parameters($tmp.params; evals=1); warmup=false
+                    ))
+                else
+                    :($BenchmarkTools.tune!($tmp))
+                end
+            )
             $BenchmarkTools.Profile.clear()
-            $BenchmarkTools.@profile $BenchmarkTools.run($tmp)
+            #TODO: improve @bprofile to only measure the running code and none of the setup
+            $BenchmarkTools.@profile $BenchmarkTools.run($tmp, $tmp.params; warmup=false)
         end,
     )
 end
