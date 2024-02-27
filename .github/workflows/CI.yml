@@ -23,8 +23,7 @@ jobs:
           - x64
         os:
           - ubuntu-latest
-        allow_failure:
-          - false
+        allow_failure: [false]
         include:
           - version: '1.5'
             arch: x64
