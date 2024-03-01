@@ -8,6 +8,7 @@ using Statistics
 using UUIDs: uuid4
 using Printf
 using Profile
+using Random
 
 const BENCHMARKTOOLS_VERSION = if VERSION >= v"1.9"
     pkgversion(BenchmarkTools)
