@@ -216,10 +216,12 @@ tune!(b)
     "good")
 @test_throws UndefVarError local_var
 @benchmark some_var = "whatever" teardown = (@test_throws UndefVarError some_var)
-@benchmark foo, bar = "good", "good" setup = (foo = "bad"; bar = "bad") teardown = (@test foo ==
-                                                                                          "good" &&
-    bar ==
-                                                                                          "good")
+@benchmark foo, bar = "good", "good" setup = (foo = "bad"; bar = "bad") teardown = @test(
+    foo == "good" && bar == "good"
+)
+@benchmark (; foo, bar) = (foo="good", bar="good") setup = (foo = "bad"; bar = "bad") teardown = @test(
+    foo == "good" && bar == "good"
+)
 
 # test variable assignment with `@benchmark(args...)` form
 @benchmark(

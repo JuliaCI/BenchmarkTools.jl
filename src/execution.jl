@@ -346,7 +346,12 @@ function collectvars(ex::Expr, vars::Vector{Symbol}=Symbol[])
         if isa(lhs, Symbol)
             push!(vars, lhs)
         elseif isa(lhs, Expr) && lhs.head == :tuple
-            append!(vars, lhs.args)
+            args = lhs.args
+            if !isempty(args) && isa(first(args), Expr)
+                # named tuple destructuring
+                args = first(args).args
+            end
+            append!(vars, args)
         end
     elseif (ex.head == :comprehension || ex.head == :generator)
         arg = ex.args[1]
