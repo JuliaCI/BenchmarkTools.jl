@@ -219,9 +219,11 @@ tune!(b)
 @benchmark foo, bar = "good", "good" setup = (foo = "bad"; bar = "bad") teardown = @test(
     foo == "good" && bar == "good"
 )
-@benchmark (; foo, bar) = (foo="good", bar="good") setup = (foo = "bad"; bar = "bad") teardown = @test(
-    foo == "good" && bar == "good"
-)
+if VERSION >= v"1.6"
+    @benchmark (; foo, bar) = (foo="good", bar="good") setup = (foo = "bad"; bar = "bad") teardown = @test(
+        foo == "good" && bar == "good"
+    )
+end
 
 # test variable assignment with `@benchmark(args...)` form
 @benchmark(
