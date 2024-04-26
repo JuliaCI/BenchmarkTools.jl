@@ -1,6 +1,6 @@
 ---
 steps:
-  - label: "Julia {{ matrix.version }} - {{ github.event_name }}"
+  - label: "Julia {{ matrix.version }}"
     plugins:
       - JuliaCI/julia#v1:
           version: "{{ matrix.version }}"
