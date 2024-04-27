@@ -110,6 +110,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     params.gctrial && gcscrub()
+    params.seed >= 0 && Random.seed!(params.seed)
     start_time = Base.time()
     trial = Trial(params)
     if warmup

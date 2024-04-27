@@ -382,4 +382,26 @@ b = x = nothing
 GC.gc()
 @test x_finalized
 
+# Set seed
+results = Dict("a" => Int[], "b" => Int[], "c" => Int[], "d" => Int[])
+bg = BenchmarkGroup(
+    "a" => @benchmarkable(
+        push!(results["a"], rand(Int)), samples = 10, evals = 1, seed = 1234
+    ),
+    "b" => @benchmarkable(
+        push!(results["b"], rand(Int)), samples = 10, evals = 1, seed = 1234
+    ),
+    "c" => @benchmarkable(
+        push!(results["c"], rand(Int)), samples = 10, evals = 1, seed = 1235
+    ),
+    "d" => @benchmarkable(push!(results["d"], rand(Int)), samples = 10, evals = 1),
+)
+run(bg)
+@test results["a"] == results["b"]
+@test results["a"] != results["c"]
+@test results["a"] != results["d"]
+results = Dict("a" => Int[], "b" => Int[], "c" => Int[], "d" => Int[])
+run(bg; seed=1)
+@test results["a"] == results["b"] == results["c"] == results["d"]
+
 end # module

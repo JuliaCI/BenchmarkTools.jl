@@ -85,6 +85,7 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `gcsample`: If `true`, run `gc()` before each sample. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.gcsample = false`.
 - `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
 - `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
+- `seed`: A seed number to which the global RNG is reset every benchmark run, if it is non-negative. This ensures that comparing two benchmarks gives actionable results, even if the running time depends on random numbers. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.seed = -1` (indicating no seed reset)
 
 To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 
@@ -253,6 +254,20 @@ This also explains the error you get if you accidentally put a comma in the setu
 ```julia
 julia> @btime exp(x) setup = (x=1,)  # errors
 ERROR: UndefVarError: `x` not defined
+```
+
+### Consistent random numbers between runs
+
+You can supply the `seed` parameter to have the seed reset between runs, giving a consistent series of pseudorandom numbers.
+This is useful for comparing benchmarks - to know that they are operating on the same datasets while not needing to create those datasets manually.
+
+```julia
+julia> bg = BenchmarkGroup(
+           "a" => @benchmarkable(sleep(rand([0, 0.5]))),
+           "b" => @benchmarkable(sleep(rand([0, 0.5]))),
+           );
+julia> run(bg); # shows different results for "a" and "b", as the sleep time varies
+julia> run(bg; seed=42); # shows similar results for "a" and "b"
 ```
 
 ### Understanding compiler optimizations
