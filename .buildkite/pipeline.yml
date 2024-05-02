@@ -1,75 +1,75 @@
 ---
 steps:
   - label: "Julia 1.6"
-      plugins:
-        - JuliaCI/julia#v1:
-            version: "1.6"
-        - JuliaCI/julia-test#v1:
-        - JuliaCI/julia-coverage#v1:
-      agents:
-        queue: "juliaecosystem"
-        sandbox.jl: "true"
-        os: "linux"
-        arch: "x86_64"
-      timeout_in_minutes: 10
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.6"
+      - JuliaCI/julia-test#v1:
+      - JuliaCI/julia-coverage#v1:
+    agents:
+      queue: "juliaecosystem"
+      sandbox.jl: "true"
+      os: "linux"
+      arch: "x86_64"
+    timeout_in_minutes: 60
   - label: "Julia 1.7"
-      plugins:
-        - JuliaCI/julia#v1:
-            version: "1.7"
-        - JuliaCI/julia-test#v1:
-        - JuliaCI/julia-coverage#v1:
-      agents:
-        queue: "juliaecosystem"
-        sandbox.jl: "true"
-        os: "linux"
-        arch: "x86_64"
-      timeout_in_minutes: 10
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.7"
+      - JuliaCI/julia-test#v1:
+      - JuliaCI/julia-coverage#v1:
+    agents:
+      queue: "juliaecosystem"
+      sandbox.jl: "true"
+      os: "linux"
+      arch: "x86_64"
+    timeout_in_minutes: 60
   - label: "Julia 1.8"
-      plugins:
-        - JuliaCI/julia#v1:
-            version: "1.8"
-        - JuliaCI/julia-test#v1:
-        - JuliaCI/julia-coverage#v1:
-      agents:
-        queue: "juliaecosystem"
-        sandbox.jl: "true"
-        os: "linux"
-        arch: "x86_64"
-      timeout_in_minutes: 10
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.8"
+      - JuliaCI/julia-test#v1:
+      - JuliaCI/julia-coverage#v1:
+    agents:
+      queue: "juliaecosystem"
+      sandbox.jl: "true"
+      os: "linux"
+      arch: "x86_64"
+    timeout_in_minutes: 60
   - label: "Julia 1.9"
-      plugins:
-        - JuliaCI/julia#v1:
-            version: "1.9"
-        - JuliaCI/julia-test#v1:
-        - JuliaCI/julia-coverage#v1:
-      agents:
-        queue: "juliaecosystem"
-        sandbox.jl: "true"
-        os: "linux"
-        arch: "x86_64"
-      timeout_in_minutes: 10
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.9"
+      - JuliaCI/julia-test#v1:
+      - JuliaCI/julia-coverage#v1:
+    agents:
+      queue: "juliaecosystem"
+      sandbox.jl: "true"
+      os: "linux"
+      arch: "x86_64"
+    timeout_in_minutes: 60
   - label: "Julia 1"
-      plugins:
-        - JuliaCI/julia#v1:
-            version: "1"
-        - JuliaCI/julia-test#v1:
-        - JuliaCI/julia-coverage#v1:
-      agents:
-        queue: "juliaecosystem"
-        sandbox.jl: "true"
-        os: "linux"
-        arch: "x86_64"
-      timeout_in_minutes: 10
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+      - JuliaCI/julia-test#v1:
+      - JuliaCI/julia-coverage#v1:
+    agents:
+      queue: "juliaecosystem"
+      sandbox.jl: "true"
+      os: "linux"
+      arch: "x86_64"
+    timeout_in_minutes: 60
   - label: "Julia nightly"
-      plugins:
-        - JuliaCI/julia#v1:
-            version: "nightly"
-        - JuliaCI/julia-test#v1:
-        - JuliaCI/julia-coverage#v1:
-      agents:
-        queue: "juliaecosystem"
-        sandbox.jl: "true"
-        os: "linux"
-        arch: "x86_64"
-      timeout_in_minutes: 10
-      soft_fail: true   
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "nightly"
+      - JuliaCI/julia-test#v1:
+      - JuliaCI/julia-coverage#v1:
+    agents:
+      queue: "juliaecosystem"
+      sandbox.jl: "true"
+      os: "linux"
+      arch: "x86_64"
+    timeout_in_minutes: 60
+    soft_fail: true   
