@@ -60,6 +60,22 @@ function recover(x::Vector)
                 # JSON spec doesn't support Inf
                 # These fields should all be >= 0, so we can ignore -Inf case
                 typemax(ft)
+            elseif fn == "enable_linux_perf" && !haskey(fields, fn)
+                false
+            elseif fn in (
+                "linux_perf_groups",
+                "linux_perf_spaces",
+                "linux_perf_threads",
+                "linux_perf_gcscrub",
+            ) && !haskey(fields, fn)
+                getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
+            elseif fn == "linux_perf_spaces" && haskey(fields, fn)
+                length(fields[fn]) == 3 || throw(
+                    ArgumentError(
+                        "Expecting a vector of length 3 for linux_perf_spaces parameter",
+                    ),
+                )
+                xsi = convert(ft, (fields[fn][1], fields[fn][2], fields[fn][3]))
             else
                 convert(ft, fields[fn])
             end
