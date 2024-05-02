@@ -1,11 +1,22 @@
 module SerializationTests
 
-using BenchmarkTools
+using BenchmarkTools, LinuxPerf
 using Test
 
 function eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}}
     return all(i -> eq(getfield(x, i), getfield(y, i)), 1:fieldcount(T))
 end
+eq(x::String, y::String) = x == y
+eq(x::NTuple{3,Bool}, y::NTuple{3,Bool}) = x == y
+function eq(x::LinuxPerf.Stats, y::LinuxPerf.Stats)
+    return all(a -> eq(a[1], a[2]), zip(x.threads, y.threads))
+end
+function eq(x::LinuxPerf.ThreadStats, y::LinuxPerf.ThreadStats)
+    return x.pid == y.pid && x.groups == y.groups
+end
+eq(x::Nothing, y) = isnothing(y)
+eq(x, y::Nothing) = isnothing(x)
+eq(x::Nothing, y::Nothing) = true
 eq(x::T, y::T) where {T} = isapprox(x, y)
 
 function withtempdir(f::Function)
