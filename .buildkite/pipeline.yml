@@ -11,7 +11,7 @@ steps:
       sandbox.jl: "true"
       os: "linux"
       arch: "x86_64"
-    timeout_in_minutes: 60
+    timeout_in_minutes: 15
   - label: "Julia 1.7"
     plugins:
       - JuliaCI/julia#v1:
@@ -23,7 +23,7 @@ steps:
       sandbox.jl: "true"
       os: "linux"
       arch: "x86_64"
-    timeout_in_minutes: 60
+    timeout_in_minutes: 15
   - label: "Julia 1.8"
     plugins:
       - JuliaCI/julia#v1:
@@ -35,7 +35,7 @@ steps:
       sandbox.jl: "true"
       os: "linux"
       arch: "x86_64"
-    timeout_in_minutes: 60
+    timeout_in_minutes: 15
   - label: "Julia 1.9"
     plugins:
       - JuliaCI/julia#v1:
@@ -47,7 +47,7 @@ steps:
       sandbox.jl: "true"
       os: "linux"
       arch: "x86_64"
-    timeout_in_minutes: 60
+    timeout_in_minutes: 15
   - label: "Julia 1"
     plugins:
       - JuliaCI/julia#v1:
@@ -59,7 +59,7 @@ steps:
       sandbox.jl: "true"
       os: "linux"
       arch: "x86_64"
-    timeout_in_minutes: 60
+    timeout_in_minutes: 15
   - label: "Julia nightly"
     plugins:
       - JuliaCI/julia#v1:
@@ -71,5 +71,5 @@ steps:
       sandbox.jl: "true"
       os: "linux"
       arch: "x86_64"
-    timeout_in_minutes: 60
+    timeout_in_minutes: 15
     soft_fail: true   
