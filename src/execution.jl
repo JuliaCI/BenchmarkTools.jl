@@ -109,13 +109,14 @@ end
 function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-    params.gctrial && gcscrub()
-    start_time = Base.time()
-    trial = Trial(params)
+    warmup_start_time = Base.time()
     if warmup
         b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
     end
-    params.gcsample && gcscrub()
+    warmup_time = Base.time() - warmup_start_time
+    trial = Trial(params)
+    params.gctrial && gcscrub()
+    start_time = Base.time() - warmup_time
     s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:(end - 1)]...)
     return_val = s[end]
