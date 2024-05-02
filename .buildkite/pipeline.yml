@@ -11,12 +11,11 @@ steps:
       sandbox.jl: "true"
       os: "linux"
       arch: "x86_64"
+    parallelism: 8
     timeout_in_minutes: 60
     matrix:
       setup:
         version:
-          - "1.0"
-          - "1.5"
           - "1.6"
           - "1.7"
           - "1.8"
