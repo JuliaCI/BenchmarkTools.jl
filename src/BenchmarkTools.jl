@@ -10,6 +10,8 @@ using Printf
 using Profile
 using Compat
 
+using LinuxPerf: LinuxPerf
+
 ##############
 # Parameters #
 ##############

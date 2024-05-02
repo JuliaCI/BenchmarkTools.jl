@@ -1,5 +1,7 @@
 const VERSIONS = Dict(
-    "Julia" => string(VERSION), "BenchmarkTools" => pkgversion(BenchmarkTools)
+    "Julia" => string(VERSION),
+    "BenchmarkTools" => pkgversion(BenchmarkTools),
+    "LinuxPerf" => pkgversion(LinuxPerf),
 )
 
 # TODO: Add any new types as they're added
