@@ -19,21 +19,23 @@ function withtempdir(f::Function)
 end
 
 @testset "Successful (de)serialization" begin
-    b = @benchmarkable sin(1)
-    tune!(b)
-    bb = run(b)
+    for enable_linux_perf in (false, true)
+        b = @benchmarkable sin(1) enable_linux_perf = enable_linux_perf
+        tune!(b)
+        bb = run(b)
 
-    withtempdir() do
-        tmp = joinpath(pwd(), "tmp.json")
+        withtempdir() do
+            tmp = joinpath(pwd(), "tmp.json")
 
-        BenchmarkTools.save(tmp, b.params, bb)
-        @test isfile(tmp)
+            BenchmarkTools.save(tmp, b.params, bb)
+            @test isfile(tmp)
 
-        results = BenchmarkTools.load(tmp)
-        @test results isa Vector{Any}
-        @test length(results) == 2
-        @test eq(results[1], b.params)
-        @test eq(results[2], bb)
+            results = BenchmarkTools.load(tmp)
+            @test results isa Vector{Any}
+            @test length(results) == 2
+            @test eq(results[1], b.params)
+            @test eq(results[2], bb)
+        end
     end
 
     # Nested BenchmarkGroups
@@ -99,22 +101,69 @@ end
     @test_throws ArgumentError BenchmarkTools.recover([1])
 end
 
-@testset "Backwards Comppatibility with evals_set" begin
+@testset "Backwards Compatibility with evals_set and linux perf options" begin
     json_string = "[{\"Julia\":\"1.11.0-DEV.1116\",\"BenchmarkTools\":\"1.4.0\"},[[\"Parameters\",{\"gctrial\":true,\"time_tolerance\":0.05,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5.0,\"overhead\":0.0,\"memory_tolerance\":0.01}]]]"
     json_io = IOBuffer(json_string)
 
-    @test BenchmarkTools.load(json_io) ==
-        [BenchmarkTools.Parameters(5.0, 10000, 1, false, 0.0, true, false, 0.05, 0.01)]
+    @test BenchmarkTools.load(json_io) == [
+        BenchmarkTools.Parameters(
+            5.0,
+            10000,
+            1,
+            false,
+            0.0,
+            true,
+            false,
+            0.05,
+            0.01,
+            false,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_groups,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_spaces,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_threads,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_gcscrub,
+        ),
+    ]
 
     json_string = "[{\"Julia\":\"1.11.0-DEV.1116\",\"BenchmarkTools\":\"1.4.0\"},[[\"Parameters\",{\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":true,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5.0,\"overhead\":0.0,\"memory_tolerance\":0.01}]]]"
     json_io = IOBuffer(json_string)
 
-    @test BenchmarkTools.load(json_io) ==
-        [BenchmarkTools.Parameters(5.0, 10000, 1, true, 0.0, true, false, 0.05, 0.01)]
+    @test BenchmarkTools.load(json_io) == [
+        BenchmarkTools.Parameters(
+            5.0,
+            10000,
+            1,
+            true,
+            0.0,
+            true,
+            false,
+            0.05,
+            0.01,
+            false,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_groups,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_spaces,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_threads,
+            BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_gcscrub,
+        ),
+    ]
 end
 
 @testset "Inf in Paramters struct" begin
-    params = BenchmarkTools.Parameters(Inf, 10000, 1, false, Inf, true, false, Inf, Inf)
+    params = BenchmarkTools.Parameters(
+        Inf,
+        10000,
+        1,
+        false,
+        Inf,
+        true,
+        false,
+        Inf,
+        Inf,
+        false,
+        BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_groups,
+        BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_spaces,
+        BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_threads,
+        BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_gcscrub,
+    )
 
     io = IOBuffer()
     BenchmarkTools.save(io, params)
