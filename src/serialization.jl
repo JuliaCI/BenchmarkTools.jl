@@ -29,6 +29,31 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     return [string(nameof(typeof(x))), d]
 end
 
+# Recovers LinuxPerf.Stats from serialized form
+function _convert(::Type{Union{Nothing,LinuxPerf.Stats}}, d)
+    if isnothing(d)
+        return nothing
+    end
+    return LinuxPerf.Stats(_convert.(LinuxPerf.ThreadStats, d["threads"]))
+end
+function _convert(::Type{LinuxPerf.ThreadStats}, d::Dict{String})
+    return LinuxPerf.ThreadStats(
+        d["pid"],
+        [
+            [_convert(LinuxPerf.Counter, counter) for counter in group] for
+            group in d["groups"]
+        ],
+    )
+end
+function _convert(::Type{LinuxPerf.Counter}, d::Dict{String})
+    return LinuxPerf.Counter(
+        _convert(LinuxPerf.EventType, d["event"]), d["value"], d["enabled"], d["running"]
+    )
+end
+function _convert(::Type{LinuxPerf.EventType}, d::Dict{String})
+    return LinuxPerf.EventType(d["category"], d["event"])
+end
+
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
 safeeval(@nospecialize x) = x
 safeeval(x::QuoteNode) = x.value
@@ -50,7 +75,9 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
+        if ft == Union{Nothing,LinuxPerf.Stats}
+            xsi = _convert(ft, fields[fn])
+        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
