@@ -3,7 +3,6 @@ module ExecutionTests
 using BenchmarkTools
 using Profile
 using Test
-using LinuxPerf
 
 seteq(a, b) = length(a) == length(b) == length(intersect(a, b))
 
@@ -382,35 +381,5 @@ b = @benchmarkable $x
 b = x = nothing
 GC.gc()
 @test x_finalized
-
-##################################
-# Linux Perf Integration #
-##################################
-
-b = @benchmarkable sin($(Ref(42.0))[])
-results = run(b; seconds=1, enable_linux_perf=false)
-@test results.linux_perf_stats === nothing
-
-b = @benchmarkable sin($(Ref(42.0))[])
-results = run(b; seconds=1)
-@test results.linux_perf_stats === nothing
-
-b = @benchmarkable sin($(Ref(42.0))[])
-results = run(b; seconds=1, enable_linux_perf=true, evals=10^3)
-@test results.linux_perf_stats !== nothing
-@test any(results.linux_perf_stats.threads) do thread
-    instructions = LinuxPerf.scaledcount(thread["instructions"])
-    !isnan(instructions) && instructions > 10^4
-end
-
-tune!(groups)
-results = run(groups; enable_linux_perf=true)
-for (name, group_results) in BenchmarkTools.leaves(results)
-    @test group_results.linux_perf_stats !== nothing
-    @test any(group_results.linux_perf_stats.threads) do thread
-        instructions = LinuxPerf.scaledcount(thread["instructions"])
-        !isnan(instructions) && instructions > 10^3
-    end
-end
 
 end # module

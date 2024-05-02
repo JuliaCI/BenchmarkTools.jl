@@ -30,23 +30,21 @@ function withtempdir(f::Function)
 end
 
 @testset "Successful (de)serialization" begin
-    for enable_linux_perf in (false, true)
-        b = @benchmarkable sin(1) enable_linux_perf = enable_linux_perf
-        tune!(b)
-        bb = run(b)
+    b = @benchmarkable sin(1)
+    tune!(b)
+    bb = run(b)
 
-        withtempdir() do
-            tmp = joinpath(pwd(), "tmp.json")
+    withtempdir() do
+        tmp = joinpath(pwd(), "tmp.json")
 
-            BenchmarkTools.save(tmp, b.params, bb)
-            @test isfile(tmp)
+        BenchmarkTools.save(tmp, b.params, bb)
+        @test isfile(tmp)
 
-            results = BenchmarkTools.load(tmp)
-            @test results isa Vector{Any}
-            @test length(results) == 2
-            @test eq(results[1], b.params)
-            @test eq(results[2], bb)
-        end
+        results = BenchmarkTools.load(tmp)
+        @test results isa Vector{Any}
+        @test length(results) == 2
+        @test eq(results[1], b.params)
+        @test eq(results[2], bb)
     end
 
     # Nested BenchmarkGroups

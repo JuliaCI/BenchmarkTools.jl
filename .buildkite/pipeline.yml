@@ -1,12 +1,12 @@
 ---
 steps:
-  - label: ":test_tube: Test the package"
+  - label: "Julia 1 - Test LinuxPerf Integration"
     plugins:
       - JuliaCI/julia#v1:
           version: "1"
-    commands: |
-      julia --version
+      - JuliaCI/julia-test#v1:
     agents:
       queue: "juliaecosystem"
       os: "linux"
       arch: "x86_64"
+    timeout_in_minutes: 15
