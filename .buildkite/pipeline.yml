@@ -1,0 +1,12 @@
+---
+steps:
+  - label: ":test_tube: Test the package"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    commands: |
+      julia --version
+    agents:
+      queue: "juliaecosystem"
+      os: "linux"
+      arch: "x86_64"
