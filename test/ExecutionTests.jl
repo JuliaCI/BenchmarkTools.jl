@@ -224,18 +224,18 @@ let # assignment with interpolation
     two_bad = "bad", "bad"
     @benchmark foo, bar = $two_good setup = ((foo, bar) = $two_bad) teardown = @test(
         foo == "good" && bar == "good"
-    )    
+    )
 end
 if VERSION >= v"1.7"
-    @benchmark (; foo, bar) = (foo="good", bar="good") setup = ((; foo, bar) = (foo="bad", bar="bad")) teardown = @test(
-        foo == "good" && bar == "good"
-    )
+    @benchmark (; foo, bar) = (foo="good", bar="good") setup = (
+        (; foo, bar) = (foo="bad", bar="bad")
+    ) teardown = @test(foo == "good" && bar == "good")
     let # assignment with interpolation
         good_nt = (foo="good", bar="good")
-        bad_nt  = (foo="bad", bar="bad")
+        bad_nt = (foo="bad", bar="bad")
         @benchmark foo, bar = $good_nt setup = ((; foo, bar) = $bad_nt) teardown = @test(
             foo == "good" && bar == "good"
-        )    
+        )
     end
 end
 
@@ -356,7 +356,7 @@ str = String(take!(io))
         y = 1 + x
         z = (a = 4; y + a)
         v, w = 1, 2
-        (; r, s) = (r = 1, s = 2, t = 3)
+        (; r, s) = (r=1, s=2, t=3)
         [u^2 for u in [1, 2, 3]]
     end,
 )

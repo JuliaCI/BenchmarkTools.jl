@@ -349,8 +349,10 @@ function collectvars(ex::Expr, vars::Vector{Symbol}=Symbol[])
             args = lhs.args
             if !all(arg -> isa(arg, Symbol), args)
                 # named tuple destructuring
-                if length(args) > 1 || !isa(first(args), Expr) || first(args).head !== :parameters ||
-                        !all(arg -> isa(arg, Symbol), first(args).args)
+                if length(args) > 1 ||
+                    !isa(first(args), Expr) ||
+                    first(args).head !== :parameters ||
+                    !all(arg -> isa(arg, Symbol), first(args).args)
                     @error "Unrecognized expression type in benchmark code: $ex"
                 end
                 args = first(args).args
