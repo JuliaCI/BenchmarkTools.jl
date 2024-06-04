@@ -16,7 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.0'
           - '1.6'
           - '1'
           - 'nightly'
@@ -25,9 +24,6 @@ jobs:
         os:
           - ubuntu-latest
         include:
-          - version: '1.5'
-            arch: x64
-            os: ubuntu-20.04
           - version: '1.7'
             arch: x64
             os: ubuntu-20.04
@@ -39,7 +35,7 @@ jobs:
             os: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
