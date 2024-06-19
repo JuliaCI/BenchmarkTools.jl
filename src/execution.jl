@@ -723,7 +723,9 @@ macro bprofile(args...)
             $BenchmarkTools.Profile.clear()
             $tmp.params.gctrial && $BenchmarkTools.gcscrub()
             #TODO: improve @bprofile to only measure the running code and none of the setup
-            $BenchmarkTools.@profile $BenchmarkTools.run($tmp, $tmp.params; warmup=false, gctrial=false)
+            $BenchmarkTools.@profile $BenchmarkTools.run(
+                $tmp, $tmp.params; warmup=false, gctrial=false
+            )
         end,
     )
 end
