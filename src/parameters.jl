@@ -244,16 +244,8 @@ function Parameters(
     else
         default.sample_result
     end
-    params_prehook = if prehook != nothing
-        prehook
-    else
-        default.prehook
-    end
-    params_posthook = if posthook != nothing
-        posthook
-    else
-        default.posthook
-    end
+    params_prehook = prehook != nothing ? prehook : default.prehook
+    params_posthook = posthook != nothing ? posthook : default.posthook
     return Parameters(
         params_seconds,
         params_samples,
