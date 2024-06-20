@@ -5,7 +5,7 @@ const RESOLUTION = 1000 # 1 μs = 1000 ns
 # Parameters #
 ##############
 
-mutable struct Parameters{A<:Function,B<:Function}
+mutable struct Parameters{A,B}
     seconds::Float64
     samples::Int
     evals::Int
@@ -18,9 +18,9 @@ mutable struct Parameters{A<:Function,B<:Function}
     run_customisable_func_only::Bool
     enable_customisable_func::Symbol
     customisable_gcsample::Bool
-    setup_prehook::Function
-    teardown_posthook::Function
-    sample_result::Function
+    setup_prehook
+    teardown_posthook
+    sample_result
     prehook::A
     posthook::B
 end
