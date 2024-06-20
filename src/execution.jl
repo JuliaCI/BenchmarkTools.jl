@@ -136,13 +136,20 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
     end
     if params.enable_customisable_func == :ALL
         params.customisable_gcsample && gcscrub()
-        push!(trial.customisable_result, b.customisable_func(b.quote_vals, params)[1])
+        s = b.customisable_func(b.quote_vals, params)
+        push!(trial.customisable_result, s[1])
+
+        if params.run_customisable_func_only
+            return_val = s[end]
+        end
     end
 
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-        params.gcsample && gcscrub()
-        push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
+        if !params.run_customisable_func_only
+            params.gcsample && gcscrub()
+            push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
+        end
 
         if params.enable_customisable_func == :ALL
             params.customisable_gcsample && gcscrub()
@@ -152,7 +159,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
         iters += 1
     end
 
-    if params.enable_customisable_func !== :FALSE
+    if params.enable_customisable_func == :LAST
         params.customisable_gcsample && gcscrub()
         s = b.customisable_func(b.quote_vals, params)
         trial.customisable_result = s[1]
