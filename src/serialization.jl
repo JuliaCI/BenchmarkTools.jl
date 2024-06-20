@@ -53,41 +53,32 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if fn == "customisable_result"
-            xsi = customisable_result_recover(fields[fn])
+        xsi = if fn == "customisable_result"
+            customisable_result_recover(fields[fn])
+        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
+            recover(fields[fn])
         elseif fn in (
             "setup_prehook", "teardown_posthook", "sample_result", "prehook", "posthook"
         )
-            xsi = BenchmarkTools._nothing_func
-        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
-            xsi = recover(fields[fn])
-        else
-            xsi = if fn == "evals_set" && !haskey(fields, fn)
-                false
-            elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
-                fields[fn] === nothing
-                # JSON spec doesn't support Inf
-                # These fields should all be >= 0, so we can ignore -Inf case
-                typemax(ft)
-            elseif fn == "enable_customisable_func"
-                if !haskey(fields, fn)
-                    :FALSE
-                else
-                    Symbol(fields[fn])
-                end
-            elseif fn in (
-                "run_customisable_func_only",
-                "customisable_gcsample",
-                "setup_prehook",
-                "teardown_posthook",
-                "sample_result",
-                "prehook",
-                "posthook",
-            ) && !haskey(fields, fn)
-                getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
+            getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
+        elseif fn == "evals_set" && !haskey(fields, fn)
+            false
+        elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
+            fields[fn] === nothing
+            # JSON spec doesn't support Inf
+            # These fields should all be >= 0, so we can ignore -Inf case
+            typemax(ft)
+        elseif fn == "enable_customisable_func"
+            if !haskey(fields, fn)
+                :FALSE
             else
-                convert(ft, fields[fn])
+                Symbol(fields[fn])
             end
+        elseif fn in ("run_customisable_func_only", "customisable_gcsample") &&
+            !haskey(fields, fn)
+            getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
+        else
+            convert(ft, fields[fn])
         end
         if T == BenchmarkGroup && xsi isa Dict
             for (k, v) in copy(xsi)
