@@ -16,8 +16,7 @@ const SUPPORTED_TYPES = Dict{Symbol,Type}(
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
-const CUSTOM_CONVERT_TYPES = Type[]
-function _convert end
+function customisable_result_recover end
 
 function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     d = Dict{String,Any}()
@@ -54,8 +53,8 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft in CUSTOM_CONVERT_TYPES
-            xsi = _convert(ft, fields[fn])
+        if fn == "customisable_result"
+            xsi = customisable_result_recover(fields[fn])
         elseif ft <: Function
             xsi = BenchmarkTools._nothing_func
         elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
