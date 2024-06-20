@@ -22,8 +22,9 @@ end
 
 @testset "Disabled custom benchmarking" begin
     x[] = 0
-    res = @benchmark nothing setup_prehook = setup_prehook prehook = prehook posthook = posthook sample_result =
-        sample_result teardown_posthook = teardown_posthook run_customisable_func_only = false
+    res = @benchmark nothing setup_prehook = setup_prehook prehook = prehook posthook =
+        posthook sample_result = sample_result teardown_posthook = teardown_posthook run_customisable_func_only =
+        false
     @test res.customisable_result === nothing
     @test !res.customisable_result_for_every_sample
 end
