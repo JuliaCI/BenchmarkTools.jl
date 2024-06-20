@@ -55,7 +55,9 @@ function recover(x::Vector)
         fn = String(fieldname(T, i))
         if fn == "customisable_result"
             xsi = customisable_result_recover(fields[fn])
-        elseif ft <: Function
+        elseif fn in (
+            "setup_prehook", "teardown_posthook", "sample_result", "prehook", "posthook"
+        )
             xsi = BenchmarkTools._nothing_func
         elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
