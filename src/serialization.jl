@@ -16,7 +16,7 @@ const SUPPORTED_TYPES = Dict{Symbol,Type}(
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
-function customisable_result_recover end
+customisable_result_recover(::Nothing) = nothing
 
 function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     d = Dict{String,Any}()
