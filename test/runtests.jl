@@ -34,9 +34,3 @@ println("done (took ", took_seconds, " seconds)")
 print("Testing serialization...")
 took_seconds = @elapsed include("SerializationTests.jl")
 println("done (took ", took_seconds, " seconds)")
-
-if parse(Bool, get(ENV, "TEST_PERF_INTEGRATION", "true"))
-    print("Testing Perf integration...")
-    took_seconds = @elapsed include("LinuxPerfIntegrationTests.jl")
-    println("done (took ", took_seconds, " seconds)")
-end

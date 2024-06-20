@@ -10,8 +10,6 @@ using Printf
 using Profile
 using Compat: pkgversion, @noinline
 
-using LinuxPerf: LinuxPerf
-
 ##############
 # Parameters #
 ##############

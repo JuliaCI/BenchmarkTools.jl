@@ -8,10 +8,27 @@ mutable struct Trial
     gctimes::Vector{Float64}
     memory::Int
     allocs::Int
-    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
+    customisable_result
+    customisable_result_for_every_sample::Bool
 
-    function Trial(params, times, gctimes, memory, allocs, linux_perf_stats=nothing)
-        return new(params, times, gctimes, memory, allocs, linux_perf_stats)
+    function Trial(
+        params,
+        times,
+        gctimes,
+        memory,
+        allocs,
+        customisable_result=nothing,
+        customisable_result_for_every_sample=false,
+    )
+        return new(
+            params,
+            times,
+            gctimes,
+            memory,
+            allocs,
+            customisable_result,
+            customisable_result_for_every_sample,
+        )
     end
 end
 
@@ -32,7 +49,11 @@ function Base.copy(t::Trial)
         copy(t.gctimes),
         t.memory,
         t.allocs,
-        t.linux_perf_stats,
+        if t.customisable_result_for_every_sample
+            copy(t.customisable_result)
+        else
+            t.customisable_result
+        end,
     )
 end
 
@@ -53,11 +74,31 @@ end
 Base.length(t::Trial) = length(t.times)
 function Base.getindex(t::Trial, i::Number)
     return Trial(
-        t.params, [t.times[i]], [t.gctimes[i]], t.memory, t.allocs, t.linux_perf_stats
+        t.params,
+        [t.times[i]],
+        [t.gctimes[i]],
+        t.memory,
+        t.allocs,
+        if t.customisable_result_for_every_sample
+            [t.customisable_result[i]]
+        else
+            t.customisable_result
+        end,
     )
 end
 function Base.getindex(t::Trial, i)
-    return Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs, t.linux_perf_stats)
+    return Trial(
+        t.params,
+        t.times[i],
+        t.gctimes[i],
+        t.memory,
+        t.allocs,
+        if t.customisable_result_for_every_sample
+            t.customisable_result[i]
+        else
+            t.customisable_result
+        end,
+    )
 end
 Base.lastindex(t::Trial) = length(t)
 
@@ -114,16 +155,18 @@ mutable struct TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
-    linux_perf_stats::Union{LinuxPerf.Stats,Nothing}
+    customisable_result
 
-    function TrialEstimate(params, times, gctime, memory, allocs, linux_perf_stats=nothing)
-        return new(params, times, gctime, memory, allocs, linux_perf_stats)
+    function TrialEstimate(
+        params, times, gctime, memory, allocs, customisable_result=nothing
+    )
+        return new(params, times, gctime, memory, allocs, customisable_result)
     end
 end
 
 function TrialEstimate(trial::Trial, t, gct)
     return TrialEstimate(
-        params(trial), t, gct, memory(trial), allocs(trial), trial.linux_perf_stats
+        params(trial), t, gct, memory(trial), allocs(trial), trial.customisable_result
     )
 end
 
@@ -137,7 +180,7 @@ end
 
 function Base.copy(t::TrialEstimate)
     return TrialEstimate(
-        copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.linux_perf_stats
+        copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.customisable_result
     )
 end
 

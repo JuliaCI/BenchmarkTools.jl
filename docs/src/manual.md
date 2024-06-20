@@ -85,11 +85,6 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `gcsample`: If `true`, run `gc()` before each sample. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.gcsample = false`.
 - `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
 - `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
-- `enable_linux_perf`: If `true`, profile using perf `evals` times. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.enable_linux_perf = false`.
-- `linux_perf_groups`: The event groups you want to profile, see [LinuxPerf.jl](https://github.com/JuliaPerf/LinuxPerf.jl) for more details. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_groups = "(instructions,branch-instructions)"`.
-- `linux_perf_spaces`: Which of user, kernel and hypervisor space you want to profile, see [LinuxPerf.jl](https://github.com/JuliaPerf/LinuxPerf.jl) for more details. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_spaces = (true, false, false)`.
-- `linux_perf_threads`: If `true`, all threads are profiled else only the the thread which starts the benchmark is profiled, see [LinuxPerf.jl](https://github.com/JuliaPerf/LinuxPerf.jl) for more details. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_threads = true`.
-- `linux_perf_gcscrub`: If `true`, run `gc()` before executing the profiling run. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.linux_perf_gcscrub = true`.
 
 To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
 

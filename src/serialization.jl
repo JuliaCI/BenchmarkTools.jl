@@ -1,7 +1,5 @@
 const VERSIONS = Dict(
-    "Julia" => string(VERSION),
-    "BenchmarkTools" => pkgversion(BenchmarkTools),
-    "LinuxPerf" => pkgversion(LinuxPerf),
+    "Julia" => string(VERSION), "BenchmarkTools" => pkgversion(BenchmarkTools)
 )
 
 # TODO: Add any new types as they're added
@@ -18,6 +16,9 @@ const SUPPORTED_TYPES = Dict{Symbol,Type}(
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
+const CUSTOM_CONVERT_TYPES = Type[]
+function _convert end
+
 function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     d = Dict{String,Any}()
     T = typeof(x)
@@ -25,35 +26,11 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
         name = String(fieldname(T, i))
         field = getfield(x, i)
         ft = typeof(field)
+        field = ft <: Function ? nothing : field
         value = ft <: get(SUPPORTED_TYPES, nameof(ft), Union{}) ? JSON.lower(field) : field
         d[name] = value
     end
     return [string(nameof(typeof(x))), d]
-end
-
-# Recovers LinuxPerf.Stats from serialized form
-function _convert(::Type{Union{Nothing,LinuxPerf.Stats}}, d)
-    if isnothing(d)
-        return nothing
-    end
-    return LinuxPerf.Stats(_convert.(LinuxPerf.ThreadStats, d["threads"]))
-end
-function _convert(::Type{LinuxPerf.ThreadStats}, d::Dict{String})
-    return LinuxPerf.ThreadStats(
-        d["pid"],
-        [
-            [_convert(LinuxPerf.Counter, counter) for counter in group] for
-            group in d["groups"]
-        ],
-    )
-end
-function _convert(::Type{LinuxPerf.Counter}, d::Dict{String})
-    return LinuxPerf.Counter(
-        _convert(LinuxPerf.EventType, d["event"]), d["value"], d["enabled"], d["running"]
-    )
-end
-function _convert(::Type{LinuxPerf.EventType}, d::Dict{String})
-    return LinuxPerf.EventType(d["category"], d["event"])
 end
 
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
@@ -77,8 +54,10 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft == Union{Nothing,LinuxPerf.Stats}
+        if ft in CUSTOM_CONVERT_TYPES
             xsi = _convert(ft, fields[fn])
+        elseif ft <: Function
+            xsi = BenchmarkTools._nothing_func
         elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
         else
@@ -89,22 +68,30 @@ function recover(x::Vector)
                 # JSON spec doesn't support Inf
                 # These fields should all be >= 0, so we can ignore -Inf case
                 typemax(ft)
-            elseif fn == "enable_linux_perf" && !haskey(fields, fn)
-                false
+            elseif fn == "enable_customisable_func"
+                if !haskey(fields, fn) || fields[fn] == "FALSE"
+                    :FALSE
+                elseif fields[fn] == "LAST"
+                    :LAST
+                elseif fields[fn] == "ALL"
+                    :ALL
+                else
+                    throw(
+                        ArgumentError(
+                            "Invalid value $(fields[fn]) for enable_customisable_func which must be one of :ALL, :LAST, :FALSE",
+                        ),
+                    )
+                end
             elseif fn in (
-                "linux_perf_groups",
-                "linux_perf_spaces",
-                "linux_perf_threads",
-                "linux_perf_gcscrub",
+                "run_customisable_func_only",
+                "customisable_gcsample",
+                "setup_prehook",
+                "teardown_posthook",
+                "sample_result",
+                "prehook",
+                "posthook",
             ) && !haskey(fields, fn)
                 getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
-            elseif fn == "linux_perf_spaces" && haskey(fields, fn)
-                length(fields[fn]) == 3 || throw(
-                    ArgumentError(
-                        "Expecting a vector of length 3 for linux_perf_spaces parameter",
-                    ),
-                )
-                xsi = convert(ft, (fields[fn][1], fields[fn][2], fields[fn][3]))
             else
                 convert(ft, fields[fn])
             end
