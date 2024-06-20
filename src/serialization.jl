@@ -70,18 +70,10 @@ function recover(x::Vector)
                 # These fields should all be >= 0, so we can ignore -Inf case
                 typemax(ft)
             elseif fn == "enable_customisable_func"
-                if !haskey(fields, fn) || fields[fn] == "FALSE"
+                if !haskey(fields, fn)
                     :FALSE
-                elseif fields[fn] == "LAST"
-                    :LAST
-                elseif fields[fn] == "ALL"
-                    :ALL
                 else
-                    throw(
-                        ArgumentError(
-                            "Invalid value $(fields[fn]) for enable_customisable_func which must be one of :ALL, :LAST, :FALSE",
-                        ),
-                    )
+                    Symbol(fields[fn])
                 end
             elseif fn in (
                 "run_customisable_func_only",

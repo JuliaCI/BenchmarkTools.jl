@@ -23,6 +23,60 @@ mutable struct Parameters{A,B}
     sample_result
     prehook::A
     posthook::B
+
+    function Parameters{A,B}(
+        seconds,
+        samples,
+        evals,
+        evals_set,
+        overhead,
+        gctrial,
+        gcsample,
+        time_tolerance,
+        memory_tolerance,
+        run_customisable_func_only,
+        enable_customisable_func,
+        customisable_gcsample,
+        setup_prehook,
+        teardown_posthook,
+        sample_result,
+        prehook::A,
+        posthook::B,
+    ) where {A,B}
+        if enable_customisable_func ∉ (:FALSE, :ALL, :LAST)
+            throw(
+                ArgumentError(
+                    "invalid value $(enable_customisable_func) for enable_customisable_func which must be :FALSE, :ALL or :LAST",
+                ),
+            )
+        end
+        if run_customisable_func_only && enable_customisable_func == :FALSE
+            throw(
+                ArgumentError(
+                    "run_customisable_func_only is set to true, but enable_customisable_func is set to :FALSE",
+                ),
+            )
+        end
+        return new(
+            seconds,
+            samples,
+            evals,
+            evals_set,
+            overhead,
+            gctrial,
+            gcsample,
+            time_tolerance,
+            memory_tolerance,
+            run_customisable_func_only,
+            enable_customisable_func,
+            customisable_gcsample,
+            setup_prehook,
+            teardown_posthook,
+            sample_result,
+            prehook,
+            posthook,
+        )
+    end
 end
 
 # https://github.com/JuliaLang/julia/issues/17186

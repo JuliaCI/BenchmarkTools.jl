@@ -87,4 +87,23 @@ BenchmarkTools.DEFAULT_PARAMETERS.setup_prehook = old_setup_prehook
 BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = old_teardown_posthook
 BenchmarkTools.DEFAULT_PARAMETERS.sample_result = old_sample_result
 
+for vals in (false, true, :ARST, :TRUE, :false, :ON)
+    @test_throws ArgumentError Parameters(p; enable_customisable_func=vals)
+    @test_throws ArgumentError Parameters(; enable_customisable_func=vals)
+end
+
+@test_throws ArgumentError Parameters(;
+    enable_customisable_func=:FALSE, run_customisable_func_only=true
+)
+@test_nowarn Parameters(; enable_customisable_func=:FALSE, run_customisable_func_only=false)
+for run_customisable_func_only in (false, true)
+    @test_nowarn Parameters(;
+        enable_customisable_func=:ALL, run_customisable_func_only=run_customisable_func_only
+    )
+    @test_nowarn Parameters(;
+        enable_customisable_func=:LAST,
+        run_customisable_func_only=run_customisable_func_only,
+    )
+end
+
 end # module

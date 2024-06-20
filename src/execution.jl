@@ -110,10 +110,6 @@ end
 function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-    @assert params.enable_customisable_func in (:FALSE, :ALL, :LAST) "invalid value $(params.enable_customisable_func) for enable_customisable_func which must be :FALSE, :ALL or :LAST"
-    @assert !(
-        params.run_customisable_func_only && params.enable_customisable_func == :FALSE
-    ) "run_customisable_func_only is set to true, but enable_customisable_func is set to :FALSE"
     if warmup #warmup sample
         params.run_customisable_func_only &&
             b.samplefunc(b.quote_vals, Parameters(params; evals=1))
