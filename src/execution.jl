@@ -701,9 +701,6 @@ information.
 """
 macro bprofile(args...)
     _, params = prunekwargs(args...)
-    if !haskw(args, :gctrial)
-        args = (args..., Expr(:kw, :gctrial, false))
-    end
     if !haskw(args, :gcsample)
         args = (args..., Expr(:kw, :gcsample, false))
     end
