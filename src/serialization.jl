@@ -16,6 +16,8 @@ const SUPPORTED_TYPES = Dict{Symbol,Type}(
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
+customizable_result_recover(::Nothing) = nothing
+
 function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     d = Dict{String,Any}()
     T = typeof(x)
@@ -23,6 +25,7 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
         name = String(fieldname(T, i))
         field = getfield(x, i)
         ft = typeof(field)
+        field = ft <: Function ? nothing : field
         value = ft <: get(SUPPORTED_TYPES, nameof(ft), Union{}) ? JSON.lower(field) : field
         d[name] = value
     end
@@ -50,19 +53,32 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
-            xsi = recover(fields[fn])
-        else
-            xsi = if fn == "evals_set" && !haskey(fields, fn)
-                false
-            elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
-                fields[fn] === nothing
-                # JSON spec doesn't support Inf
-                # These fields should all be >= 0, so we can ignore -Inf case
-                typemax(ft)
+        xsi = if fn == "customizable_result"
+            customizable_result_recover(fields[fn])
+        elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
+            recover(fields[fn])
+        elseif fn in (
+            "setup_prehook", "teardown_posthook", "sample_result", "prehook", "posthook"
+        )
+            getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
+        elseif fn == "evals_set" && !haskey(fields, fn)
+            false
+        elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
+            fields[fn] === nothing
+            # JSON spec doesn't support Inf
+            # These fields should all be >= 0, so we can ignore -Inf case
+            typemax(ft)
+        elseif fn == "enable_customizable_func"
+            if !haskey(fields, fn)
+                :FALSE
             else
-                convert(ft, fields[fn])
+                Symbol(fields[fn])
             end
+        elseif fn in ("run_customizable_func_only", "customizable_gcsample") &&
+            !haskey(fields, fn)
+            getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
+        else
+            convert(ft, fields[fn])
         end
         if T == BenchmarkGroup && xsi isa Dict
             for (k, v) in copy(xsi)

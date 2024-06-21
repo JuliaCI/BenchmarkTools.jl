@@ -16,6 +16,7 @@ end
 
 mutable struct Benchmark
     samplefunc
+    customizable_func
     quote_vals
     params::Parameters
 end
@@ -109,21 +110,61 @@ end
 function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-    if warmup
-        b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
+    if warmup #warmup sample
+        params.run_customizable_func_only &&
+            b.samplefunc(b.quote_vals, Parameters(params; evals=1))
+        !params.run_customizable_func_only &&
+            b.customizable_func(b.quote_vals, Parameters(params; evals=1))
     end
     trial = Trial(params)
+    if params.enable_customizable_func == :ALL
+        trial.customizable_result = []
+        trial.customizable_result_for_every_sample = true
+    end
     params.gctrial && gcscrub()
     start_time = Base.time()
-    s = b.samplefunc(b.quote_vals, params)
-    push!(trial, s[1:(end - 1)]...)
-    return_val = s[end]
+
+    return_val = nothing
+    if !params.run_customizable_func_only
+        s = b.samplefunc(b.quote_vals, params)
+        push!(trial, s[1:(end - 1)]...)
+        return_val = s[end]
+    end
+    if params.enable_customizable_func == :ALL
+        params.customizable_gcsample && gcscrub()
+        s = b.customizable_func(b.quote_vals, params)
+        push!(trial.customizable_result, s[1])
+
+        if params.run_customizable_func_only
+            return_val = s[end]
+        end
+    end
+
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-        params.gcsample && gcscrub()
-        push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
+        if !params.run_customizable_func_only
+            params.gcsample && gcscrub()
+            push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
+        end
+
+        if params.enable_customizable_func == :ALL
+            params.customizable_gcsample && gcscrub()
+            push!(trial.customizable_result, b.customizable_func(b.quote_vals, params)[1])
+        end
+
         iters += 1
     end
+
+    if params.enable_customizable_func == :LAST
+        params.customizable_gcsample && gcscrub()
+        s = b.customizable_func(b.quote_vals, params)
+        trial.customizable_result = s[1]
+
+        if params.run_customizable_func_only
+            return_val = s[end]
+        end
+    end
+
     return trial, return_val
 end
 
@@ -506,6 +547,24 @@ macro benchmarkable(args...)
     end
 end
 
+samplefunc_prehook() = (Base.gc_num(), time_ns())
+samplefunc_posthook = samplefunc_prehook
+function samplefunc_sample_result(__params, _, prehook_result, posthook_result)
+    __evals = __params.evals
+    __sample_time = posthook_result[2] - prehook_result[2]
+    __gcdiff = Base.GC_Diff(posthook_result[1], prehook_result[1])
+
+    __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+    __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
+    __memory = Int(Base.fld(__gcdiff.allocd, __evals))
+    __allocs = Int(
+        Base.fld(
+            __gcdiff.malloc + __gcdiff.realloc + __gcdiff.poolalloc + __gcdiff.bigalloc,
+            __evals,
+        ),
+    )
+    return __time, __gctime, __memory, __allocs
+end
 # `eval` an expression that forcibly defines the specified benchmark at
 # top-level in order to allow transfer of locally-scoped variables into
 # benchmark scope.
@@ -519,6 +578,7 @@ function generate_benchmark_definition(
     @nospecialize
     corefunc = gensym("core")
     samplefunc = gensym("sample")
+    customizable_func = gensym("customizable")
     type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
     signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
     signature_def = Expr(
@@ -562,32 +622,66 @@ function generate_benchmark_definition(
             @noinline function $(samplefunc)(
                 $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
             )
-                $(setup)
-                __evals = __params.evals
-                __gc_start = Base.gc_num()
-                __start_time = time_ns()
-                __return_val = $(invocation)
-                for __iter in 2:__evals
-                    $(invocation)
-                end
-                __sample_time = time_ns() - __start_time
-                __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
-                $(teardown)
-                __time = max((__sample_time / __evals) - __params.overhead, 0.001)
-                __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
-                __memory = Int(Base.fld(__gcdiff.allocd, __evals))
-                __allocs = Int(
-                    Base.fld(
-                        __gcdiff.malloc +
-                        __gcdiff.realloc +
-                        __gcdiff.poolalloc +
-                        __gcdiff.bigalloc,
-                        __evals,
-                    ),
+                $BenchmarkTools.@noinline $(setup)
+                # Isolate code so that e.g. setup doesn't cause different code to be generated by e.g. changing register allocation
+                # Unfortunately it still does, e.g. if you define a variable in setup then it's passed into invocation adding a few instructions
+                __prehook_result, __posthook_result, __return_val = $BenchmarkTools.@noinline (
+                    function (__evals)
+                        prehook_result = $BenchmarkTools.samplefunc_prehook()
+                        $BenchmarkTools.@noinline __return_val_2 = $(invocation)
+                        for __iter in 2:__evals
+                            $BenchmarkTools.@noinline $(invocation)
+                        end
+                        posthook_result = $BenchmarkTools.samplefunc_posthook()
+                        return prehook_result, posthook_result, __return_val_2
+                    end
+                )(
+                    __params.evals
                 )
-                return __time, __gctime, __memory, __allocs, __return_val
+                $(teardown)
+                return $BenchmarkTools.samplefunc_sample_result(
+                    __params, nothing, __prehook_result, __posthook_result
+                )...,
+                __return_val
             end
-            $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
+            @noinline function $(customizable_func)(
+                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+            )
+                local __setup_prehook_result
+                try
+                    __setup_prehook_result = $BenchmarkTools.@noinline __params.setup_prehook(
+                        __params
+                    )
+                    $BenchmarkTools.@noinline $(setup)
+                    __prehook_result, __posthook_result, __return_val = $BenchmarkTools.@noinline (
+                        function (__evals)
+                            prehook_result = __params.prehook()
+                            # We'll run it evals times.
+                            $BenchmarkTools.@noinline __return_val_2 = $(invocation)
+                            for __iter in 2:__evals
+                                $BenchmarkTools.@noinline $(invocation)
+                            end
+                            posthook_result = __params.posthook()
+                            return prehook_result, posthook_result, __return_val_2
+                        end
+                    )(
+                        __params.evals
+                    )
+                    return __params.sample_result(
+                        __params,
+                        __setup_prehook_result,
+                        __prehook_result,
+                        __posthook_result,
+                    ),
+                    __return_val
+                finally
+                    $(teardown)
+                    __params.teardown_posthook(__params, __setup_prehook_result)
+                end
+            end
+            $BenchmarkTools.Benchmark(
+                $(samplefunc), $(customizable_func), $(quote_vals), $(params)
+            )
         end,
     )
 end

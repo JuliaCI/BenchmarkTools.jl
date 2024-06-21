@@ -5,7 +5,7 @@ const RESOLUTION = 1000 # 1 μs = 1000 ns
 # Parameters #
 ##############
 
-mutable struct Parameters
+mutable struct Parameters{A,B}
     seconds::Float64
     samples::Int
     evals::Int
@@ -15,9 +15,133 @@ mutable struct Parameters
     gcsample::Bool
     time_tolerance::Float64
     memory_tolerance::Float64
+    run_customizable_func_only::Bool
+    enable_customizable_func::Symbol
+    customizable_gcsample::Bool
+    setup_prehook
+    teardown_posthook
+    sample_result
+    prehook::A
+    posthook::B
+
+    function Parameters{A,B}(
+        seconds,
+        samples,
+        evals,
+        evals_set,
+        overhead,
+        gctrial,
+        gcsample,
+        time_tolerance,
+        memory_tolerance,
+        run_customizable_func_only,
+        enable_customizable_func,
+        customizable_gcsample,
+        setup_prehook,
+        teardown_posthook,
+        sample_result,
+        prehook::A,
+        posthook::B,
+    ) where {A,B}
+        if enable_customizable_func ∉ (:FALSE, :ALL, :LAST)
+            throw(
+                ArgumentError(
+                    "invalid value $(enable_customizable_func) for enable_customizable_func which must be :FALSE, :ALL or :LAST",
+                ),
+            )
+        end
+        if run_customizable_func_only && enable_customizable_func == :FALSE
+            throw(
+                ArgumentError(
+                    "run_customizable_func_only is set to true, but enable_customizable_func is set to :FALSE",
+                ),
+            )
+        end
+        return new(
+            seconds,
+            samples,
+            evals,
+            evals_set,
+            overhead,
+            gctrial,
+            gcsample,
+            time_tolerance,
+            memory_tolerance,
+            run_customizable_func_only,
+            enable_customizable_func,
+            customizable_gcsample,
+            setup_prehook,
+            teardown_posthook,
+            sample_result,
+            prehook,
+            posthook,
+        )
+    end
 end
 
-const DEFAULT_PARAMETERS = Parameters(5.0, 10000, 1, false, 0, true, false, 0.05, 0.01)
+# https://github.com/JuliaLang/julia/issues/17186
+function Parameters(
+    seconds,
+    samples,
+    evals,
+    evals_set,
+    overhead,
+    gctrial,
+    gcsample,
+    time_tolerance,
+    memory_tolerance,
+    run_customizable_func_only,
+    enable_customizable_func,
+    customizable_gcsample,
+    setup_prehook,
+    teardown_posthook,
+    sample_result,
+    prehook::A,
+    posthook::B,
+) where {A,B}
+    return Parameters{A,B}(
+        seconds,
+        samples,
+        evals,
+        evals_set,
+        overhead,
+        gctrial,
+        gcsample,
+        time_tolerance,
+        memory_tolerance,
+        run_customizable_func_only,
+        enable_customizable_func,
+        customizable_gcsample,
+        setup_prehook,
+        teardown_posthook,
+        sample_result,
+        prehook,
+        posthook,
+    )
+end
+
+_nothing_func(args...) = nothing
+DEFAULT_PARAMETERS = Parameters(
+    5.0,
+    10000,
+    1,
+    false,
+    0,
+    true,
+    false,
+    0.05,
+    0.01,
+    # customizable Parameters
+    false,
+    :FALSE,
+    false,
+    # customizable functions
+    _nothing_func,
+    _nothing_func,
+    _nothing_func,
+    _nothing_func,
+    _nothing_func,
+)
 
 function Parameters(;
     seconds=DEFAULT_PARAMETERS.seconds,
@@ -29,6 +153,14 @@ function Parameters(;
     gcsample=DEFAULT_PARAMETERS.gcsample,
     time_tolerance=DEFAULT_PARAMETERS.time_tolerance,
     memory_tolerance=DEFAULT_PARAMETERS.memory_tolerance,
+    run_customizable_func_only=DEFAULT_PARAMETERS.run_customizable_func_only,
+    enable_customizable_func=DEFAULT_PARAMETERS.enable_customizable_func,
+    customizable_gcsample=DEFAULT_PARAMETERS.customizable_gcsample,
+    setup_prehook=DEFAULT_PARAMETERS.setup_prehook,
+    teardown_posthook=DEFAULT_PARAMETERS.teardown_posthook,
+    sample_result=DEFAULT_PARAMETERS.sample_result,
+    prehook=DEFAULT_PARAMETERS.prehook,
+    posthook=DEFAULT_PARAMETERS.posthook,
 )
     return Parameters(
         seconds,
@@ -40,6 +172,14 @@ function Parameters(;
         gcsample,
         time_tolerance,
         memory_tolerance,
+        run_customizable_func_only,
+        enable_customizable_func,
+        customizable_gcsample,
+        setup_prehook,
+        teardown_posthook,
+        sample_result,
+        prehook,
+        posthook,
     )
 end
 
@@ -48,24 +188,83 @@ function Parameters(
     seconds=nothing,
     samples=nothing,
     evals=nothing,
+    evals_set=nothing,
     overhead=nothing,
     gctrial=nothing,
     gcsample=nothing,
     time_tolerance=nothing,
     memory_tolerance=nothing,
+    run_customizable_func_only=nothing,
+    enable_customizable_func=nothing,
+    customizable_gcsample=nothing,
+    setup_prehook=nothing,
+    teardown_posthook=nothing,
+    sample_result=nothing,
+    prehook=nothing,
+    posthook=nothing,
 )
-    params = Parameters()
-    params.seconds = seconds != nothing ? seconds : default.seconds
-    params.samples = samples != nothing ? samples : default.samples
-    params.evals = evals != nothing ? evals : default.evals
-    params.overhead = overhead != nothing ? overhead : default.overhead
-    params.gctrial = gctrial != nothing ? gctrial : default.gctrial
-    params.gcsample = gcsample != nothing ? gcsample : default.gcsample
-    params.time_tolerance =
+    params_seconds = seconds != nothing ? seconds : default.seconds
+    params_samples = samples != nothing ? samples : default.samples
+    params_evals = evals != nothing ? evals : default.evals
+    params_evals_set = evals_set != nothing ? evals_set : default.evals_set
+    params_overhead = overhead != nothing ? overhead : default.overhead
+    params_gctrial = gctrial != nothing ? gctrial : default.gctrial
+    params_gcsample = gcsample != nothing ? gcsample : default.gcsample
+    params_time_tolerance =
         time_tolerance != nothing ? time_tolerance : default.time_tolerance
-    params.memory_tolerance =
+    params_memory_tolerance =
         memory_tolerance != nothing ? memory_tolerance : default.memory_tolerance
-    return params::BenchmarkTools.Parameters
+    params_run_customizable_func_only = if run_customizable_func_only != nothing
+        run_customizable_func_only
+    else
+        default.run_customizable_func_only
+    end
+    params_enable_customizable_func = if enable_customizable_func != nothing
+        enable_customizable_func
+    else
+        default.enable_customizable_func
+    end
+    params_customizable_gcscrub = if customizable_gcsample != nothing
+        customizable_gcsample
+    else
+        default.customizable_gcsample
+    end
+    params_setup_prehook = if setup_prehook != nothing
+        setup_prehook
+    else
+        default.setup_prehook
+    end
+    params_teardown_posthook = if teardown_posthook != nothing
+        teardown_posthook
+    else
+        default.teardown_posthook
+    end
+    params_sample_result = if sample_result != nothing
+        sample_result
+    else
+        default.sample_result
+    end
+    params_prehook = prehook != nothing ? prehook : default.prehook
+    params_posthook = posthook != nothing ? posthook : default.posthook
+    return Parameters(
+        params_seconds,
+        params_samples,
+        params_evals,
+        params_evals_set,
+        params_overhead,
+        params_gctrial,
+        params_gcsample,
+        params_time_tolerance,
+        params_memory_tolerance,
+        params_run_customizable_func_only,
+        params_enable_customizable_func,
+        params_customizable_gcscrub,
+        params_setup_prehook,
+        params_teardown_posthook,
+        params_sample_result,
+        params_prehook,
+        params_posthook,
+    )::BenchmarkTools.Parameters
 end
 
 function Base.:(==)(a::Parameters, b::Parameters)
@@ -76,7 +275,15 @@ function Base.:(==)(a::Parameters, b::Parameters)
            a.gctrial == b.gctrial &&
            a.gcsample == b.gcsample &&
            a.time_tolerance == b.time_tolerance &&
-           a.memory_tolerance == b.memory_tolerance
+           a.memory_tolerance == b.memory_tolerance &&
+           a.run_customizable_func_only == b.run_customizable_func_only &&
+           a.enable_customizable_func == b.enable_customizable_func &&
+           a.customizable_gcsample == b.customizable_gcsample &&
+           a.setup_prehook == b.setup_prehook &&
+           a.teardown_posthook == b.teardown_posthook &&
+           a.sample_result == b.sample_result &&
+           a.prehook == b.prehook &&
+           a.posthook == b.posthook
 end
 
 function Base.copy(p::Parameters)
@@ -90,6 +297,14 @@ function Base.copy(p::Parameters)
         p.gcsample,
         p.time_tolerance,
         p.memory_tolerance,
+        p.run_customizable_func_only,
+        p.enable_customizable_func,
+        p.customizable_gcsample,
+        p.setup_prehook,
+        p.teardown_posthook,
+        p.sample_result,
+        p.prehook,
+        p.posthook,
     )
 end
 
