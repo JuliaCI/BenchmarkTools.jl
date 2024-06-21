@@ -15,9 +15,9 @@ mutable struct Parameters{A,B}
     gcsample::Bool
     time_tolerance::Float64
     memory_tolerance::Float64
-    run_customisable_func_only::Bool
-    enable_customisable_func::Symbol
-    customisable_gcsample::Bool
+    run_customizable_func_only::Bool
+    enable_customizable_func::Symbol
+    customizable_gcsample::Bool
     setup_prehook
     teardown_posthook
     sample_result
@@ -34,26 +34,26 @@ mutable struct Parameters{A,B}
         gcsample,
         time_tolerance,
         memory_tolerance,
-        run_customisable_func_only,
-        enable_customisable_func,
-        customisable_gcsample,
+        run_customizable_func_only,
+        enable_customizable_func,
+        customizable_gcsample,
         setup_prehook,
         teardown_posthook,
         sample_result,
         prehook::A,
         posthook::B,
     ) where {A,B}
-        if enable_customisable_func ∉ (:FALSE, :ALL, :LAST)
+        if enable_customizable_func ∉ (:FALSE, :ALL, :LAST)
             throw(
                 ArgumentError(
-                    "invalid value $(enable_customisable_func) for enable_customisable_func which must be :FALSE, :ALL or :LAST",
+                    "invalid value $(enable_customizable_func) for enable_customizable_func which must be :FALSE, :ALL or :LAST",
                 ),
             )
         end
-        if run_customisable_func_only && enable_customisable_func == :FALSE
+        if run_customizable_func_only && enable_customizable_func == :FALSE
             throw(
                 ArgumentError(
-                    "run_customisable_func_only is set to true, but enable_customisable_func is set to :FALSE",
+                    "run_customizable_func_only is set to true, but enable_customizable_func is set to :FALSE",
                 ),
             )
         end
@@ -67,9 +67,9 @@ mutable struct Parameters{A,B}
             gcsample,
             time_tolerance,
             memory_tolerance,
-            run_customisable_func_only,
-            enable_customisable_func,
-            customisable_gcsample,
+            run_customizable_func_only,
+            enable_customizable_func,
+            customizable_gcsample,
             setup_prehook,
             teardown_posthook,
             sample_result,
@@ -90,9 +90,9 @@ function Parameters(
     gcsample,
     time_tolerance,
     memory_tolerance,
-    run_customisable_func_only,
-    enable_customisable_func,
-    customisable_gcsample,
+    run_customizable_func_only,
+    enable_customizable_func,
+    customizable_gcsample,
     setup_prehook,
     teardown_posthook,
     sample_result,
@@ -109,9 +109,9 @@ function Parameters(
         gcsample,
         time_tolerance,
         memory_tolerance,
-        run_customisable_func_only,
-        enable_customisable_func,
-        customisable_gcsample,
+        run_customizable_func_only,
+        enable_customizable_func,
+        customizable_gcsample,
         setup_prehook,
         teardown_posthook,
         sample_result,
@@ -131,11 +131,11 @@ DEFAULT_PARAMETERS = Parameters(
     false,
     0.05,
     0.01,
-    # Customisable Parameters
+    # customizable Parameters
     false,
     :FALSE,
     false,
-    # Customisable functions
+    # customizable functions
     _nothing_func,
     _nothing_func,
     _nothing_func,
@@ -153,9 +153,9 @@ function Parameters(;
     gcsample=DEFAULT_PARAMETERS.gcsample,
     time_tolerance=DEFAULT_PARAMETERS.time_tolerance,
     memory_tolerance=DEFAULT_PARAMETERS.memory_tolerance,
-    run_customisable_func_only=DEFAULT_PARAMETERS.run_customisable_func_only,
-    enable_customisable_func=DEFAULT_PARAMETERS.enable_customisable_func,
-    customisable_gcsample=DEFAULT_PARAMETERS.customisable_gcsample,
+    run_customizable_func_only=DEFAULT_PARAMETERS.run_customizable_func_only,
+    enable_customizable_func=DEFAULT_PARAMETERS.enable_customizable_func,
+    customizable_gcsample=DEFAULT_PARAMETERS.customizable_gcsample,
     setup_prehook=DEFAULT_PARAMETERS.setup_prehook,
     teardown_posthook=DEFAULT_PARAMETERS.teardown_posthook,
     sample_result=DEFAULT_PARAMETERS.sample_result,
@@ -172,9 +172,9 @@ function Parameters(;
         gcsample,
         time_tolerance,
         memory_tolerance,
-        run_customisable_func_only,
-        enable_customisable_func,
-        customisable_gcsample,
+        run_customizable_func_only,
+        enable_customizable_func,
+        customizable_gcsample,
         setup_prehook,
         teardown_posthook,
         sample_result,
@@ -194,9 +194,9 @@ function Parameters(
     gcsample=nothing,
     time_tolerance=nothing,
     memory_tolerance=nothing,
-    run_customisable_func_only=nothing,
-    enable_customisable_func=nothing,
-    customisable_gcsample=nothing,
+    run_customizable_func_only=nothing,
+    enable_customizable_func=nothing,
+    customizable_gcsample=nothing,
     setup_prehook=nothing,
     teardown_posthook=nothing,
     sample_result=nothing,
@@ -214,20 +214,20 @@ function Parameters(
         time_tolerance != nothing ? time_tolerance : default.time_tolerance
     params_memory_tolerance =
         memory_tolerance != nothing ? memory_tolerance : default.memory_tolerance
-    params_run_customisable_func_only = if run_customisable_func_only != nothing
-        run_customisable_func_only
+    params_run_customizable_func_only = if run_customizable_func_only != nothing
+        run_customizable_func_only
     else
-        default.run_customisable_func_only
+        default.run_customizable_func_only
     end
-    params_enable_customisable_func = if enable_customisable_func != nothing
-        enable_customisable_func
+    params_enable_customizable_func = if enable_customizable_func != nothing
+        enable_customizable_func
     else
-        default.enable_customisable_func
+        default.enable_customizable_func
     end
-    params_customisable_gcscrub = if customisable_gcsample != nothing
-        customisable_gcsample
+    params_customizable_gcscrub = if customizable_gcsample != nothing
+        customizable_gcsample
     else
-        default.customisable_gcsample
+        default.customizable_gcsample
     end
     params_setup_prehook = if setup_prehook != nothing
         setup_prehook
@@ -256,9 +256,9 @@ function Parameters(
         params_gcsample,
         params_time_tolerance,
         params_memory_tolerance,
-        params_run_customisable_func_only,
-        params_enable_customisable_func,
-        params_customisable_gcscrub,
+        params_run_customizable_func_only,
+        params_enable_customizable_func,
+        params_customizable_gcscrub,
         params_setup_prehook,
         params_teardown_posthook,
         params_sample_result,
@@ -276,9 +276,9 @@ function Base.:(==)(a::Parameters, b::Parameters)
            a.gcsample == b.gcsample &&
            a.time_tolerance == b.time_tolerance &&
            a.memory_tolerance == b.memory_tolerance &&
-           a.run_customisable_func_only == b.run_customisable_func_only &&
-           a.enable_customisable_func == b.enable_customisable_func &&
-           a.customisable_gcsample == b.customisable_gcsample &&
+           a.run_customizable_func_only == b.run_customizable_func_only &&
+           a.enable_customizable_func == b.enable_customizable_func &&
+           a.customizable_gcsample == b.customizable_gcsample &&
            a.setup_prehook == b.setup_prehook &&
            a.teardown_posthook == b.teardown_posthook &&
            a.sample_result == b.sample_result &&
@@ -297,9 +297,9 @@ function Base.copy(p::Parameters)
         p.gcsample,
         p.time_tolerance,
         p.memory_tolerance,
-        p.run_customisable_func_only,
-        p.enable_customisable_func,
-        p.customisable_gcsample,
+        p.run_customizable_func_only,
+        p.enable_customizable_func,
+        p.customizable_gcsample,
         p.setup_prehook,
         p.teardown_posthook,
         p.sample_result,

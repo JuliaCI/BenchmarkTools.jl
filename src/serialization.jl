@@ -16,7 +16,7 @@ const SUPPORTED_TYPES = Dict{Symbol,Type}(
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
-customisable_result_recover(::Nothing) = nothing
+customizable_result_recover(::Nothing) = nothing
 
 function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     d = Dict{String,Any}()
@@ -53,8 +53,8 @@ function recover(x::Vector)
     for i in 1:fc
         ft = fieldtype(T, i)
         fn = String(fieldname(T, i))
-        xsi = if fn == "customisable_result"
-            customisable_result_recover(fields[fn])
+        xsi = if fn == "customizable_result"
+            customizable_result_recover(fields[fn])
         elseif ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             recover(fields[fn])
         elseif fn in (
@@ -68,13 +68,13 @@ function recover(x::Vector)
             # JSON spec doesn't support Inf
             # These fields should all be >= 0, so we can ignore -Inf case
             typemax(ft)
-        elseif fn == "enable_customisable_func"
+        elseif fn == "enable_customizable_func"
             if !haskey(fields, fn)
                 :FALSE
             else
                 Symbol(fields[fn])
             end
-        elseif fn in ("run_customisable_func_only", "customisable_gcsample") &&
+        elseif fn in ("run_customizable_func_only", "customizable_gcsample") &&
             !haskey(fields, fn)
             getfield(BenchmarkTools.DEFAULT_PARAMETERS, Symbol(fn))
         else

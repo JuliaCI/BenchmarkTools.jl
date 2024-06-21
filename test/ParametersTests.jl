@@ -27,11 +27,11 @@ p = Parameters(;
     gcsample=false,
     time_tolerance=0.043,
     memory_tolerance=0.15,
-    # Customisable Parameters
-    run_customisable_func_only=true,
-    enable_customisable_func=:ALL,
-    customisable_gcsample=true,
-    # Customisable functions
+    # customizable Parameters
+    run_customizable_func_only=true,
+    enable_customizable_func=:ALL,
+    customizable_gcsample=true,
+    # customizable functions
     setup_prehook=f,
     teardown_posthook=f,
     sample_result=f,
@@ -44,10 +44,10 @@ oldsamples = BenchmarkTools.DEFAULT_PARAMETERS.samples
 oldevals = BenchmarkTools.DEFAULT_PARAMETERS.evals
 oldoverhead = BenchmarkTools.DEFAULT_PARAMETERS.overhead
 oldgcsample = BenchmarkTools.DEFAULT_PARAMETERS.gcsample
-old_run_customisable_func_only =
-    BenchmarkTools.DEFAULT_PARAMETERS.run_customisable_func_only
-old_enable_customisable_func = BenchmarkTools.DEFAULT_PARAMETERS.enable_customisable_func
-old_customisable_gcsample = BenchmarkTools.DEFAULT_PARAMETERS.customisable_gcsample
+old_run_customizable_func_only =
+    BenchmarkTools.DEFAULT_PARAMETERS.run_customizable_func_only
+old_enable_customizable_func = BenchmarkTools.DEFAULT_PARAMETERS.enable_customizable_func
+old_customizable_gcsample = BenchmarkTools.DEFAULT_PARAMETERS.customizable_gcsample
 old_setup_prehook = BenchmarkTools.DEFAULT_PARAMETERS.setup_prehook
 old_teardown_posthook = BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook
 old_sample_result = BenchmarkTools.DEFAULT_PARAMETERS.sample_result
@@ -62,9 +62,9 @@ BenchmarkTools.DEFAULT_PARAMETERS.samples = p.samples
 BenchmarkTools.DEFAULT_PARAMETERS.evals = p.evals
 BenchmarkTools.DEFAULT_PARAMETERS.overhead = p.overhead
 BenchmarkTools.DEFAULT_PARAMETERS.gcsample = p.gcsample
-BenchmarkTools.DEFAULT_PARAMETERS.run_customisable_func_only = p.run_customisable_func_only
-BenchmarkTools.DEFAULT_PARAMETERS.enable_customisable_func = p.enable_customisable_func
-BenchmarkTools.DEFAULT_PARAMETERS.customisable_gcsample = p.customisable_gcsample
+BenchmarkTools.DEFAULT_PARAMETERS.run_customizable_func_only = p.run_customizable_func_only
+BenchmarkTools.DEFAULT_PARAMETERS.enable_customizable_func = p.enable_customizable_func
+BenchmarkTools.DEFAULT_PARAMETERS.customizable_gcsample = p.customizable_gcsample
 BenchmarkTools.DEFAULT_PARAMETERS.setup_prehook = p.setup_prehook
 BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = p.teardown_posthook
 BenchmarkTools.DEFAULT_PARAMETERS.sample_result = p.sample_result
@@ -79,30 +79,30 @@ BenchmarkTools.DEFAULT_PARAMETERS.samples = oldsamples
 BenchmarkTools.DEFAULT_PARAMETERS.evals = oldevals
 BenchmarkTools.DEFAULT_PARAMETERS.overhead = oldoverhead
 BenchmarkTools.DEFAULT_PARAMETERS.gcsample = oldgcsample
-BenchmarkTools.DEFAULT_PARAMETERS.run_customisable_func_only =
-    old_run_customisable_func_only
-BenchmarkTools.DEFAULT_PARAMETERS.enable_customisable_func = old_enable_customisable_func
-BenchmarkTools.DEFAULT_PARAMETERS.customisable_gcsample = old_customisable_gcsample
+BenchmarkTools.DEFAULT_PARAMETERS.run_customizable_func_only =
+    old_run_customizable_func_only
+BenchmarkTools.DEFAULT_PARAMETERS.enable_customizable_func = old_enable_customizable_func
+BenchmarkTools.DEFAULT_PARAMETERS.customizable_gcsample = old_customizable_gcsample
 BenchmarkTools.DEFAULT_PARAMETERS.setup_prehook = old_setup_prehook
 BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = old_teardown_posthook
 BenchmarkTools.DEFAULT_PARAMETERS.sample_result = old_sample_result
 
 for vals in (false, true, :ARST, :TRUE, :false, :ON)
-    @test_throws ArgumentError Parameters(p; enable_customisable_func=vals)
-    @test_throws ArgumentError Parameters(; enable_customisable_func=vals)
+    @test_throws ArgumentError Parameters(p; enable_customizable_func=vals)
+    @test_throws ArgumentError Parameters(; enable_customizable_func=vals)
 end
 
 @test_throws ArgumentError Parameters(;
-    enable_customisable_func=:FALSE, run_customisable_func_only=true
+    enable_customizable_func=:FALSE, run_customizable_func_only=true
 )
-@test_nowarn Parameters(; enable_customisable_func=:FALSE, run_customisable_func_only=false)
-for run_customisable_func_only in (false, true)
+@test_nowarn Parameters(; enable_customizable_func=:FALSE, run_customizable_func_only=false)
+for run_customizable_func_only in (false, true)
     @test_nowarn Parameters(;
-        enable_customisable_func=:ALL, run_customisable_func_only=run_customisable_func_only
+        enable_customizable_func=:ALL, run_customizable_func_only=run_customizable_func_only
     )
     @test_nowarn Parameters(;
-        enable_customisable_func=:LAST,
-        run_customisable_func_only=run_customisable_func_only,
+        enable_customizable_func=:LAST,
+        run_customizable_func_only=run_customizable_func_only,
     )
 end
 

@@ -8,8 +8,8 @@ mutable struct Trial
     gctimes::Vector{Float64}
     memory::Int
     allocs::Int
-    customisable_result
-    customisable_result_for_every_sample::Bool
+    customizable_result
+    customizable_result_for_every_sample::Bool
 
     function Trial(
         params,
@@ -17,8 +17,8 @@ mutable struct Trial
         gctimes,
         memory,
         allocs,
-        customisable_result=nothing,
-        customisable_result_for_every_sample=false,
+        customizable_result=nothing,
+        customizable_result_for_every_sample=false,
     )
         return new(
             params,
@@ -26,8 +26,8 @@ mutable struct Trial
             gctimes,
             memory,
             allocs,
-            customisable_result,
-            customisable_result_for_every_sample,
+            customizable_result,
+            customizable_result_for_every_sample,
         )
     end
 end
@@ -49,10 +49,10 @@ function Base.copy(t::Trial)
         copy(t.gctimes),
         t.memory,
         t.allocs,
-        if t.customisable_result_for_every_sample
-            copy(t.customisable_result)
+        if t.customizable_result_for_every_sample
+            copy(t.customizable_result)
         else
-            t.customisable_result
+            t.customizable_result
         end,
     )
 end
@@ -79,10 +79,10 @@ function Base.getindex(t::Trial, i::Number)
         [t.gctimes[i]],
         t.memory,
         t.allocs,
-        if t.customisable_result_for_every_sample
-            [t.customisable_result[i]]
+        if t.customizable_result_for_every_sample
+            [t.customizable_result[i]]
         else
-            t.customisable_result
+            t.customizable_result
         end,
     )
 end
@@ -93,10 +93,10 @@ function Base.getindex(t::Trial, i)
         t.gctimes[i],
         t.memory,
         t.allocs,
-        if t.customisable_result_for_every_sample
-            t.customisable_result[i]
+        if t.customizable_result_for_every_sample
+            t.customizable_result[i]
         else
-            t.customisable_result
+            t.customizable_result
         end,
     )
 end
@@ -155,18 +155,18 @@ mutable struct TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
-    customisable_result
+    customizable_result
 
     function TrialEstimate(
-        params, times, gctime, memory, allocs, customisable_result=nothing
+        params, times, gctime, memory, allocs, customizable_result=nothing
     )
-        return new(params, times, gctime, memory, allocs, customisable_result)
+        return new(params, times, gctime, memory, allocs, customizable_result)
     end
 end
 
 function TrialEstimate(trial::Trial, t, gct)
     return TrialEstimate(
-        params(trial), t, gct, memory(trial), allocs(trial), trial.customisable_result
+        params(trial), t, gct, memory(trial), allocs(trial), trial.customizable_result
     )
 end
 
@@ -180,7 +180,7 @@ end
 
 function Base.copy(t::TrialEstimate)
     return TrialEstimate(
-        copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.customisable_result
+        copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.customizable_result
     )
 end
 

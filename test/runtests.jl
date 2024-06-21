@@ -36,5 +36,5 @@ took_seconds = @elapsed include("SerializationTests.jl")
 println("done (took ", took_seconds, " seconds)")
 
 print("Testing custom benchmarking...")
-took_seconds = @elapsed include("CustomisableBenchmarkTests.jl")
+took_seconds = @elapsed include("customizableBenchmarkTests.jl")
 println("done (took ", took_seconds, " seconds)")

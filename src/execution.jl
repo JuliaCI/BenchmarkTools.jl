@@ -16,7 +16,7 @@ end
 
 mutable struct Benchmark
     samplefunc
-    customisable_func
+    customizable_func
     quote_vals
     params::Parameters
 end
@@ -111,56 +111,56 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     if warmup #warmup sample
-        params.run_customisable_func_only &&
+        params.run_customizable_func_only &&
             b.samplefunc(b.quote_vals, Parameters(params; evals=1))
-        !params.run_customisable_func_only &&
-            b.customisable_func(b.quote_vals, Parameters(params; evals=1))
+        !params.run_customizable_func_only &&
+            b.customizable_func(b.quote_vals, Parameters(params; evals=1))
     end
     trial = Trial(params)
-    if params.enable_customisable_func == :ALL
-        trial.customisable_result = []
-        trial.customisable_result_for_every_sample = true
+    if params.enable_customizable_func == :ALL
+        trial.customizable_result = []
+        trial.customizable_result_for_every_sample = true
     end
     params.gctrial && gcscrub()
     start_time = Base.time()
 
     return_val = nothing
-    if !params.run_customisable_func_only
+    if !params.run_customizable_func_only
         s = b.samplefunc(b.quote_vals, params)
         push!(trial, s[1:(end - 1)]...)
         return_val = s[end]
     end
-    if params.enable_customisable_func == :ALL
-        params.customisable_gcsample && gcscrub()
-        s = b.customisable_func(b.quote_vals, params)
-        push!(trial.customisable_result, s[1])
+    if params.enable_customizable_func == :ALL
+        params.customizable_gcsample && gcscrub()
+        s = b.customizable_func(b.quote_vals, params)
+        push!(trial.customizable_result, s[1])
 
-        if params.run_customisable_func_only
+        if params.run_customizable_func_only
             return_val = s[end]
         end
     end
 
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-        if !params.run_customisable_func_only
+        if !params.run_customizable_func_only
             params.gcsample && gcscrub()
             push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
         end
 
-        if params.enable_customisable_func == :ALL
-            params.customisable_gcsample && gcscrub()
-            push!(trial.customisable_result, b.customisable_func(b.quote_vals, params)[1])
+        if params.enable_customizable_func == :ALL
+            params.customizable_gcsample && gcscrub()
+            push!(trial.customizable_result, b.customizable_func(b.quote_vals, params)[1])
         end
 
         iters += 1
     end
 
-    if params.enable_customisable_func == :LAST
-        params.customisable_gcsample && gcscrub()
-        s = b.customisable_func(b.quote_vals, params)
-        trial.customisable_result = s[1]
+    if params.enable_customizable_func == :LAST
+        params.customizable_gcsample && gcscrub()
+        s = b.customizable_func(b.quote_vals, params)
+        trial.customizable_result = s[1]
 
-        if params.run_customisable_func_only
+        if params.run_customizable_func_only
             return_val = s[end]
         end
     end
@@ -578,7 +578,7 @@ function generate_benchmark_definition(
     @nospecialize
     corefunc = gensym("core")
     samplefunc = gensym("sample")
-    customisable_func = gensym("customisable")
+    customizable_func = gensym("customizable")
     type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
     signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
     signature_def = Expr(
@@ -644,7 +644,7 @@ function generate_benchmark_definition(
                 )...,
                 __return_val
             end
-            @noinline function $(customisable_func)(
+            @noinline function $(customizable_func)(
                 $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
             )
                 local __setup_prehook_result
@@ -680,7 +680,7 @@ function generate_benchmark_definition(
                 end
             end
             $BenchmarkTools.Benchmark(
-                $(samplefunc), $(customisable_func), $(quote_vals), $(params)
+                $(samplefunc), $(customizable_func), $(quote_vals), $(params)
             )
         end,
     )
