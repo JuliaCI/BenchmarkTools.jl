@@ -86,7 +86,18 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
 - `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
 
-To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS`, for example:
+The following keyword arguments relate to [Running custom benchmarks] are experimental and subject to change, see [Running custom benchmarks] for furthe details.:
+
+- `run_customizable_func_only`: If `true`, only the customizable benchmark. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS..run_customizable_func_only = false`.
+- `enable_customizable_func`: If `:ALL` the customizable benchmark runs on every sample, if `:LAST` the customizable benchmark runs on the last sample, if `:FALSE` the customizable benchmark is never run. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.enable_customizable_func = :FALSE`
+- `customizable_gcsample`: If `true`, runs `gc()` before each sample of the customizable benchmark. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.customizable_gcsample = false`
+- `setup_prehook`: Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = _nothing_func`, which returns nothing.
+- `teardown_posthook`: Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = _nothing_func`, which returns nothing.
+- `sample_result`: Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = _nothing_func`, which returns nothing.
+- `prehook`: Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = _nothing_func`, which returns nothing.
+- `posthook`: Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.teardown_posthook = _nothing_func`, which returns nothing.
+
+To change the default values of the above fields, one can mutate the fields of `BenchmarkTools.DEFAULT_PARAMETERS` (this is not supported for `prehook` and `posthook`), for example:
 
 ```julia
 # change default for `seconds` to 2.5
@@ -347,10 +358,20 @@ BenchmarkTools.Trial
     gcsample: Bool false
     time_tolerance: Float64 0.05
     memory_tolerance: Float64 0.01
+    run_customizable_func_only: Bool false
+    enable_customizable_func: Symbol FALSE
+    customizable_gcsample: Bool false
+    setup_prehook: _nothing_func (function of type typeof(BenchmarkTools._nothing_func))
+    teardown_posthook: _nothing_func (function of type typeof(BenchmarkTools._nothing_func))
+    sample_result: _nothing_func (function of type typeof(BenchmarkTools._nothing_func))
+    prehook: _nothing_func (function of type typeof(BenchmarkTools._nothing_func))
+    posthook: _nothing_func (function of type typeof(BenchmarkTools._nothing_func))
   times: Array{Float64}((10000,)) [26549.0, 26960.0, 27030.0, 27171.0, 27211.0, 27261.0, 27270.0, 27311.0, 27311.0, 27321.0  …  55383.0, 55934.0, 58649.0, 62847.0, 68547.0, 75761.0, 247081.0, 1.421718e6, 1.488322e6, 1.50329e6]
   gctimes: Array{Float64}((10000,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.366184e6, 1.389518e6, 1.40116e6]
   memory: Int64 16752
   allocs: Int64 19
+  customizable_result: Nothing nothing
+  customizable_result_for_every_sample: Bool false
 ```
 
 As you can see from the above, a couple of different timing estimates are pretty-printed with the `Trial`. You can calculate these estimates yourself using the `minimum`, `maximum`, `median`, `mean`, and `std` functions (Note that `median`, `mean`, and `std` are reexported in `BenchmarkTools` from `Statistics`):
@@ -1008,3 +1029,51 @@ This will display each `Trial` as a violin plot.
 - BenchmarkTools attempts to be robust against machine noise occurring between *samples*, but BenchmarkTools can't do very much about machine noise occurring between *trials*. To cut down on the latter kind of noise, it is advised that you dedicate CPUs and memory to the benchmarking Julia process by using a shielding tool such as [cset](http://manpages.ubuntu.com/manpages/precise/man1/cset.1.html).
 - On some machines, for some versions of BLAS and Julia, the number of BLAS worker threads can exceed the number of available cores. This can occasionally result in scheduling issues and inconsistent performance for BLAS-heavy benchmarks. To fix this issue, you can use `BLAS.set_num_threads(i::Int)` in the Julia REPL to ensure that the number of BLAS threads is equal to or less than the number of available cores.
 - `@benchmark` is evaluated in global scope, even if called from local scope.
+
+## Experimental - Running custom benchmarks
+
+If you want to run code during a benchmark, e.g. to collect different metrics, say using perf, you can configure a custom benchmark.
+A custom benchmark runs in the following way, where `benchmark_function` is the function we are benchmarking:
+```julia
+local setup_prehook_result
+try
+  setup_prehook_result = setup_prehook(params)
+  $(setup)
+  prehook_result = prehook()
+  for _ in 1:evals
+    benchmark_function()
+  end
+  posthook_result = posthook()
+  return sample_result(params, setup_prehook_result, prehook_result, posthook_result)
+finally
+  $(teardown)
+  teardown_posthook(params, setup_prehook_result)
+end
+```
+The result from `sample_result` is collected and can be accessed from the `customizable_result` field of `Trial`, which is the type of a benchmark result.
+
+Note that `prehook` and `posthook` should be as simple and fast as possible, moving any heavy lifting to `setup_prehook`, `sample_result` and `teardown_posthook`.
+
+As an example, these are the hooks to replicate the normal benchmarking functionality
+```julia
+setup_prehook(_) = nothing
+samplefunc_prehook() = (Base.gc_num(), time_ns())
+samplefunc_posthook = samplefunc_prehook
+function samplefunc_sample_result(params, _, prehook_result, posthook_result)
+    evals = params.evals
+    sample_time = posthook_result[2] - prehook_result[2]
+    gcdiff = Base.GC_Diff(posthook_result[1], prehook_result[1])
+
+    time = max((sample_time / evals) - params.overhead, 0.001)
+    gctime = max((gcdiff.total_time / evals) - params.overhead, 0.0)
+    memory = Int(Base.fld(gcdiff.allocd, evals))
+    allocs = Int(
+        Base.fld(
+            gcdiff.malloc + gcdiff.realloc + gcdiff.poolalloc + gcdiff.bigalloc,
+            evals,
+        ),
+    )
+    return time, gctime, memory, allocs
+end
+teardown_posthook(_, _) = nothing
+```
