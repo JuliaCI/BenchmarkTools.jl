@@ -86,7 +86,7 @@ You can pass the following keyword arguments to `@benchmark`, `@benchmarkable`, 
 - `time_tolerance`: The noise tolerance for the benchmark's time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05`.
 - `memory_tolerance`: The noise tolerance for the benchmark's memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01`.
 
-The following keyword arguments relate to [Running custom benchmarks] are experimental and subject to change, see [Running custom benchmarks] for furthe details.:
+The following keyword arguments relate are experimental and subject to change, see [Running custom benchmarks](@ref) for further details:
 
 - `run_customizable_func_only`: If `true`, only the customizable benchmark. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS..run_customizable_func_only = false`.
 - `enable_customizable_func`: If `:ALL` the customizable benchmark runs on every sample, if `:LAST` the customizable benchmark runs on the last sample, if `:FALSE` the customizable benchmark is never run. Defaults to `BenchmarkTools.DEFAULT_PARAMETERS.enable_customizable_func = :FALSE`
