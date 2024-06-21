@@ -1,4 +1,4 @@
-module customizableBenchmarkTests
+module CustomizableBenchmarkTests
 
 using BenchmarkTools
 using Test
