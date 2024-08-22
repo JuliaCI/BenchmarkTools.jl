@@ -45,7 +45,7 @@ end
 # compatiblity hacks #
 ######################
 
-function run_result(b::Benchmark, p::Parameters=b.params; kwargs...)
+function run_result(b::Benchmark, id::String, p::Parameters=b.params; kwargs...)
     return Base.invokelatest(_run, b, p; kwargs...)
 end
 function lineartrial(b::Benchmark, p::Parameters=b.params; kwargs...)
@@ -107,7 +107,7 @@ end
 # Note that trials executed via `run` and `lineartrial` are always executed at top-level
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
-function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
+function _run(b::Benchmark, id::String, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     if warmup #warmup sample
@@ -132,7 +132,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
     end
     if params.enable_customizable_func == :ALL
         params.customizable_gcsample && gcscrub()
-        s = b.customizable_func(b.quote_vals, params)
+        s = b.customizable_func(b.quote_vals, params, id)
         push!(trial.customizable_result, s[1])
 
         if params.run_customizable_func_only
@@ -149,7 +149,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
 
         if params.enable_customizable_func == :ALL
             params.customizable_gcsample && gcscrub()
-            push!(trial.customizable_result, b.customizable_func(b.quote_vals, params)[1])
+            push!(trial.customizable_result, b.customizable_func(b.quote_vals, params, id)[1])
         end
 
         iters += 1
@@ -157,7 +157,7 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
 
     if params.enable_customizable_func == :LAST
         params.customizable_gcsample && gcscrub()
-        s = b.customizable_func(b.quote_vals, params)
+        s = b.customizable_func(b.quote_vals, params, id)
         trial.customizable_result = s[1]
 
         if params.run_customizable_func_only
@@ -175,6 +175,7 @@ Run the benchmark defined by [`@benchmarkable`](@ref).
 """
 function Base.run(
     b::Benchmark,
+    id::String,
     p::Parameters=b.params;
     progressid=nothing,
     nleaves=NaN,
@@ -189,7 +190,7 @@ end
 
 Run the benchmark group, with benchmark parameters set to `group`'s by default.
 """
-function Base.run(group::BenchmarkGroup, args...; verbose::Bool=false, pad="", kwargs...)
+function Base.run(group::BenchmarkGroup, gid::String, args...; verbose::Bool=false, pad="", kwargs...)
     _withprogress("Benchmarking", group; kwargs...) do progressid, nleaves, ndone
         result = similar(group)
         gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
@@ -203,6 +204,7 @@ function Base.run(group::BenchmarkGroup, args...; verbose::Bool=false, pad="", k
             took_seconds = @elapsed begin
                 result[id] = run(
                     group[id],
+                    gid * "/" * id,
                     args...;
                     verbose=verbose,
                     pad=pad * "  ",
@@ -645,7 +647,7 @@ function generate_benchmark_definition(
                 __return_val
             end
             @noinline function $(customizable_func)(
-                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters, id::String
             )
                 local __setup_prehook_result
                 try
@@ -661,7 +663,7 @@ function generate_benchmark_definition(
                             for __iter in 2:__evals
                                 $BenchmarkTools.@noinline $(invocation)
                             end
-                            posthook_result = __params.posthook()
+                            posthook_result = __params.posthook(id)
                             return prehook_result, posthook_result, __return_val_2
                         end
                     )(
