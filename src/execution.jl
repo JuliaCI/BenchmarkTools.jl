@@ -46,7 +46,7 @@ end
 ######################
 
 function run_result(b::Benchmark, id::String, p::Parameters=b.params; kwargs...)
-    return Base.invokelatest(_run, b, p; kwargs...)
+    return Base.invokelatest(_run, b, id, p; kwargs...)
 end
 function lineartrial(b::Benchmark, p::Parameters=b.params; kwargs...)
     return Base.invokelatest(_lineartrial, b, p; kwargs...)
@@ -182,7 +182,7 @@ function Base.run(
     ndone=NaN,
     kwargs...,
 )
-    return run_result(b, p; kwargs...)[1]
+    return run_result(b, id, p; kwargs...)[1]
 end
 
 """
@@ -487,7 +487,7 @@ macro benchmark(args...)
         quote
             local $tmp = $BenchmarkTools.@benchmarkable $(args...)
             $(hasevals(params) ? :() : :($BenchmarkTools.tune!($tmp)))
-            $BenchmarkTools.run($tmp; warmup=$(hasevals(params)))
+            $BenchmarkTools.run($tmp, $(string(first(args))), ; warmup=$(hasevals(params)))
         end,
     )
 end
