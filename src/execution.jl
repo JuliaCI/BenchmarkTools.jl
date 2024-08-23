@@ -204,7 +204,7 @@ function Base.run(group::BenchmarkGroup, gid::String, args...; verbose::Bool=fal
             took_seconds = @elapsed begin
                 result[id] = run(
                     group[id],
-                    gid * "/" * id,
+                    gid * "/" * string(id),
                     args...;
                     verbose=verbose,
                     pad=pad * "  ",
