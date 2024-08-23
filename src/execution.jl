@@ -114,7 +114,7 @@ function _run(b::Benchmark, id::String, p::Parameters; verbose=false, pad="", wa
         params.run_customizable_func_only &&
             b.samplefunc(b.quote_vals, Parameters(params; evals=1))
         !params.run_customizable_func_only &&
-            b.customizable_func(b.quote_vals, Parameters(params; evals=1))
+            b.customizable_func(b.quote_vals, Parameters(params; evals=1), id)
     end
     trial = Trial(params)
     if params.enable_customizable_func == :ALL
