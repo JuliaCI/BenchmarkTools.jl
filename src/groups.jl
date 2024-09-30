@@ -113,6 +113,8 @@ Base.min(groups::BenchmarkGroup...) = mapvals(min, groups...)
 Base.max(groups::BenchmarkGroup...) = mapvals(max, groups...)
 
 Base.time(group::BenchmarkGroup) = mapvals(time, group)
+instructions(group::BenchmarkGroup) = mapvals(instructions, group)
+branches(group::BenchmarkGroup) = mapvals(branches, group)
 gctime(group::BenchmarkGroup) = mapvals(gctime, group)
 memory(group::BenchmarkGroup) = mapvals(memory, group)
 allocs(group::BenchmarkGroup) = mapvals(allocs, group)

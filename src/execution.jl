@@ -506,6 +506,24 @@ macro benchmarkable(args...)
     end
 end
 
+struct PerfInterface
+    setup::Function
+    start::Function
+    stop::Function
+    read::Function
+    teardown::Function
+
+    function PerfInterface(;
+        setup=Returns(nothing),
+        start=Returns(nothing),
+        stop=Returns(nothing),
+        read=Returns((NaN, NaN)),
+        teardown=Returns(nothing),
+    )
+        return new(setup, start, stop, read, teardown)
+    end
+end
+
 # `eval` an expression that forcibly defines the specified benchmark at
 # top-level in order to allow transfer of locally-scoped variables into
 # benchmark scope.
@@ -553,6 +571,8 @@ function generate_benchmark_definition(
             end
         )
     end
+    ext = Base.get_extension(BenchmarkTools, :LinuxPerfExt)
+    LinuxPerf = isnothing(ext) ? PerfInterface() : ext.interface()
     return Core.eval(
         eval_module,
         quote
@@ -563,17 +583,34 @@ function generate_benchmark_definition(
                 $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
             )
                 $(setup)
+                __perf_bench = $(LinuxPerf.setup)()
+                __gcdiff = nothing
+                __return_val = nothing
+                __sample_time::Int64 = 0
+                __sample_instructions::Float64 = 0
+                __sample_branches::Float64 = 0
                 __evals = __params.evals
-                __gc_start = Base.gc_num()
-                __start_time = time_ns()
-                __return_val = $(invocation)
-                for __iter in 2:__evals
-                    $(invocation)
+                try
+                    __gc_start = Base.gc_num()
+                    $(LinuxPerf.start)(__perf_bench)
+                    __start_time = time_ns()
+                    __return_val = $(invocation)
+                    for __iter in 2:__evals
+                        $(invocation)
+                    end
+                    __sample_time = time_ns() - __start_time
+                    $(LinuxPerf.stop)(__perf_bench)
+                    __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
+                    __sample_instructions, __sample_branches = $(LinuxPerf.read)(
+                        __perf_bench
+                    )
+                finally
+                    $(LinuxPerf.teardown)(__perf_bench)
+                    $(teardown)
                 end
-                __sample_time = time_ns() - __start_time
-                __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
-                $(teardown)
                 __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+                __instructions = max(__sample_instructions / __evals, 0.0) # may be NaN
+                __branches = max(__sample_branches / __evals, 0.0) # may be NaN
                 __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
                 __memory = Int(Base.fld(__gcdiff.allocd, __evals))
                 __allocs = Int(
@@ -585,7 +622,9 @@ function generate_benchmark_definition(
                         __evals,
                     ),
                 )
-                return __time, __gctime, __memory, __allocs, __return_val
+                return __time,
+                __instructions, __branches, __gctime, __memory, __allocs,
+                __return_val
             end
             $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
         end,

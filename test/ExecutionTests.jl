@@ -261,7 +261,13 @@ for (tf, rex1, rex2) in (
     ioctx = IOContext(io, :logbins => tf)
     # A flat distribution won't trigger log by default
     b = BenchmarkTools.Trial(
-        BenchmarkTools.DEFAULT_PARAMETERS, 0.001 * (1:100) * 1e9, zeros(100), 0, 0
+        BenchmarkTools.DEFAULT_PARAMETERS,
+        0.001 * (1:100) * 1e9,
+        zeros(100),
+        zeros(100),
+        zeros(100),
+        0,
+        0,
     )
     show(ioctx, MIME("text/plain"), b)
     str = String(take!(io))
@@ -272,6 +278,8 @@ for (tf, rex1, rex2) in (
     b = BenchmarkTools.Trial(
         BenchmarkTools.DEFAULT_PARAMETERS,
         t / sum(t) * 1e9 * BenchmarkTools.DEFAULT_PARAMETERS.seconds,
+        zeros(100),
+        zeros(100),
         zeros(100),
         0,
         0,
