@@ -55,8 +55,38 @@ function recover(x::Vector)
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
-            elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
-                fields[fn] === nothing
+            elseif fn in ("instructions", "branches")
+                # JSON spec doesn't support NaN, so handle it specially here
+                if !haskey(fields, fn)
+                    if ft === Vector{Float64}
+                        Float64[NaN for _ in length(fields["time"])]
+                    elseif ft === Float64
+                        NaN
+                    else
+                        @assert false
+                    end
+                else
+                    if ft === Vector{Float64}
+                        Float64[
+                            elem === nothing ? NaN : convert(Float64, elem) for
+                            elem in fields[fn]
+                        ]
+                    else
+                        fields[fn] === nothing ? NaN : convert(ft, fields[fn])
+                    end
+                end
+            elseif fn == "instruction_tolerance" && !haskey(fields, fn)
+                DEFAULT_PARAMETERS.instruction_tolerance
+            elseif fn == "branch_tolerance" && !haskey(fields, fn)
+                DEFAULT_PARAMETERS.branch_tolerance
+            elseif fn in (
+                "seconds",
+                "overhead",
+                "time_tolerance",
+                "instruction_tolerance",
+                "branch_tolerance",
+                "memory_tolerance",
+            ) && fields[fn] === nothing
                 # JSON spec doesn't support Inf
                 # These fields should all be >= 0, so we can ignore -Inf case
                 typemax(ft)

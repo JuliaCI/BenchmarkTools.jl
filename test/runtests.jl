@@ -34,3 +34,11 @@ println("done (took ", took_seconds, " seconds)")
 print("Testing serialization...")
 took_seconds = @elapsed include("SerializationTests.jl")
 println("done (took ", took_seconds, " seconds)")
+
+@static if Sys.islinux()
+    using LinuxPerf
+
+    print("Testing execution (w/ LinuxPerf)...")
+    took_seconds = @elapsed include("ExecutionTests.jl")
+    println("done (took ", took_seconds, " seconds)")
+end

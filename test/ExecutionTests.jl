@@ -261,7 +261,13 @@ for (tf, rex1, rex2) in (
     ioctx = IOContext(io, :logbins => tf)
     # A flat distribution won't trigger log by default
     b = BenchmarkTools.Trial(
-        BenchmarkTools.DEFAULT_PARAMETERS, 0.001 * (1:100) * 1e9, zeros(100), 0, 0
+        BenchmarkTools.DEFAULT_PARAMETERS,
+        0.001 * (1:100) * 1e9,
+        zeros(100),
+        zeros(100),
+        zeros(100),
+        0,
+        0,
     )
     show(ioctx, MIME("text/plain"), b)
     str = String(take!(io))
@@ -272,6 +278,8 @@ for (tf, rex1, rex2) in (
     b = BenchmarkTools.Trial(
         BenchmarkTools.DEFAULT_PARAMETERS,
         t / sum(t) * 1e9 * BenchmarkTools.DEFAULT_PARAMETERS.seconds,
+        zeros(100),
+        zeros(100),
         zeros(100),
         0,
         0,
@@ -308,8 +316,8 @@ b = @bprofile likegcd(x, y) setup = (x = rand(2:200); y = rand(2:200))
 io = IOBuffer()
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
-@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; #?_run", str)
-@test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; #?tune!", str)
+@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+( |;) #?_run", str)
+@test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+( |;) #?tune!", str)
 b = @bprofile 1 + 1
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
