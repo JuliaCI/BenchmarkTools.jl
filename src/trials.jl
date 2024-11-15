@@ -218,8 +218,17 @@ memory(t::TrialJudgement) = t.memory
 ratio(t::TrialJudgement) = t.ratio
 params(t::TrialJudgement) = params(ratio(t))
 
+"""
+    judge(a::TrialEstimate, b::TrialEstimate; [time_tolerance::Float64=0.05])
+    judge(groups::BenchmarkGroup..., [time_tolerance::Float64=0.05])
+
+Report if the estimate passed as first argument represents a regression versus the second estimate.
+"""
 judge(a::TrialEstimate, b::TrialEstimate; kwargs...) = judge(ratio(a, b); kwargs...)
 
+"""
+    judge(r::TrialRatio, [time_tolerance::Float64=0.05])
+"""
 function judge(r::TrialRatio; kwargs...)
     newr = copy(r)
     newr.params = Parameters(params(r); kwargs...)
