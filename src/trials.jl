@@ -377,6 +377,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
         else
             ""
         end,
+        " each".
         ".\n",
     )
 
