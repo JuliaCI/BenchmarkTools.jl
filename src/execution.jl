@@ -684,6 +684,30 @@ macro btime(args...)
     )
 end
 
+macro btimed(args...)
+    _, params = prunekwargs(args...)
+    bench, trial, result = gensym(), gensym(), gensym()
+    trialmin = gensym()
+    tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
+    return esc(
+        quote
+            local $bench = $BenchmarkTools.@benchmarkable $(args...)
+            $tune_phase
+            local $trial, $result = $BenchmarkTools.run_result(
+                $bench; warmup=$(hasevals(params))
+            )
+            local $trialmin = $BenchmarkTools.minimum($trial)
+            (
+                value=$result,
+                time=$BenchmarkTools.time($trialmin) / 1e9,  # `@timed` macro returns elapsed time in seconds
+                bytes=$BenchmarkTools.memory($trialmin),
+                alloc=$BenchmarkTools.allocs($trialmin),
+                gctime=$BenchmarkTools.gctime($trialmin) / 1e9,
+            )
+        end,
+    )
+end
+
 """
     @bprofile expression [other parameters...]
 
