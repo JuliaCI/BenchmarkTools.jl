@@ -641,6 +641,16 @@ macro ballocated(args...)
     )
 end
 
+macro ballocations(args...)
+    return esc(
+        quote
+            $BenchmarkTools.allocs(
+                $BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...))
+            )
+        end,
+    )
+end
+
 """
     @btime expression [other parameters...]
 
