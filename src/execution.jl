@@ -471,6 +471,8 @@ function benchmarkable_parts(args)
     quote_vars = Symbol[]
     quote_vals = Expr[]
     core = quasiquote!(core, quote_vars, quote_vals)
+    setup = quasiquote!(setup, quote_vars, quote_vals)
+    teardown = quasiquote!(teardown, quote_vars, quote_vals)
 
     return core, setup, teardown, quote_vars, quote_vals, params
 end
