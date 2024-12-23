@@ -57,12 +57,11 @@ BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
  Memory estimate: 0 bytes, allocs estimate: 0.
 ```
 
-Alternatively, you can use the `@btime` or `@belapsed` macros.
-These take exactly the same arguments as `@benchmark`, but
-behave like the `@time` or `@elapsed` macros included with
-Julia: `@btime` prints the minimum time and memory allocation
-before returning the value of the expression, while `@belapsed`
-returns the minimum time in seconds.
+Alternatively, you can use the `@btime`, `@btimed`,
+`@belapsed`, `@ballocated`, or `@ballocations` macros. These
+take exactly the same arguments as `@benchmark`, but behave
+like the `@time`, `@timed`, `@elapsed`, `@allocated`, or
+`@allocations` macros included with Julia.
 
 ```julia
 julia> @btime sin(1)
@@ -71,6 +70,15 @@ julia> @btime sin(1)
 
 julia> @belapsed sin(1)
 1.3614228456913828e-8
+
+julia> @btimed sin(1)
+(value = 0.8414709848078965, time = 9.16e-10, bytes = 0, alloc = 0, gctime = 0.0)
+
+julia> @ballocated rand(4, 4)
+208
+
+julia> @ballocations rand(4, 4)
+2
 ```
 
 ### Benchmark `Parameters`

@@ -345,6 +345,22 @@ str = String(take!(io))
 @test @ballocated(sin(0)) == 0
 @test @ballocated(Ref(1)) == 2 * sizeof(Int)  # 1 for the pointer, 1 for content
 
+@test @ballocations(sin($(foo.x)), evals = 3, samples = 10, setup = (foo.x = 0)) == 0
+@test @ballocations(sin(0)) == 0
+@test @ballocations(Ref(1)) == 1
+
+@test let stats = @btimed sin($(foo.x)) evals = 3 samples = 10 setup = (foo.x = 0)
+    stats.value == sin(0) &&
+        stats.time > 0 &&
+        stats.bytes == 0 &&
+        stats.alloc == 0 &&
+        stats.gctime == 0
+end
+
+@test let stats = @btimed Ref(1)
+    stats.bytes > 0 && stats.alloc == 1 && stats.gctime == 0
+end
+
 let fname = tempname()
     try
         ret = open(fname, "w") do f
