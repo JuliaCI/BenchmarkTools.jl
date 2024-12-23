@@ -176,6 +176,11 @@ function ratio(a::Real, b::Real)
     return Float64(a / b)
 end
 
+"""
+    ratio(target::TrialEstimate, baseline::TrialEstimate)
+
+Returns a ratio of the target estimate to the baseline estimate, as e.g. `time(target)/time(baseline)`.
+"""
 function ratio(a::TrialEstimate, b::TrialEstimate)
     ttol = max(params(a).time_tolerance, params(b).time_tolerance)
     mtol = max(params(a).memory_tolerance, params(b).memory_tolerance)
@@ -219,12 +224,12 @@ ratio(t::TrialJudgement) = t.ratio
 params(t::TrialJudgement) = params(ratio(t))
 
 """
-    judge(a::TrialEstimate, b::TrialEstimate; [time_tolerance::Float64=0.05])
-    judge(groups::BenchmarkGroup..., [time_tolerance::Float64=0.05])
+    judge(target::TrialEstimate, baseline::TrialEstimate; [time_tolerance::Float64=0.05])
 
-Report if the estimate passed as first argument represents a regression versus the second estimate.
+Report on whether the first estimate `target` represents a regression or an improvement with respect to the second estimate `baseline`.
 """
-judge(a::TrialEstimate, b::TrialEstimate; kwargs...) = judge(ratio(a, b); kwargs...)
+judge(target::TrialEstimate, baseline::TrialEstimate; kwargs...) =
+    judge(ratio(target, baseline); kwargs...)
 
 """
     judge(r::TrialRatio, [time_tolerance::Float64=0.05])
