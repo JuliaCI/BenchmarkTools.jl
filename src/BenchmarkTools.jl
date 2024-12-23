@@ -63,7 +63,16 @@ export BenchmarkGroup,
 
 include("execution.jl")
 
-export tune!, warmup, @ballocated, @benchmark, @benchmarkable, @belapsed, @btime, @bprofile
+export tune!,
+    warmup,
+    @ballocated,
+    @ballocations,
+    @benchmark,
+    @benchmarkable,
+    @belapsed,
+    @btime,
+    @btimed,
+    @bprofile
 
 #################
 # Serialization #
