@@ -555,7 +555,7 @@ function generate_benchmark_definition(
             end
         )
     end
-    return Core.eval(
+    samplefunc = Core.eval(
         eval_module,
         quote
             @noinline $(signature_def) = begin
@@ -589,9 +589,9 @@ function generate_benchmark_definition(
                 )
                 return __time, __gctime, __memory, __allocs, __return_val
             end
-            $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
         end,
     )
+    Benchmark(samplefunc, quote_vals, params)
 end
 
 ######################
