@@ -380,15 +380,15 @@ function quasiquote!(ex::Expr, vars::Vector{Symbol}, vals::Vector{Expr})
 end
 
 """
-    rename(expr::Expr, renames::Dict{Symbol, Symbol})
+    substitute_syms(expr::Expr, old_new::Dict{Symbol, Symbol})
 
-Rename variables in `expr` using substitutions in `renames`.
+Substitute symbols in `expr` using substitutions in `old_new`.
 """
-rename(ex, _...) = ex
-rename(ex::Symbol, renames::Dict{Symbol, Symbol}) = get(renames, ex, ex)
-function rename(ex::Expr, renames::Dict{Symbol, Symbol})
+substitute_syms(ex, _...) = ex
+substitute_syms(ex::Symbol, old_new::Dict{Symbol, Symbol}) = get(old_new, ex, ex)
+function substitute_syms(ex::Expr, old_new::Dict{Symbol, Symbol})
     if ex.head !== :quote
-        return Expr(ex.head, map(x -> rename(x, renames), ex.args)...)
+        return Expr(ex.head, map(x -> substitute_syms(x, old_new), ex.args)...)
     else
         return ex
     end
@@ -536,8 +536,20 @@ function generate_benchmark_definition(
     eval_module, out_vars, setup_vars, quote_vars, quote_vals, core, setup, teardown, params
 )
     @nospecialize
-    renames = Dict{Symbol, Symbol}(map(((i, var),) -> var => Symbol(:norm, i), enumerate(quote_vars)))
-    samplefunc_key = (rename(core, renames), rename(setup, renames), rename(teardown, renames), length(quote_vars))
+    normalize_syms = Dict{Symbol, Symbol}(map(((i, var),) -> var => Symbol(:__normal_sym__, i), enumerate(quote_vars)))
+    #We cache the generated benchmark function to avoid recompiling it every time.
+    #We use several keys to cache the generated benchmark function.
+    #Because out_vars and setup_vars are derived from core and setup, we do not
+    #need to use these in the cache. Because quote_vars are identified
+    #positionally, we need only cache their length. We rename the quote vars for caching
+    #because they are generated with gensym()
+    samplefunc_key = [
+        eval_module,
+        substitute_syms(core, normalize_syms),
+        substitute_syms(setup, normalize_syms),
+        substitute_syms(teardown, normalize_syms),
+        length(quote_vars)
+    ]
     samplefunc = get!(cache, samplefunc_key) do
         corefunc = gensym("core")
         samplefunc = gensym("sample")
