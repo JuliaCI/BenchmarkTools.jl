@@ -642,6 +642,30 @@ macro ballocated(args...)
 end
 
 """
+    @ballocations expression [other parameters...]
+
+Similar to the `@allocations` macro included with Julia,
+this macro evaluates an expression, discarding the resulting
+value, and returns the total number of allocations made
+during its execution.
+
+Unlike `@allocations`, it uses the `@benchmark` macro from
+the `BenchmarkTools` package, and accepts all of the same
+additional parameters as `@benchmark`. The returned number
+of allocations corresponds to the trial with the *minimum*
+elapsed time measured during the benchmark.
+"""
+macro ballocations(args...)
+    return esc(
+        quote
+            $BenchmarkTools.allocs(
+                $BenchmarkTools.minimum($BenchmarkTools.@benchmark $(args...))
+            )
+        end,
+    )
+end
+
+"""
     @btime expression [other parameters...]
 
 Similar to the `@time` macro included with Julia,
@@ -680,6 +704,46 @@ macro btime(args...)
                 ")",
             )
             $result
+        end,
+    )
+end
+
+"""
+    @btimed expression [other parameters...]
+
+Similar to the `@timed` macro included with Julia, this
+macro executes an expression and returns a `NamedTuple`
+containing the value of the expression, the minimum elapsed
+time in seconds, the total bytes allocated, the number of
+allocations, and the garbage collection time in seconds
+during the benchmark.
+
+Unlike `@timed`, it uses the `@benchmark` macro from the
+`BenchmarkTools` package for more detailed and consistent
+performance measurements. The elapsed time reported is the
+minimum time measured during the benchmark. It accepts all
+additional parameters supported by `@benchmark`.
+"""
+macro btimed(args...)
+    _, params = prunekwargs(args...)
+    bench, trial, result = gensym(), gensym(), gensym()
+    trialmin = gensym()
+    tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
+    return esc(
+        quote
+            local $bench = $BenchmarkTools.@benchmarkable $(args...)
+            $tune_phase
+            local $trial, $result = $BenchmarkTools.run_result(
+                $bench; warmup=$(hasevals(params))
+            )
+            local $trialmin = $BenchmarkTools.minimum($trial)
+            (
+                value=$result,
+                time=$BenchmarkTools.time($trialmin) / 1e9,  # `@timed` macro returns elapsed time in seconds
+                bytes=$BenchmarkTools.memory($trialmin),
+                alloc=$BenchmarkTools.allocs($trialmin),
+                gctime=$BenchmarkTools.gctime($trialmin) / 1e9,
+            )
         end,
     )
 end
