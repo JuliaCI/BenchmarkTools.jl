@@ -372,6 +372,9 @@ const benchmark_stack = []
 
 Create a benchmark set, or multiple benchmark sets if a `for` loop is provided.
 
+!!! danger "`@benchmarkset` is deprecated."
+    Instead, add to `group = BenchmarkGroup()` using `group[key] = @benchmark...`
+
 # Examples
 
 ```julia
@@ -381,6 +384,10 @@ end
 ```
 """
 macro benchmarkset(title, ex)
+    Base.depwarn(
+        "`BenchmarkTools.@benchmarkset` is deprecated. Instead, add to `group = BenchmarkGroup()` using `group[key] = @benchmark...`",
+        :benchmarkset,
+    )
     return esc(benchmarkset_m(title, ex))
 end
 
@@ -388,6 +395,9 @@ end
     @case title <expr to benchmark> [setup=<setup expr>]
 
 Mark an expression as a benchmark case. Must be used inside [`@benchmarkset`](@ref).
+
+!!! danger "`@benchmarkset` is deprecated."
+    Instead, add to `group = BenchmarkGroup()` using `group[key] = @benchmark...`
 """
 macro case(title, xs...)
     return esc(:($(Symbol("#suite#"))[$title] = @benchmarkable $(xs...)))
