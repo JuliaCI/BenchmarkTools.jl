@@ -377,6 +377,7 @@ end
 ```
 """
 macro benchmarkset(title, ex)
+    Base.depwarn("`BenchmarkTools.@benchmarkset` is deprecated. Add to `group = BenchmarkGroup()` using `group[key] = @benchmark...`", :benchmarkset)
     return esc(benchmarkset_m(title, ex))
 end
 
