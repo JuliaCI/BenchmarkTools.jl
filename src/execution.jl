@@ -379,6 +379,21 @@ function quasiquote!(ex::Expr, vars::Vector{Symbol}, vals::Vector{Expr})
     return ex
 end
 
+"""
+    rename(expr::Expr, renames::Dict{Symbol, Symbol})
+
+Rename variables in `expr` using substitutions in `renames`.
+"""
+rename(ex, _...) = ex
+rename(ex::Symbol, renames::Dict{Symbol, Symbol}) = get(renames, ex, ex)
+function rename(ex::Expr, renames::Dict{Symbol, Symbol})
+    if ex.head !== :quote
+        return Expr(ex.head, map(x -> rename(x, renames), ex.args)...)
+    else
+        return ex
+    end
+end
+
 @doc raw"""
     @benchmark <expr to benchmark> [setup=<setup expr>]
 
@@ -508,6 +523,8 @@ macro benchmarkable(args...)
     end
 end
 
+cache = Dict()
+
 # `eval` an expression that forcibly defines the specified benchmark at
 # top-level in order to allow transfer of locally-scoped variables into
 # benchmark scope.
@@ -519,78 +536,82 @@ function generate_benchmark_definition(
     eval_module, out_vars, setup_vars, quote_vars, quote_vals, core, setup, teardown, params
 )
     @nospecialize
-    corefunc = gensym("core")
-    samplefunc = gensym("sample")
-    type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
-    signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
-    signature_def = Expr(
-        :where,
-        Expr(
-            :call,
-            corefunc,
-            [
-                Expr(:(::), var, type) for
-                (var, type) in zip([quote_vars; setup_vars], type_vars)
-            ]...,
-        ),
-        type_vars...,
-    )
-    if length(out_vars) == 0
-        invocation = signature
-        core_body = core
-    elseif length(out_vars) == 1
-        returns = :(return $(out_vars[1]))
-        invocation = :($(out_vars[1]) = $(signature))
-        core_body = :($(core); $(returns))
-    else
-        returns = :(return $(Expr(:tuple, out_vars...)))
-        invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
-        core_body = :($(core); $(returns))
-    end
-    @static if isdefined(Base, :donotdelete)
-        invocation = :(
-            let x = $invocation
-                Base.donotdelete(x)
-                x
-            end
+    renames = Dict{Symbol, Symbol}(map(((i, var),) -> var => Symbol(:norm, i), enumerate(quote_vars)))
+    samplefunc_key = (rename(core, renames), rename(setup, renames), rename(teardown, renames), length(quote_vars))
+    samplefunc = get!(cache, samplefunc_key) do
+        corefunc = gensym("core")
+        samplefunc = gensym("sample")
+        type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
+        signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
+        signature_def = Expr(
+            :where,
+            Expr(
+                :call,
+                corefunc,
+                [
+                    Expr(:(::), var, type) for
+                    (var, type) in zip([quote_vars; setup_vars], type_vars)
+                ]...,
+            ),
+            type_vars...,
+        )
+        if length(out_vars) == 0
+            invocation = signature
+            core_body = core
+        elseif length(out_vars) == 1
+            returns = :(return $(out_vars[1]))
+            invocation = :($(out_vars[1]) = $(signature))
+            core_body = :($(core); $(returns))
+        else
+            returns = :(return $(Expr(:tuple, out_vars...)))
+            invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
+            core_body = :($(core); $(returns))
+        end
+        @static if isdefined(Base, :donotdelete)
+            invocation = :(
+                let x = $invocation
+                    Base.donotdelete(x)
+                    x
+                end
+            )
+        end
+        Core.eval(
+            eval_module,
+            quote
+                @noinline $(signature_def) = begin
+                    $(core_body)
+                end
+                @noinline function $(samplefunc)(
+                    $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+                )
+                    $(setup)
+                    __evals = __params.evals
+                    __gc_start = Base.gc_num()
+                    __start_time = time_ns()
+                    __return_val = $(invocation)
+                    for __iter in 2:__evals
+                        $(invocation)
+                    end
+                    __sample_time = time_ns() - __start_time
+                    __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
+                    $(teardown)
+                    __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+                    __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
+                    __memory = Int(Base.fld(__gcdiff.allocd, __evals))
+                    __allocs = Int(
+                        Base.fld(
+                            __gcdiff.malloc +
+                            __gcdiff.realloc +
+                            __gcdiff.poolalloc +
+                            __gcdiff.bigalloc,
+                            __evals,
+                        ),
+                    )
+                    return __time, __gctime, __memory, __allocs, __return_val
+                end
+            end,
         )
     end
-    samplefunc = Core.eval(
-        eval_module,
-        quote
-            @noinline $(signature_def) = begin
-                $(core_body)
-            end
-            @noinline function $(samplefunc)(
-                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
-            )
-                $(setup)
-                __evals = __params.evals
-                __gc_start = Base.gc_num()
-                __start_time = time_ns()
-                __return_val = $(invocation)
-                for __iter in 2:__evals
-                    $(invocation)
-                end
-                __sample_time = time_ns() - __start_time
-                __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
-                $(teardown)
-                __time = max((__sample_time / __evals) - __params.overhead, 0.001)
-                __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
-                __memory = Int(Base.fld(__gcdiff.allocd, __evals))
-                __allocs = Int(
-                    Base.fld(
-                        __gcdiff.malloc +
-                        __gcdiff.realloc +
-                        __gcdiff.poolalloc +
-                        __gcdiff.bigalloc,
-                        __evals,
-                    ),
-                )
-                return __time, __gctime, __memory, __allocs, __return_val
-            end
-        end,
-    )
     Benchmark(samplefunc, quote_vals, params)
 end
 
