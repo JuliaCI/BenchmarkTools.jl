@@ -523,7 +523,9 @@ macro benchmarkable(args...)
     end
 end
 
-cache = Dict()
+# This global is used to cache samplefuncs. It doesn't matter if the cache lives
+# through precompilation, it is equivalent to recompile the samplefuncs.
+samplefunc_cache = Dict()
 
 # `eval` an expression that forcibly defines the specified benchmark at
 # top-level in order to allow transfer of locally-scoped variables into
@@ -552,7 +554,7 @@ function generate_benchmark_definition(
         substitute_syms(teardown, normalize_syms),
         length(quote_vars),
     ]
-    samplefunc = get!(cache, samplefunc_key) do
+    samplefunc = get!(samplefunc_cache, samplefunc_key) do
         corefunc = gensym("core")
         samplefunc = gensym("sample")
         type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
