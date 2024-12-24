@@ -765,9 +765,6 @@ information.
 """
 macro bprofile(args...)
     _, params = prunekwargs(args...)
-    if !haskw(args, :gctrial)
-        args = (args..., Expr(:kw, :gctrial, false))
-    end
     if !haskw(args, :gcsample)
         args = (args..., Expr(:kw, :gcsample, false))
     end
@@ -785,8 +782,11 @@ macro bprofile(args...)
                 end
             )
             $BenchmarkTools.Profile.clear()
+            $tmp.params.gctrial && $BenchmarkTools.gcscrub()
             #TODO: improve @bprofile to only measure the running code and none of the setup
-            $BenchmarkTools.@profile $BenchmarkTools.run($tmp, $tmp.params; warmup=false)
+            $BenchmarkTools.@profile $BenchmarkTools.run(
+                $tmp, $tmp.params; warmup=false, gctrial=false
+            )
         end,
     )
 end

@@ -317,7 +317,7 @@ str = String(take!(io))
 b = @bprofile 1 + 1 gctrial = true
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
-@test occursin("gcscrub", str)
+@test !occursin("gcscrub", str)
 
 ########
 # misc #
