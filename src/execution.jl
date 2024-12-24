@@ -560,36 +560,44 @@ function generate_benchmark_definition(
                 $(core_body)
             end
             @noinline function $(samplefunc)(
-                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
-            )
+                __evals,
+                $(Expr(:tuple, quote_vars...)), __params::__P
+            ) where {__P}
                 $(setup)
-                __evals = __params.evals
-                __gc_start = Base.gc_num()
-                __start_time = time_ns()
+                __state = BenchmarkTools.prehook(__evals, __params)
                 __return_val = $(invocation)
                 for __iter in 2:__evals
                     $(invocation)
                 end
-                __sample_time = time_ns() - __start_time
-                __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
+                __result = BenchmarkTools.__posthook(__state, __evals, __params)
                 $(teardown)
-                __time = max((__sample_time / __evals) - __params.overhead, 0.001)
-                __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
-                __memory = Int(Base.fld(__gcdiff.allocd, __evals))
-                __allocs = Int(
-                    Base.fld(
-                        __gcdiff.malloc +
-                        __gcdiff.realloc +
-                        __gcdiff.poolalloc +
-                        __gcdiff.bigalloc,
-                        __evals,
-                    ),
-                )
-                return __time, __gctime, __memory, __allocs, __return_val
             end
             $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
         end,
     )
+end
+
+function prehook(evals, params::Parameters)
+    gc_start = Base.gc_num()
+    start_time = time_ns()
+end
+
+function posthook((gc_start, start_time), evals, params::Parameters)
+    sample_time = time_ns() - start_time
+    gcdiff = Base.GC_Diff(Base.gc_num(), gc_start)
+    time = max((sample_time / evals) - params.overhead, 0.001)
+    gctime = max((gcdiff.total_time / evals) - params.overhead, 0.0)
+    memory = Int(Base.fld(gcdiff.allocd, evals))
+    allocs = Int(
+        Base.fld(
+            gcdiff.malloc +
+            gcdiff.realloc +
+            gcdiff.poolalloc +
+            gcdiff.bigalloc,
+            evals,
+        ),
+    )
+    return time, gctime, memory, allocs, return_val
 end
 
 ######################
