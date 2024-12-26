@@ -110,18 +110,18 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     if warmup
-        b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
+        b.samplefunc(1, b.quote_vals, Parameters(params; evals=1)) #warmup sample
     end
     trial = Trial(params)
     params.gctrial && gcscrub()
     start_time = Base.time()
-    s = b.samplefunc(b.quote_vals, params)
+    s = b.samplefunc(params.evals, b.quote_vals, params)
     push!(trial, s[1:(end - 1)]...)
     return_val = s[end]
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
         params.gcsample && gcscrub()
-        push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
+        push!(trial, b.samplefunc(params.evals, b.quote_vals, params)[1:(end - 1)]...)
         iters += 1
     end
     return trial, return_val
@@ -183,13 +183,13 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     estimates = zeros(maxevals)
     completed = 0
     params.evals = 1
-    b.samplefunc(b.quote_vals, params) #warmup sample
+    b.samplefunc(params.evals, b.quote_vals, params) #warmup sample
     params.gctrial && gcscrub()
     start_time = time()
     for evals in eachindex(estimates)
         params.gcsample && gcscrub()
         params.evals = evals
-        estimates[evals] = first(b.samplefunc(b.quote_vals, params))
+        estimates[evals] = first(b.samplefunc(params.evals, b.quote_vals, params))
         completed += 1
         ((time() - start_time) > params.seconds) && break
     end
@@ -599,6 +599,7 @@ function posthook((gc_start, start_time), evals, params::Parameters)
     )
     return time, gctime, memory, allocs, return_val
 end
+
 
 ######################
 # convenience macros #
