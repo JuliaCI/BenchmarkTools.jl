@@ -308,8 +308,8 @@ b = @bprofile likegcd(x, y) setup = (x = rand(2:200); y = rand(2:200))
 io = IOBuffer()
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
-@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; #?_run", str)
-@test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+; #?tune!", str)
+@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ] #?_run", str)
+@test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ] #?tune!", str)
 b = @bprofile 1 + 1
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
@@ -344,6 +344,22 @@ str = String(take!(io))
 @test @ballocated(sin($(foo.x)), evals = 3, samples = 10, setup = (foo.x = 0)) == 0
 @test @ballocated(sin(0)) == 0
 @test @ballocated(Ref(1)) == 2 * sizeof(Int)  # 1 for the pointer, 1 for content
+
+@test @ballocations(sin($(foo.x)), evals = 3, samples = 10, setup = (foo.x = 0)) == 0
+@test @ballocations(sin(0)) == 0
+@test @ballocations(Ref(1)) == 1
+
+@test let stats = @btimed sin($(foo.x)) evals = 3 samples = 10 setup = (foo.x = 0)
+    stats.value == sin(0) &&
+        stats.time > 0 &&
+        stats.bytes == 0 &&
+        stats.alloc == 0 &&
+        stats.gctime == 0
+end
+
+@test let stats = @btimed Ref(1)
+    stats.bytes > 0 && stats.alloc == 1 && stats.gctime == 0
+end
 
 let fname = tempname()
     try

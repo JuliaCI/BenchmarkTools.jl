@@ -268,7 +268,7 @@ end
 
 trial = BenchmarkTools.Trial(BenchmarkTools.Parameters(), [1.0, 1.01], [0.0, 0.0], 0, 0)
 @test sprint(show, "text/plain", trial) == """
-BenchmarkTools.Trial: 2 samples with 1 evaluation.
+BenchmarkTools.Trial: 2 samples with 1 evaluation per sample.
  Range (min … max):  1.000 ns … 1.010 ns  ┊ GC (min … max): 0.00% … 0.00%
  Time  (median):     1.005 ns             ┊ GC (median):    0.00%
  Time  (mean ± σ):   1.005 ns ± 0.007 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
