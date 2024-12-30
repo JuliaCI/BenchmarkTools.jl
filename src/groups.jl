@@ -121,7 +121,7 @@ allocs(group::BenchmarkGroup) = mapvals(allocs, group)
 params(group::BenchmarkGroup) = mapvals(params, group)
 
 ratio(group::BenchmarkGroup, groups::BenchmarkGroup...) = mapvals(ratio, group, groups...)
-  
+
 """
     judge(target::BenchmarkGroup, baseline::BenchmarkGroup; [time_tolerance::Float64=0.05])
 """
