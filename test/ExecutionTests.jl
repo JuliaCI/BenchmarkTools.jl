@@ -398,4 +398,13 @@ b = x = nothing
 GC.gc()
 @test x_finalized
 
+# Ensure mapvals(f) throws MethodError
+@test_throws MethodError BenchmarkTools.mapvals(max)
+
+# Ensure those function are not defined without arguments
+@test_throws MethodError max()
+@test_throws MethodError min()
+@test_throws MethodError ratio()
+@test_throws MethodError judge()
+
 end # module

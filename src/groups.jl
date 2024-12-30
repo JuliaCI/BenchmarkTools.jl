@@ -82,17 +82,19 @@ Base.iterate(group::BenchmarkGroup, i=1) = iterate(group.data, i)
 andexpr(a, b) = :($a && $b)
 andreduce(preds) = reduce(andexpr, preds)
 
-function mapvals!(f, dest::BenchmarkGroup, srcs::BenchmarkGroup...)
-    for k in keys(first(srcs))
+function mapvals!(f, dest::BenchmarkGroup, src::BenchmarkGroup, srcs::BenchmarkGroup...)
+    for k in keys(src)
         if all(s -> haskey(s, k), srcs)
-            dest[k] = f((s[k] for s in srcs)...)
+            dest[k] = f(src[k], (s[k] for s in srcs)...)
         end
     end
     return dest
 end
 
 mapvals!(f, group::BenchmarkGroup) = mapvals!(f, similar(group), group)
-mapvals(f, groups::BenchmarkGroup...) = mapvals!(f, similar(first(groups)), groups...)
+function mapvals(f, group::BenchmarkGroup, groups::BenchmarkGroup...)
+    return mapvals!(f, similar(group), group, groups...)
+end
 
 filtervals!(f, group::BenchmarkGroup) = (filter!(kv -> f(kv[2]), group.data); return group)
 filtervals(f, group::BenchmarkGroup) = filtervals!(f, copy(group))
@@ -109,8 +111,8 @@ Statistics.mean(group::BenchmarkGroup) = mapvals(mean, group)
 Statistics.median(group::BenchmarkGroup) = mapvals(median, group)
 Statistics.std(group::BenchmarkGroup) = mapvals(std, group)
 Statistics.var(group::BenchmarkGroup) = mapvals(var, group)
-Base.min(groups::BenchmarkGroup...) = mapvals(min, groups...)
-Base.max(groups::BenchmarkGroup...) = mapvals(max, groups...)
+Base.min(group::BenchmarkGroup, groups::BenchmarkGroup...) = mapvals(min, group, groups...)
+Base.max(group::BenchmarkGroup, groups::BenchmarkGroup...) = mapvals(max, group, groups...)
 
 Base.time(group::BenchmarkGroup) = mapvals(time, group)
 gctime(group::BenchmarkGroup) = mapvals(gctime, group)
@@ -118,13 +120,13 @@ memory(group::BenchmarkGroup) = mapvals(memory, group)
 allocs(group::BenchmarkGroup) = mapvals(allocs, group)
 params(group::BenchmarkGroup) = mapvals(params, group)
 
-ratio(groups::BenchmarkGroup...) = mapvals(ratio, groups...)
+ratio(group::BenchmarkGroup, groups::BenchmarkGroup...) = mapvals(ratio, group, groups...)
 
 """
     judge(target::BenchmarkGroup, baseline::BenchmarkGroup; [time_tolerance::Float64=0.05])
 """
-function judge(groups::BenchmarkGroup...; kwargs...)
-    return mapvals((x...) -> judge(x...; kwargs...), groups...)
+function judge(group::BenchmarkGroup, groups::BenchmarkGroup...; kwargs...)
+    return mapvals((x...) -> judge(x...; kwargs...), group, groups...)
 end
 
 rmskew!(group::BenchmarkGroup) = mapvals!(rmskew!, group)
