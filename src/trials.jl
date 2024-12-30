@@ -8,6 +8,28 @@ mutable struct Trial
     gctimes::Vector{Float64}
     memory::Int
     allocs::Int
+    customizable_result
+    customizable_result_for_every_sample::Bool
+
+    function Trial(
+        params,
+        times,
+        gctimes,
+        memory,
+        allocs,
+        customizable_result=nothing,
+        customizable_result_for_every_sample=false,
+    )
+        return new(
+            params,
+            times,
+            gctimes,
+            memory,
+            allocs,
+            customizable_result,
+            customizable_result_for_every_sample,
+        )
+    end
 end
 
 Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
@@ -21,7 +43,18 @@ function Base.:(==)(a::Trial, b::Trial)
 end
 
 function Base.copy(t::Trial)
-    return Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+    return Trial(
+        copy(t.params),
+        copy(t.times),
+        copy(t.gctimes),
+        t.memory,
+        t.allocs,
+        if t.customizable_result_for_every_sample
+            copy(t.customizable_result)
+        else
+            t.customizable_result
+        end,
+    )
 end
 
 function Base.push!(t::Trial, time, gctime, memory, allocs)
@@ -40,9 +73,33 @@ end
 
 Base.length(t::Trial) = length(t.times)
 function Base.getindex(t::Trial, i::Number)
-    return push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
+    return Trial(
+        t.params,
+        [t.times[i]],
+        [t.gctimes[i]],
+        t.memory,
+        t.allocs,
+        if t.customizable_result_for_every_sample
+            [t.customizable_result[i]]
+        else
+            t.customizable_result
+        end,
+    )
 end
-Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
+function Base.getindex(t::Trial, i)
+    return Trial(
+        t.params,
+        t.times[i],
+        t.gctimes[i],
+        t.memory,
+        t.allocs,
+        if t.customizable_result_for_every_sample
+            t.customizable_result[i]
+        else
+            t.customizable_result
+        end,
+    )
+end
 Base.lastindex(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
@@ -98,10 +155,19 @@ mutable struct TrialEstimate
     gctime::Float64
     memory::Int
     allocs::Int
+    customizable_result
+
+    function TrialEstimate(
+        params, times, gctime, memory, allocs, customizable_result=nothing
+    )
+        return new(params, times, gctime, memory, allocs, customizable_result)
+    end
 end
 
 function TrialEstimate(trial::Trial, t, gct)
-    return TrialEstimate(params(trial), t, gct, memory(trial), allocs(trial))
+    return TrialEstimate(
+        params(trial), t, gct, memory(trial), allocs(trial), trial.customizable_result
+    )
 end
 
 function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
@@ -113,7 +179,9 @@ function Base.:(==)(a::TrialEstimate, b::TrialEstimate)
 end
 
 function Base.copy(t::TrialEstimate)
-    return TrialEstimate(copy(t.params), t.time, t.gctime, t.memory, t.allocs)
+    return TrialEstimate(
+        copy(t.params), t.time, t.gctime, t.memory, t.allocs, t.customizable_result
+    )
 end
 
 function Base.minimum(trial::Trial)
