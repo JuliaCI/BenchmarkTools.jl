@@ -99,22 +99,8 @@ end
     @test_throws ArgumentError BenchmarkTools.recover([1])
 end
 
-@testset "Backwards Comppatibility with evals_set" begin
-    json_string = "[{\"Julia\":\"1.11.0-DEV.1116\",\"BenchmarkTools\":\"1.4.0\"},[[\"Parameters\",{\"gctrial\":true,\"time_tolerance\":0.05,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5.0,\"overhead\":0.0,\"memory_tolerance\":0.01}]]]"
-    json_io = IOBuffer(json_string)
-
-    @test BenchmarkTools.load(json_io) ==
-        [BenchmarkTools.Parameters(5.0, 10000, 1, false, 0.0, true, false, 0.05, 0.01)]
-
-    json_string = "[{\"Julia\":\"1.11.0-DEV.1116\",\"BenchmarkTools\":\"1.4.0\"},[[\"Parameters\",{\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":true,\"samples\":10000,\"evals\":1,\"gcsample\":false,\"seconds\":5.0,\"overhead\":0.0,\"memory_tolerance\":0.01}]]]"
-    json_io = IOBuffer(json_string)
-
-    @test BenchmarkTools.load(json_io) ==
-        [BenchmarkTools.Parameters(5.0, 10000, 1, true, 0.0, true, false, 0.05, 0.01)]
-end
-
 @testset "Inf in Paramters struct" begin
-    params = BenchmarkTools.Parameters(Inf, 10000, 1, false, Inf, true, false, Inf, Inf)
+    params = BenchmarkTools.Parameters(Inf, 10000, 1, Inf, true, false, Inf, Inf)
 
     io = IOBuffer()
     BenchmarkTools.save(io, params)
