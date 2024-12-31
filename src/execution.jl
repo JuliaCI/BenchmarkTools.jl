@@ -295,7 +295,7 @@ function tune!(
     pad="",
     kwargs...,
 )
-    if !p.evals_set
+    if p.evals==nothing
         estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
         b.params.evals = guessevals(estimate)
     end
@@ -317,9 +317,6 @@ function prunekwargs(args...)
         for ex in params
             if isa(ex, Expr) && ex.head == :(=)
                 ex.head = :kw
-                if ex.args[1] == :evals
-                    push!(params, :(evals_set = true))
-                end
             end
         end
         if isa(core, Expr) && core.head == :kw
