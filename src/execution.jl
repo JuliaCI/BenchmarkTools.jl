@@ -295,7 +295,7 @@ function tune!(
     pad="",
     kwargs...,
 )
-    if p.evals==nothing
+    if p.evals==-1
         estimate = ceil(Int, minimum(lineartrial(b, p; kwargs...)))
         b.params.evals = guessevals(estimate)
     end
