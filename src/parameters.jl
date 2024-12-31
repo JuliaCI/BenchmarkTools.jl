@@ -16,7 +16,7 @@ mutable struct Parameters
     memory_tolerance::Float64
 end
 
-const DEFAULT_PARAMETERS = Parameters(5.0, 10000, nothing, 0, true, false, 0.05, 0.01)
+const DEFAULT_PARAMETERS = Parameters(5.0, 10000, -1, 0, true, false, 0.05, 0.01)
 
 function Parameters(;
     seconds=DEFAULT_PARAMETERS.seconds,
