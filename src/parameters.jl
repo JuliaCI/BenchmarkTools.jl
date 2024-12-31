@@ -9,7 +9,6 @@ mutable struct Parameters
     seconds::Float64
     samples::Int
     evals::Int
-    evals_set::Bool
     overhead::Float64
     gctrial::Bool
     gcsample::Bool
@@ -17,13 +16,12 @@ mutable struct Parameters
     memory_tolerance::Float64
 end
 
-const DEFAULT_PARAMETERS = Parameters(5.0, 10000, 1, false, 0, true, false, 0.05, 0.01)
+const DEFAULT_PARAMETERS = Parameters(5.0, 10000, nothing, 0, true, false, 0.05, 0.01)
 
 function Parameters(;
     seconds=DEFAULT_PARAMETERS.seconds,
     samples=DEFAULT_PARAMETERS.samples,
     evals=DEFAULT_PARAMETERS.evals,
-    evals_set=DEFAULT_PARAMETERS.evals_set,
     overhead=DEFAULT_PARAMETERS.overhead,
     gctrial=DEFAULT_PARAMETERS.gctrial,
     gcsample=DEFAULT_PARAMETERS.gcsample,
@@ -34,7 +32,6 @@ function Parameters(;
         seconds,
         samples,
         evals,
-        evals_set,
         overhead,
         gctrial,
         gcsample,
@@ -84,7 +81,6 @@ function Base.copy(p::Parameters)
         p.seconds,
         p.samples,
         p.evals,
-        p.evals_set,
         p.overhead,
         p.gctrial,
         p.gcsample,
