@@ -8,7 +8,7 @@ using Statistics
 using UUIDs: uuid4
 using Printf
 using Profile
-using Compat
+using Compat: pkgversion, @noinline
 
 ##############
 # Parameters #
