@@ -81,7 +81,8 @@ julia> @btime sin(x) setup=(x=rand()) seconds=3
 
 If the expression you want to benchmark depends on external variables, you should use [`$` to "interpolate"](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions) them into the benchmark expression to
 [avoid the problems of benchmarking with globals](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-global-variables).
-Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins:
+Essentially, any interpolated variable `$x` or expression `$(...)` is "pre-computed" before benchmarking begins, and passed to the benchmark
+as a function argument:
 
 ```julia
 julia> A = rand(3,3);
@@ -96,18 +97,18 @@ julia> @btime inv(rand(3,3));     # the rand(3,3) call is included in the benchm
   1.295 μs (11 allocations: 2.47 KiB)
 ```
 
-Sometimes, interpolating variables into very simple expressions can give the compiler more information than you intended, causing it to "cheat" the benchmark by hoisting the calculation out of the benchmark code
+Sometimes, inline values in simple expressions can give the compiler more information than you intended, causing it to "cheat" the benchmark by hoisting the calculation out of the benchmark code
+```julia
+julia> @btime 1 + 2
+  0.024 ns (0 allocations: 0 bytes)
+3
+```
+As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occurred. You can avoid this using interpolation:
 ```julia
 julia> a = 1; b = 2
 2
 
 julia> @btime $a + $b
-  0.024 ns (0 allocations: 0 bytes)
-3
-```
-As a rule of thumb, if a benchmark reports that it took less than a nanosecond to perform, this hoisting probably occurred. You can avoid this by referencing and dereferencing the interpolated variables 
-```julia
-julia> @btime $(Ref(a))[] + $(Ref(b))[]
   1.277 ns (0 allocations: 0 bytes)
 3
 ```

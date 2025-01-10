@@ -376,6 +376,21 @@ function quasiquote!(ex::Expr, vars::Vector{Symbol}, vals::Vector{Expr})
     return ex
 end
 
+"""
+    substitute_syms(expr::Expr, old_new::Dict{Symbol, Symbol})
+
+Substitute symbols in `expr` using substitutions in `old_new`.
+"""
+substitute_syms(ex, _...) = ex
+substitute_syms(ex::Symbol, old_new::Dict{Symbol,Symbol}) = get(old_new, ex, ex)
+function substitute_syms(ex::Expr, old_new::Dict{Symbol,Symbol})
+    if ex.head !== :quote
+        return Expr(ex.head, map(x -> substitute_syms(x, old_new), ex.args)...)
+    else
+        return ex
+    end
+end
+
 @doc raw"""
     @benchmark <expr to benchmark> [setup=<setup expr>]
 
@@ -468,6 +483,8 @@ function benchmarkable_parts(args)
     quote_vars = Symbol[]
     quote_vals = Expr[]
     core = quasiquote!(core, quote_vars, quote_vals)
+    setup = quasiquote!(setup, quote_vars, quote_vals)
+    teardown = quasiquote!(teardown, quote_vars, quote_vals)
 
     return core, setup, teardown, quote_vars, quote_vals, params
 end
@@ -503,6 +520,10 @@ macro benchmarkable(args...)
     end
 end
 
+# This global is used to cache samplefuncs. It doesn't matter if the cache lives
+# through precompilation, it is equivalent to recompile the samplefuncs.
+samplefunc_cache = Dict()
+
 # `eval` an expression that forcibly defines the specified benchmark at
 # top-level in order to allow transfer of locally-scoped variables into
 # benchmark scope.
@@ -514,79 +535,97 @@ function generate_benchmark_definition(
     eval_module, out_vars, setup_vars, quote_vars, quote_vals, core, setup, teardown, params
 )
     @nospecialize
-    corefunc = gensym("core")
-    samplefunc = gensym("sample")
-    type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
-    signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
-    signature_def = Expr(
-        :where,
-        Expr(
-            :call,
-            corefunc,
-            [
-                Expr(:(::), var, type) for
-                (var, type) in zip([quote_vars; setup_vars], type_vars)
-            ]...,
-        ),
-        type_vars...,
+    normalize_syms = Dict{Symbol,Symbol}(
+        map(((i, var),) -> var => Symbol(:__normal_sym__, i), enumerate(quote_vars))
     )
-    if length(out_vars) == 0
-        invocation = signature
-        core_body = core
-    elseif length(out_vars) == 1
-        returns = :(return $(out_vars[1]))
-        invocation = :($(out_vars[1]) = $(signature))
-        core_body = :($(core); $(returns))
-    else
-        returns = :(return $(Expr(:tuple, out_vars...)))
-        invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
-        core_body = :($(core); $(returns))
-    end
-    @static if isdefined(Base, :donotdelete)
-        invocation = :(
-            let x = $invocation
-                Base.donotdelete(x)
-                x
-            end
+    #We cache the generated benchmark function to avoid recompiling it every time.
+    #We use several keys to cache the generated benchmark function.
+    #Because out_vars and setup_vars are derived from core and setup, we do not
+    #need to use these in the cache. Because quote_vars are identified
+    #positionally, we need only cache their length. We rename the quote vars for caching
+    #because they are generated with gensym()
+    samplefunc_key = [
+        eval_module,
+        substitute_syms(core, normalize_syms),
+        substitute_syms(setup, normalize_syms),
+        substitute_syms(teardown, normalize_syms),
+        length(quote_vars),
+    ]
+    samplefunc = get!(samplefunc_cache, samplefunc_key) do
+        corefunc = gensym("core")
+        samplefunc = gensym("sample")
+        type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
+        signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
+        signature_def = Expr(
+            :where,
+            Expr(
+                :call,
+                corefunc,
+                [
+                    Expr(:(::), var, type) for
+                    (var, type) in zip([quote_vars; setup_vars], type_vars)
+                ]...,
+            ),
+            type_vars...,
+        )
+        if length(out_vars) == 0
+            invocation = signature
+            core_body = core
+        elseif length(out_vars) == 1
+            returns = :(return $(out_vars[1]))
+            invocation = :($(out_vars[1]) = $(signature))
+            core_body = :($(core); $(returns))
+        else
+            returns = :(return $(Expr(:tuple, out_vars...)))
+            invocation = :($(Expr(:tuple, out_vars...)) = $(signature))
+            core_body = :($(core); $(returns))
+        end
+        @static if isdefined(Base, :donotdelete)
+            invocation = :(
+                let x = $invocation
+                    Base.donotdelete(x)
+                    x
+                end
+            )
+        end
+        Core.eval(
+            eval_module,
+            quote
+                @noinline $(signature_def) = begin
+                    $(core_body)
+                end
+                @noinline function $(samplefunc)(
+                    $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+                )
+                    $(setup)
+                    __evals = __params.evals
+                    __gc_start = Base.gc_num()
+                    __start_time = time_ns()
+                    __return_val = $(invocation)
+                    for __iter in 2:__evals
+                        $(invocation)
+                    end
+                    __sample_time = time_ns() - __start_time
+                    __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
+                    $(teardown)
+                    __time = max((__sample_time / __evals) - __params.overhead, 0.001)
+                    __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
+                    __memory = Int(Base.fld(__gcdiff.allocd, __evals))
+                    __allocs = Int(
+                        Base.fld(
+                            __gcdiff.malloc +
+                            __gcdiff.realloc +
+                            __gcdiff.poolalloc +
+                            __gcdiff.bigalloc,
+                            __evals,
+                        ),
+                    )
+                    return __time, __gctime, __memory, __allocs, __return_val
+                end
+            end,
         )
     end
-    return Core.eval(
-        eval_module,
-        quote
-            @noinline $(signature_def) = begin
-                $(core_body)
-            end
-            @noinline function $(samplefunc)(
-                $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
-            )
-                $(setup)
-                __evals = __params.evals
-                __gc_start = Base.gc_num()
-                __start_time = time_ns()
-                __return_val = $(invocation)
-                for __iter in 2:__evals
-                    $(invocation)
-                end
-                __sample_time = time_ns() - __start_time
-                __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
-                $(teardown)
-                __time = max((__sample_time / __evals) - __params.overhead, 0.001)
-                __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
-                __memory = Int(Base.fld(__gcdiff.allocd, __evals))
-                __allocs = Int(
-                    Base.fld(
-                        __gcdiff.malloc +
-                        __gcdiff.realloc +
-                        __gcdiff.poolalloc +
-                        __gcdiff.bigalloc,
-                        __evals,
-                    ),
-                )
-                return __time, __gctime, __memory, __allocs, __return_val
-            end
-            $BenchmarkTools.Benchmark($(samplefunc), $(quote_vals), $(params))
-        end,
-    )
+    return Benchmark(samplefunc, quote_vals, params)
 end
 
 ######################
