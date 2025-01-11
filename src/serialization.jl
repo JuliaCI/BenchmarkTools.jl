@@ -53,7 +53,7 @@ function recover(x::Vector)
         if ft <: get(SUPPORTED_TYPES, nameof(ft), Union{})
             xsi = recover(fields[fn])
         else
-            xsi = if fn == "evals_set" && !haskey(fields, fn)
+            xsi = if fn == "needs_tune" && !haskey(fields, fn)
                 false
             elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
                 fields[fn] === nothing
