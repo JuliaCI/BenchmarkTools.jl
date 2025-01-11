@@ -9,7 +9,7 @@ mutable struct Parameters
     seconds::Float64
     samples::Int
     evals::Int
-    evals_set::Bool
+    needs_tune::Bool
     overhead::Float64
     gctrial::Bool
     gcsample::Bool
@@ -23,7 +23,7 @@ function Parameters(;
     seconds=DEFAULT_PARAMETERS.seconds,
     samples=DEFAULT_PARAMETERS.samples,
     evals=DEFAULT_PARAMETERS.evals,
-    evals_set=DEFAULT_PARAMETERS.evals_set,
+    needs_tune=DEFAULT_PARAMETERS.needs_tune,
     overhead=DEFAULT_PARAMETERS.overhead,
     gctrial=DEFAULT_PARAMETERS.gctrial,
     gcsample=DEFAULT_PARAMETERS.gcsample,
@@ -34,7 +34,7 @@ function Parameters(;
         seconds,
         samples,
         evals,
-        evals_set,
+        needs_tune,
         overhead,
         gctrial,
         gcsample,
@@ -84,7 +84,7 @@ function Base.copy(p::Parameters)
         p.seconds,
         p.samples,
         p.evals,
-        p.evals_set,
+        p.needs_tune,
         p.overhead,
         p.gctrial,
         p.gcsample,
