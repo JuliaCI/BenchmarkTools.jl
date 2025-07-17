@@ -15,7 +15,6 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Aqua = "0.8"
 Compat = "4.11"
 JSON = "0.18, 0.19, 0.20, 0.21"
-JuliaFormatter = "1, 2"
 Logging = "<0.0.1, 1"
 Printf = "<0.0.1, 1"
 Profile = "<0.0.1, 1"
@@ -26,9 +25,8 @@ julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
-JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "JuliaFormatter", "Statistics", "Test"]
+test = ["Aqua", "Statistics", "Test"]
