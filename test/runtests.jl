@@ -1,6 +1,5 @@
 using Aqua
 using BenchmarkTools
-using JuliaFormatter
 using Test
 
 print("Testing code quality...")
