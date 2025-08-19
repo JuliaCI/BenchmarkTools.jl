@@ -57,6 +57,14 @@ export BenchmarkGroup,
     @case,
     clear_empty!
 
+##########################
+# Low-level benchmarking #
+##########################
+
+include("lowlevel.jl")
+export clobber,
+       escape
+
 ######################
 # Execution Strategy #
 ######################
