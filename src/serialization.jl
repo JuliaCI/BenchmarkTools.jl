@@ -24,7 +24,7 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
         field = getfield(x, i)
         ft = typeof(field)
         value = ft <: get(SUPPORTED_TYPES, nameof(ft), Union{}) ? JSON.lower(field) : field
-        d[name] = value
+        d[name] = value isa Float64 && !isfinite(value) ? nothing : value
     end
     return [string(nameof(typeof(x))), d]
 end
@@ -41,7 +41,7 @@ end
 function recover(x::Vector)
     length(x) == 2 || throw(ArgumentError("Expecting a vector of length 2"))
     typename = x[1]::String
-    fields = x[2]::Dict
+    fields = x[2]::AbstractDict
     startswith(typename, "BenchmarkTools.") &&
         (typename = typename[(sizeof("BenchmarkTools.") + 1):end])
     T = SUPPORTED_TYPES[Symbol(typename)]
@@ -64,7 +64,7 @@ function recover(x::Vector)
                 convert(ft, fields[fn])
             end
         end
-        if T == BenchmarkGroup && xsi isa Dict
+        if T == BenchmarkGroup && xsi isa AbstractDict
             for (k, v) in copy(xsi)
                 k = k::String
                 if startswith(k, "(") || startswith(k, ":")
@@ -154,11 +154,11 @@ function load(io::IO, args...)
     parsed = JSON.parse(io)
     if !isa(parsed, Vector) ||
         length(parsed) != 2 ||
-        !isa(parsed[1], Dict) ||
+        !isa(parsed[1], AbstractDict) ||
         !isa(parsed[2], Vector)
         error("Unexpected JSON format. Was this file originally written by BenchmarkTools?")
     end
-    versions = parsed[1]::Dict
+    versions = parsed[1]::AbstractDict
     values = parsed[2]::Vector
     return map!(recover, values, values)
 end

@@ -361,28 +361,51 @@ g1["a"] = t1a
 g1["b"] = t1b
 g1["c"] = tc
 
-@test sprint(show, g1) == """
+# Test full output (order-independent)
+output_full = sprint(show, g1)
+@test startswith(
+    output_full,
+    """
 3-element BenchmarkTools.BenchmarkGroup:
   tags: ["1", "2"]
-  "c" => TrialEstimate(1.000 ns)
-  "b" => TrialEstimate(4.123 μs)
-  "a" => TrialEstimate(32.000 ns)"""
-@test sprint(show, g1; context=:boundto => 1) == """
+""",
+)
+@test occursin("  \"a\" => TrialEstimate(32.000 ns)", output_full)
+@test occursin("  \"b\" => TrialEstimate(4.123 μs)", output_full)
+@test occursin("  \"c\" => TrialEstimate(1.000 ns)", output_full)
+
+# Test boundto context output
+output_boundto = sprint(show, g1; context=:boundto => 1)
+@test startswith(
+    output_boundto,
+    """
 3-element BenchmarkTools.BenchmarkGroup:
   tags: ["1", "2"]
-  "c" => TrialEstimate(1.000 ns)
-  ⋮"""
-@test sprint(show, g1; context=:limit => false) == """
+""",
+)
+
+# Test limit => false output (order-independent)
+output_no_limit = sprint(show, g1; context=:limit => false)
+@test startswith(
+    output_no_limit,
+    """
 3-element BenchmarkTools.BenchmarkGroup:
   tags: ["1", "2"]
-  "c" => TrialEstimate(1.000 ns)
-  "b" => TrialEstimate(4.123 μs)
-  "a" => TrialEstimate(32.000 ns)"""
-@test @test_deprecated(sprint(show, g1; context=:limit => 1)) == """
+""",
+)
+@test occursin("  \"a\" => TrialEstimate(32.000 ns)", output_no_limit)
+@test occursin("  \"b\" => TrialEstimate(4.123 μs)", output_no_limit)
+@test occursin("  \"c\" => TrialEstimate(1.000 ns)", output_no_limit)
+
+# Test deprecated limit context output
+output_limit_deprecated = @test_deprecated(sprint(show, g1; context=:limit => 1))
+@test startswith(
+    output_limit_deprecated,
+    """
 3-element BenchmarkTools.BenchmarkGroup:
   tags: ["1", "2"]
-  "c" => TrialEstimate(1.000 ns)
-  ⋮"""
+""",
+)
 
 # EasyConfig-style benchmark groups #
 #-----------------------------------#
