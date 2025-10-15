@@ -216,10 +216,28 @@ tune!(b)
     "good")
 @test_throws UndefVarError local_var
 @benchmark some_var = "whatever" teardown = (@test_throws UndefVarError some_var)
-@benchmark foo, bar = "good", "good" setup = (foo = "bad"; bar = "bad") teardown = (@test foo ==
-                                                                                          "good" &&
-    bar ==
-                                                                                          "good")
+@benchmark foo, bar = "good", "good" setup = ((foo, bar) = ("bad", "bad")) teardown = @test(
+    foo == "good" && bar == "good"
+)
+let # assignment with interpolation
+    two_good = "good", "good"
+    two_bad = "bad", "bad"
+    @benchmark foo, bar = $two_good setup = ((foo, bar) = $two_bad) teardown = @test(
+        foo == "good" && bar == "good"
+    )
+end
+if VERSION >= v"1.7"
+    @benchmark (; foo, bar) = (foo="good", bar="good") setup = (
+        (; foo, bar) = (foo="bad", bar="bad")
+    ) teardown = @test(foo == "good" && bar == "good")
+    let # assignment with interpolation
+        good_nt = (foo="good", bar="good")
+        bad_nt = (foo="bad", bar="bad")
+        @benchmark foo, bar = $good_nt setup = ((; foo, bar) = $bad_nt) teardown = @test(
+            foo == "good" && bar == "good"
+        )
+    end
+end
 
 # test variable assignment with `@benchmark(args...)` form
 @benchmark(
@@ -232,6 +250,11 @@ tune!(b)
     setup = (foo = "bad"; bar = "bad"),
     teardown = (@test foo == "good" && bar == "good")
 )
+if VERSION >= v"1.7"
+    @benchmark (; foo, bar) = (foo="good", bar="good") setup = (foo = "bad"; bar = "bad") teardown = @test(
+        foo == "good" && bar == "good"
+    )
+end
 
 # test kwargs separated by `,`
 @benchmark(
@@ -327,12 +350,13 @@ str = String(take!(io))
 # BenchmarkTools.DEFAULT_PARAMETERS.overhead = BenchmarkTools.estimate_overhead()
 # @test time(minimum(@benchmark nothing)) == 1
 
-@test [:x, :y, :z, :v, :w] == BenchmarkTools.collectvars(
+@test [:x, :y, :z, :v, :w, :r, :s] == BenchmarkTools.collectvars(
     quote
         x = 1 + 3
         y = 1 + x
         z = (a = 4; y + a)
         v, w = 1, 2
+        (; r, s) = (r=1, s=2, t=3)
         [u^2 for u in [1, 2, 3]]
     end,
 )
