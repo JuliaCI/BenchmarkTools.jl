@@ -124,4 +124,11 @@ end
     @test BenchmarkTools.load(json_io) == [params]
 end
 
+@testset "issue_400_tuple_as_dict_key" begin
+    grp = BenchmarkTools.BenchmarkGroup()
+    grp["a", "b"] = BenchmarkTools.BenchmarkGroup()
+    contents = sprint(io -> BenchmarkTools.save(io, grp))
+    @test occursin(""""data":{"(\\\"a\\", \\"b\\")":[""", contents)
+end
+
 end # module
