@@ -1,6 +1,6 @@
 name = "BenchmarkTools"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.6.2"
+version = "1.6.3"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
@@ -14,7 +14,7 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 [compat]
 Aqua = "0.8"
 Compat = "4.11"
-JSON = "0.18, 0.19, 0.20, 0.21, 1"
+JSON = "0.18, 0.19, 0.20, 0.21, 1.2"
 Logging = "<0.0.1, 1"
 Printf = "<0.0.1, 1"
 Profile = "<0.0.1, 1"
