@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Manual · BenchmarkTools.jl</title><meta name="title" content="Manual · BenchmarkTools.jl"/><meta property="og:title" content="Manual · BenchmarkTools.jl"/><meta property="twitter:title" content="Manual · BenchmarkTools.jl"/><meta name="description" content="Documentation for BenchmarkTools.jl."/><meta property="og:description" content="Documentation for BenchmarkTools.jl."/><meta property="twitter:description" content="Documentation for BenchmarkTools.jl."/><meta property="og:url" content="https://JuliaCI.github.io/BenchmarkTools.jl/manual/"/><meta property="twitter:url" content="https://JuliaCI.github.io/BenchmarkTools.jl/manual/"/><link rel="canonical" href="https://JuliaCI.github.io/BenchmarkTools.jl/manual/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/indigo.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img class="docs-light-only" src="../assets/logo.svg" alt="BenchmarkTools.jl logo"/><img class="docs-dark-only" src="../assets/logo-dark.svg" alt="BenchmarkTools.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">BenchmarkTools.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Manual</a><ul class="internal"><li><a class="tocitem" href="#Benchmarking-basics"><span>Benchmarking basics</span></a></li><li><a class="tocitem" href="#Handling-benchmark-results"><span>Handling benchmark results</span></a></li><li><a class="tocitem" href="#The-BenchmarkGroup-type"><span>The <code>BenchmarkGroup</code> type</span></a></li><li><a class="tocitem" href="#Caching-Parameters"><span>Caching <code>Parameters</code></span></a></li><li><a class="tocitem" href="#Visualizing-benchmark-results"><span>Visualizing benchmark results</span></a></li><li><a class="tocitem" href="#Miscellaneous-tips-and-info"><span>Miscellaneous tips and info</span></a></li></ul></li><li><a class="tocitem" href="../linuxtips/">Linux-based environments</a></li><li><a class="tocitem" href="../reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Manual</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Manual</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaCI/BenchmarkTools.jl/blob/main/docs/src/manual.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Manual"><a class="docs-heading-anchor" href="#Manual">Manual</a><a id="Manual-1"></a><a class="docs-heading-anchor-permalink" href="#Manual" title="Permalink"></a></h1><p>BenchmarkTools was created to facilitate the following tasks:</p><ol><li>Organize collections of benchmarks into manageable benchmark suites</li><li>Configure, save, and reload benchmark parameters for convenience, accuracy, and consistency</li><li>Execute benchmarks in a manner that yields reasonable and consistent performance predictions</li><li>Analyze and compare results to determine whether a code change caused regressions or improvements</li></ol><p>Before we get too far, let&#39;s define some of the terminology used in this document:</p><ul><li>&quot;evaluation&quot;: a single execution of a benchmark expression.</li><li>&quot;sample&quot;: a single time/memory measurement obtained by running multiple evaluations.</li><li>&quot;trial&quot;: an experiment in which multiple samples are gathered (or the result of such an experiment).</li><li>&quot;benchmark parameters&quot;: the configuration settings that determine how a benchmark trial is performed</li></ul><p>The reasoning behind our definition of &quot;sample&quot; may not be obvious to all readers. If the time to execute a benchmark is smaller than the resolution of your timing method, then a single evaluation of the benchmark will generally not produce a valid sample. In that case, one must approximate a valid sample by recording the total time <code>t</code> it takes to record <code>n</code> evaluations, and estimating the sample&#39;s time per evaluation as <code>t/n</code>. For example, if a sample takes 1 second for 1 million evaluations, the approximate time per evaluation for that sample is 1 microsecond. It&#39;s not obvious what the right number of evaluations per sample should be for any given benchmark, so BenchmarkTools provides a mechanism (the <code>tune!</code> method) to automatically figure it out for you.</p><h2 id="Benchmarking-basics"><a class="docs-heading-anchor" href="#Benchmarking-basics">Benchmarking basics</a><a id="Benchmarking-basics-1"></a><a class="docs-heading-anchor-permalink" href="#Benchmarking-basics" title="Permalink"></a></h2><h3 id="Defining-and-executing-benchmarks"><a class="docs-heading-anchor" href="#Defining-and-executing-benchmarks">Defining and executing benchmarks</a><a id="Defining-and-executing-benchmarks-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-and-executing-benchmarks" title="Permalink"></a></h3><p>To quickly benchmark a Julia expression, use <code>@benchmark</code>:</p><pre><code class="language-julia hljs">julia&gt; @benchmark sin(1)
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  1.442 ns … 53.028 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     1.453 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.462 ns ±  0.566 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+                                   █                              
+  ▂▁▁▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▃▁▁▃
+  1.44 ns           Histogram: frequency by time           1.46 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>The <code>@benchmark</code> macro is essentially shorthand for defining a benchmark, auto-tuning the benchmark&#39;s configuration parameters, and running the benchmark. These three steps can be done explicitly using <code>@benchmarkable</code>, <code>tune!</code> and <code>run</code>:</p><pre><code class="language-julia hljs">julia&gt; b = @benchmarkable sin(1); # define the benchmark with default parameters
+
+# find the right evals/sample and number of samples to take for this benchmark
+julia&gt; tune!(b);
+
+julia&gt; run(b)
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  1.442 ns … 4.308 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     1.453 ns             ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.456 ns ± 0.056 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+                                  █                              
+  ▂▁▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▁▁▃
+  1.44 ns          Histogram: frequency by time           1.46 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>Alternatively, you can use the <code>@btime</code>, <code>@btimed</code>, <code>@belapsed</code>, <code>@ballocated</code>, or <code>@ballocations</code> macros. These take exactly the same arguments as <code>@benchmark</code>, but behave like the <code>@time</code>, <code>@timed</code>, <code>@elapsed</code>, <code>@allocated</code>, or <code>@allocations</code> macros included with Julia.</p><pre><code class="language-julia hljs">julia&gt; @btime sin(1)
+  13.612 ns (0 allocations: 0 bytes)
+0.8414709848078965
+
+julia&gt; @belapsed sin(1)
+1.3614228456913828e-8
+
+julia&gt; @btimed sin(1)
+(value = 0.8414709848078965, time = 9.16e-10, bytes = 0, alloc = 0, gctime = 0.0)
+
+julia&gt; @ballocated rand(4, 4)
+208
+
+julia&gt; @ballocations rand(4, 4)
+2</code></pre><h3 id="Benchmark-Parameters"><a class="docs-heading-anchor" href="#Benchmark-Parameters">Benchmark <code>Parameters</code></a><a id="Benchmark-Parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Benchmark-Parameters" title="Permalink"></a></h3><p>You can pass the following keyword arguments to <code>@benchmark</code>, <code>@benchmarkable</code>, and <code>run</code> to configure the execution process:</p><ul><li><code>samples</code>: The number of samples to take. Execution will end if this many samples have been collected. Defaults to <code>BenchmarkTools.DEFAULT_PARAMETERS.samples = 10000</code>.</li><li><code>seconds</code>: The number of seconds budgeted for the benchmarking process. The trial will terminate if this time is exceeded (regardless of <code>samples</code>), but at least one sample will always be taken. In practice, actual runtime can overshoot the budget by the duration of a sample. Defaults to <code>BenchmarkTools.DEFAULT_PARAMETERS.seconds = 5</code>.</li><li><code>evals</code>: The number of evaluations per sample. For best results, this should be kept consistent between trials. A good guess for this value can be automatically set on a benchmark via <code>tune!</code>, but using <code>tune!</code> can be less consistent than setting <code>evals</code> manually (which bypasses tuning). Defaults to <code>BenchmarkTools.DEFAULT_PARAMETERS.evals = 1</code>. If the function you study mutates its input, it is probably a good idea to set <code>evals=1</code> manually.</li><li><code>overhead</code>: The estimated loop overhead per evaluation in nanoseconds, which is automatically subtracted from every sample time measurement. The default value is <code>BenchmarkTools.DEFAULT_PARAMETERS.overhead = 0</code>. <code>BenchmarkTools.estimate_overhead</code> can be called to determine this value empirically (which can then be set as the default value, if you want).</li><li><code>gctrial</code>: If <code>true</code>, run <code>gc()</code> before executing this benchmark&#39;s trial. Defaults to <code>BenchmarkTools.DEFAULT_PARAMETERS.gctrial = true</code>.</li><li><code>gcsample</code>: If <code>true</code>, run <code>gc()</code> before each sample. Defaults to <code>BenchmarkTools.DEFAULT_PARAMETERS.gcsample = false</code>.</li><li><code>time_tolerance</code>: The noise tolerance for the benchmark&#39;s time estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to <code>BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.05</code>.</li><li><code>memory_tolerance</code>: The noise tolerance for the benchmark&#39;s memory estimate, as a percentage. This is utilized after benchmark execution, when analyzing results. Defaults to <code>BenchmarkTools.DEFAULT_PARAMETERS.memory_tolerance = 0.01</code>.</li></ul><p>To change the default values of the above fields, one can mutate the fields of <code>BenchmarkTools.DEFAULT_PARAMETERS</code>, for example:</p><pre><code class="language-julia hljs"># change default for `seconds` to 2.5
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.50
+# change default for `time_tolerance` to 0.20
+BenchmarkTools.DEFAULT_PARAMETERS.time_tolerance = 0.20</code></pre><p>Here&#39;s an example that demonstrates how to pass these parameters to benchmark definitions:</p><pre><code class="language-julia hljs">b = @benchmarkable sin(1) seconds=1 time_tolerance=0.01
+run(b) # equivalent to run(b, seconds = 1, time_tolerance = 0.01)</code></pre><h3 id="Interpolating-values-into-benchmark-expressions"><a class="docs-heading-anchor" href="#Interpolating-values-into-benchmark-expressions">Interpolating values into benchmark expressions</a><a id="Interpolating-values-into-benchmark-expressions-1"></a><a class="docs-heading-anchor-permalink" href="#Interpolating-values-into-benchmark-expressions" title="Permalink"></a></h3><p>You can interpolate values into <code>@benchmark</code> and <code>@benchmarkable</code> expressions:</p><pre><code class="language-julia hljs"># rand(1000) is executed for each evaluation
+julia&gt; @benchmark sum(rand(1000))
+BenchmarkTools.Trial: 10000 samples with 10 evaluations.
+ Range (min … max):  1.153 μs … 142.253 μs  ┊ GC (min … max): 0.00% … 96.43%
+ Time  (median):     1.363 μs               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.786 μs ±   4.612 μs  ┊ GC (mean ± σ):  9.58% ±  3.70%
+
+   ▄▆██▇▇▆▄▃▂▁                           ▁▁▂▂▂▂▂▂▂▁▂▁              
+  ████████████████▆▆▇▅▆▇▆▆▆▇▆▇▆▆▅▄▄▄▅▃▄▇██████████████▇▇▇▇▆▆▇▆▆▅▅▅▅
+  1.15 μs         Histogram: log(frequency) by time          3.8 μs (top 1%)
+
+ Memory estimate: 7.94 KiB, allocs estimate: 1.
+
+# rand(1000) is evaluated at definition time, and the resulting
+# value is interpolated into the benchmark expression
+julia&gt; @benchmark sum($(rand(1000)))
+BenchmarkTools.Trial: 10000 samples with 963 evaluations.
+ Range (min … max):  84.477 ns … 241.602 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     84.497 ns               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   85.125 ns ±   5.262 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  █                                                                 
+  █▅▇▅▄███▇▇▆▆▆▄▄▅▅▄▄▅▄▄▅▄▄▄▄▁▃▄▁▁▃▃▃▄▃▁▃▁▁▁▁▁▃▁▁▁▁▁▁▁▁▁▁▃▃▁▁▁▃▁▁▁▁▆
+  84.5 ns         Histogram: log(frequency) by time           109 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>A good rule of thumb is that <strong>external variables should be explicitly interpolated into the benchmark expression</strong>:</p><pre><code class="language-julia hljs">julia&gt; A = rand(1000);
+
+# BAD: A is a global variable in the benchmarking context
+julia&gt; @benchmark [i*i for i in A]
+BenchmarkTools.Trial: 10000 samples with 54 evaluations.
+ Range (min … max):  889.241 ns … 29.584 μs  ┊ GC (min … max):  0.00% … 93.33%
+ Time  (median):       1.073 μs              ┊ GC (median):     0.00%
+ Time  (mean ± σ):     1.296 μs ±  2.004 μs  ┊ GC (mean ± σ):  14.31% ±  8.76%
+
+      ▃█▆                                                           
+  ▂▂▄▆███▇▄▄▃▃▃▃▃▂▂▂▂▂▂▂▂▂▂▂▁▂▂▂▁▂▂▁▁▁▁▁▂▁▁▁▁▂▂▁▁▁▁▂▁▁▁▁▁▁▂▂▂▂▂▂▂▂▂▂
+  889 ns             Histogram: frequency by time            2.92 μs (top 1%)
+
+ Memory estimate: 7.95 KiB, allocs estimate: 2.
+
+# GOOD: A is a constant value in the benchmarking context
+julia&gt; @benchmark [i*i for i in $A]
+BenchmarkTools.Trial: 10000 samples with 121 evaluations.
+ Range (min … max):  742.455 ns … 11.846 μs  ┊ GC (min … max):  0.00% … 88.05%
+ Time  (median):     909.959 ns              ┊ GC (median):     0.00%
+ Time  (mean ± σ):     1.135 μs ±  1.366 μs  ┊ GC (mean ± σ):  16.94% ± 12.58%
+
+  ▇█▅▂                                                             ▁
+  ████▇▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▅▆██
+  742 ns          Histogram: log(frequency) by time          10.3 μs (top 1%)
+
+ Memory estimate: 7.94 KiB, allocs estimate: 1.</code></pre><p>(Note that &quot;KiB&quot; is the SI prefix for a <a href="https://en.wikipedia.org/wiki/Kibibyte">kibibyte</a>: 1024 bytes.)</p><p>Keep in mind that you can mutate external state from within a benchmark:</p><pre><code class="language-julia hljs">julia&gt; A = zeros(3);
+
+ # each evaluation will modify A
+julia&gt; b = @benchmarkable fill!($A, rand());
+
+julia&gt; run(b, samples = 1);
+
+julia&gt; A
+3-element Vector{Float64}:
+ 0.4615582142515109
+ 0.4615582142515109
+ 0.4615582142515109
+
+julia&gt; run(b, samples = 1);
+
+julia&gt; A
+3-element Vector{Float64}:
+ 0.06373849439691504
+ 0.06373849439691504
+ 0.06373849439691504</code></pre><p>Normally, you can&#39;t use locally scoped variables in <code>@benchmark</code> or <code>@benchmarkable</code>, since all benchmarks are defined at the top-level scope by design. However, you can work around this by interpolating local variables into the benchmark expression:</p><pre><code class="language-julia hljs"># will throw UndefVar error for `x`
+julia&gt; let x = 1
+           @benchmark sin(x)
+       end
+
+# will work fine
+julia&gt; let x = 1
+           @benchmark sin($x)
+       end</code></pre><h3 id="Setup-and-teardown-phases"><a class="docs-heading-anchor" href="#Setup-and-teardown-phases">Setup and teardown phases</a><a id="Setup-and-teardown-phases-1"></a><a class="docs-heading-anchor-permalink" href="#Setup-and-teardown-phases" title="Permalink"></a></h3><p>BenchmarkTools allows you to pass <code>setup</code> and <code>teardown</code> expressions to <code>@benchmark</code> and <code>@benchmarkable</code>. The <code>setup</code> expression is evaluated just before sample execution, while the <code>teardown</code> expression is evaluated just after sample execution. Here&#39;s an example where this kind of thing is useful:</p><pre><code class="language-julia hljs">julia&gt; x = rand(100000);
+
+# For each sample, bind a variable `y` to a fresh copy of `x`. As you
+# can see, `y` is accessible within the scope of the core expression.
+julia&gt; b = @benchmarkable sort!(y) setup=(y = copy($x))
+Benchmark(evals=1, seconds=5.0, samples=10000)
+
+julia&gt; run(b)
+BenchmarkTools.Trial: 819 samples with 1 evaluations.
+ Range (min … max):  5.983 ms …  6.954 ms  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     6.019 ms              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   6.029 ms ± 46.222 μs  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+        ▃▂▂▄█▄▂▃                                                  
+  ▂▃▃▄▆▅████████▇▆▆▅▄▄▄▅▆▄▃▄▅▄▃▂▃▃▃▂▂▃▁▂▂▂▁▂▂▂▂▂▂▁▁▁▁▂▂▁▁▁▂▂▁▁▂▁▁▂
+  5.98 ms           Histogram: frequency by time           6.18 ms (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.</code></pre><p>In the above example, we wish to benchmark Julia&#39;s in-place sorting method. Without a setup phase, we&#39;d have to either allocate a new input vector for each sample (such that the allocation time would pollute our results) or use the same input vector every sample (such that all samples but the first would benchmark the wrong thing - sorting an already sorted vector). The setup phase solves the problem by allowing us to do some work that can be utilized by the core expression, without that work being erroneously included in our performance results.</p><p>Note that the <code>setup</code> and <code>teardown</code> phases are <strong>executed for each sample, not each evaluation</strong>. Thus, the sorting example above wouldn&#39;t produce the intended results if <code>evals/sample &gt; 1</code> (it&#39;d suffer from the same problem of benchmarking against an already sorted vector).</p><p>If your setup involves several objects, you need to separate the assignments with semicolons, as follows:</p><pre><code class="language-julia hljs">julia&gt; @btime x + y setup = (x=1; y=2)  # works
+  1.238 ns (0 allocations: 0 bytes)
+3
+
+julia&gt; @btime x + y setup = (x=1, y=2)  # errors
+ERROR: UndefVarError: `x` not defined</code></pre><p>This also explains the error you get if you accidentally put a comma in the setup for a single argument:</p><pre><code class="language-julia hljs">julia&gt; @btime exp(x) setup = (x=1,)  # errors
+ERROR: UndefVarError: `x` not defined</code></pre><h3 id="Understanding-compiler-optimizations"><a class="docs-heading-anchor" href="#Understanding-compiler-optimizations">Understanding compiler optimizations</a><a id="Understanding-compiler-optimizations-1"></a><a class="docs-heading-anchor-permalink" href="#Understanding-compiler-optimizations" title="Permalink"></a></h3><p>It&#39;s possible for LLVM and Julia&#39;s compiler to perform optimizations on <code>@benchmarkable</code> expressions. In some cases, these optimizations can elide a computation altogether, resulting in unexpectedly &quot;fast&quot; benchmarks. For example, the following expression is non-allocating:</p><pre><code class="language-julia hljs">julia&gt; @benchmark (view(a, 1:2, 1:2); 1) setup=(a = rand(3, 3))
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  2.885 ns … 14.797 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     2.895 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   3.320 ns ±  0.909 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  █             ▁   ▁ ▁▁▁                                     ▂▃▃▁
+  █▁▁▇█▇▆█▇████████████████▇█▇█▇▇▇▇█▇█▇▅▅▄▁▁▁▁▄▃▁▃▃▁▄▃▁▄▁▃▅▅██████
+  2.88 ns        Histogram: log(frequency) by time         5.79 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.0</code></pre><p>Note, however, that this does not mean that <code>view(a, 1:2, 1:2)</code> is non-allocating:</p><pre><code class="language-julia hljs">julia&gt; @benchmark view(a, 1:2, 1:2) setup=(a = rand(3, 3))
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  3.175 ns … 18.314 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     3.176 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   3.262 ns ±  0.882 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  █                                                               
+  █▁▂▁▁▁▂▁▂▁▂▁▁▂▁▁▂▂▂▂▂▂▁▁▂▁▁▂▁▁▁▂▂▁▁▁▂▁▂▂▁▂▁▁▂▂▂▁▂▂▂▂▂▂▂▂▂▂▂▁▂▂▁▂
+  3.18 ns           Histogram: frequency by time           4.78 ns (top 1%)
+
+ Memory estimate: 0 bytes, allocs estimate: 0.8</code></pre><p>The key point here is that these two benchmarks measure different things, even though their code is similar. In the first example, Julia was able to optimize away <code>view(a, 1:2, 1:2)</code> because it could prove that the value wasn&#39;t being returned and <code>a</code> wasn&#39;t being mutated. In the second example, the optimization is not performed because <code>view(a, 1:2, 1:2)</code> is a return value of the benchmark expression.</p><p>BenchmarkTools will faithfully report the performance of the exact code that you provide to it, including any compiler optimizations that might happen to elide the code completely. It&#39;s up to you to design benchmarks which actually exercise the code you intend to exercise. </p><p>A common place julia&#39;s optimizer may cause a benchmark to not measure what a user thought it was measuring is simple operations where all values are known at compile time. Suppose you wanted to measure the time it takes to add together two integers:</p><pre><code class="language-julia hljs">julia&gt; a = 1; b = 2
+2
+
+julia&gt; @btime $a + $b
+  0.024 ns (0 allocations: 0 bytes)
+3</code></pre><p>in this case julia was able to use the properties of <code>+(::Int, ::Int)</code> to know that it could safely replace <code>$a + $b</code> with <code>3</code> at compile time. We can stop the optimizer from doing this by referencing and dereferencing the interpolated variables  </p><pre><code class="language-julia hljs">julia&gt; @btime $(Ref(a))[] + $(Ref(b))[]
+  1.277 ns (0 allocations: 0 bytes)
+3</code></pre><h2 id="Handling-benchmark-results"><a class="docs-heading-anchor" href="#Handling-benchmark-results">Handling benchmark results</a><a id="Handling-benchmark-results-1"></a><a class="docs-heading-anchor-permalink" href="#Handling-benchmark-results" title="Permalink"></a></h2><p>BenchmarkTools provides four types related to benchmark results:</p><ul><li><code>Trial</code>: stores all samples collected during a benchmark trial, as well as the trial&#39;s parameters</li><li><code>TrialEstimate</code>: a single estimate used to summarize a <code>Trial</code></li><li><code>TrialRatio</code>: a comparison between two <code>TrialEstimate</code></li><li><code>TrialJudgement</code>: a classification of the fields of a <code>TrialRatio</code> as <code>invariant</code>, <code>regression</code>, or <code>improvement</code></li></ul><p>This section provides a limited number of examples demonstrating these types. For a thorough list of supported functionality, see <a href="../reference/">the reference document</a>.</p><h3 id="Trial-and-TrialEstimate"><a class="docs-heading-anchor" href="#Trial-and-TrialEstimate"><code>Trial</code> and <code>TrialEstimate</code></a><a id="Trial-and-TrialEstimate-1"></a><a class="docs-heading-anchor-permalink" href="#Trial-and-TrialEstimate" title="Permalink"></a></h3><p>Running a benchmark produces an instance of the <code>Trial</code> type:</p><pre><code class="language-julia hljs">julia&gt; t = @benchmark eigen(rand(10, 10))
+BenchmarkTools.Trial: 10000 samples with 1 evaluations.
+ Range (min … max):  26.549 μs …  1.503 ms  ┊ GC (min … max): 0.00% … 93.21%
+ Time  (median):     30.818 μs              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   31.777 μs ± 25.161 μs  ┊ GC (mean ± σ):  1.31% ±  1.63%
+
+             ▂▃▅▆█▇▇▆▆▄▄▃▁▁                                        
+  ▁▁▁▁▁▁▂▃▄▆████████████████▆▆▅▅▄▄▃▃▃▂▂▂▂▂▂▁▂▁▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+  26.5 μs           Histogram: frequency by time            41.3 μs (top 1%)
+
+ Memory estimate: 16.36 KiB, allocs estimate: 19.
+
+julia&gt; dump(t) # here&#39;s what&#39;s actually stored in a Trial
+BenchmarkTools.Trial
+  params: BenchmarkTools.Parameters
+    seconds: Float64 5.0
+    samples: Int64 10000
+    evals: Int64 1
+    overhead: Float64 0.0
+    gctrial: Bool true
+    gcsample: Bool false
+    time_tolerance: Float64 0.05
+    memory_tolerance: Float64 0.01
+  times: Array{Float64}((10000,)) [26549.0, 26960.0, 27030.0, 27171.0, 27211.0, 27261.0, 27270.0, 27311.0, 27311.0, 27321.0  …  55383.0, 55934.0, 58649.0, 62847.0, 68547.0, 75761.0, 247081.0, 1.421718e6, 1.488322e6, 1.50329e6]
+  gctimes: Array{Float64}((10000,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.366184e6, 1.389518e6, 1.40116e6]
+  memory: Int64 16752
+  allocs: Int64 19</code></pre><p>As you can see from the above, a couple of different timing estimates are pretty-printed with the <code>Trial</code>. You can calculate these estimates yourself using the <code>minimum</code>, <code>maximum</code>, <code>median</code>, <code>mean</code>, and <code>std</code> functions (Note that <code>median</code>, <code>mean</code>, and <code>std</code> are reexported in <code>BenchmarkTools</code> from <code>Statistics</code>):</p><pre><code class="language-julia hljs">julia&gt; minimum(t)
+BenchmarkTools.TrialEstimate: 
+  time:             26.549 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           16.36 KiB
+  allocs:           19
+
+julia&gt; maximum(t)
+BenchmarkTools.TrialEstimate: 
+  time:             1.503 ms
+  gctime:           1.401 ms (93.21%)
+  memory:           16.36 KiB
+  allocs:           19
+
+julia&gt; median(t)
+BenchmarkTools.TrialEstimate: 
+  time:             30.818 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           16.36 KiB
+  allocs:           19
+
+julia&gt; mean(t)
+BenchmarkTools.TrialEstimate: 
+  time:             31.777 μs
+  gctime:           415.686 ns (1.31%)
+  memory:           16.36 KiB
+  allocs:           19
+
+julia&gt; std(t)
+BenchmarkTools.TrialEstimate: 
+  time:             25.161 μs
+  gctime:           23.999 μs (95.38%)
+  memory:           16.36 KiB
+  allocs:           19</code></pre><h3 id="Which-estimator-should-I-use?"><a class="docs-heading-anchor" href="#Which-estimator-should-I-use?">Which estimator should I use?</a><a id="Which-estimator-should-I-use?-1"></a><a class="docs-heading-anchor-permalink" href="#Which-estimator-should-I-use?" title="Permalink"></a></h3><p>Time distributions are always right-skewed for the benchmarks we&#39;ve tested. This phenomena can be justified by considering that the machine noise affecting the benchmarking process is, in some sense, inherently positive - there aren&#39;t really sources of noise that would regularly cause your machine to execute a series of instructions <em>faster</em> than the theoretical &quot;ideal&quot; time prescribed by your hardware. Following this characterization of benchmark noise, we can describe the behavior of our estimators:</p><ul><li>The minimum is a robust estimator for the location parameter of the time distribution, and should not be considered an outlier</li><li>The median, as a robust measure of central tendency, should be relatively unaffected by outliers</li><li>The mean, as a non-robust measure of central tendency, will usually be positively skewed by outliers</li><li>The maximum should be considered a primarily noise-driven outlier, and can change drastically between benchmark trials.</li></ul><h3 id="TrialRatio-and-TrialJudgement"><a class="docs-heading-anchor" href="#TrialRatio-and-TrialJudgement"><code>TrialRatio</code> and <code>TrialJudgement</code></a><a id="TrialRatio-and-TrialJudgement-1"></a><a class="docs-heading-anchor-permalink" href="#TrialRatio-and-TrialJudgement" title="Permalink"></a></h3><p>BenchmarkTools supplies a <code>ratio</code> function for comparing two values:</p><pre><code class="language-julia hljs">julia&gt; ratio(3, 2)
+1.5
+
+julia&gt; ratio(1, 0)
+Inf
+
+julia&gt; ratio(0, 1)
+0.0
+
+# a == b is special-cased to 1.0 to prevent NaNs in this case
+julia&gt; ratio(0, 0)
+1.0</code></pre><p>Calling the <code>ratio</code> function on two <code>TrialEstimate</code> instances compares their fields:</p><pre><code class="language-julia hljs">julia&gt; using BenchmarkTools
+
+julia&gt; b = @benchmarkable eigen(rand(10, 10));
+
+julia&gt; tune!(b);
+
+julia&gt; m1 = median(run(b))
+BenchmarkTools.TrialEstimate:
+  time:             38.638 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
+
+julia&gt; m2 = median(run(b))
+BenchmarkTools.TrialEstimate:
+  time:             38.723 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
+
+julia&gt; ratio(m1, m2)
+BenchmarkTools.TrialRatio:
+  time:             0.997792009916587
+  gctime:           1.0
+  memory:           1.0
+  allocs:           1.0</code></pre><p>Use the <code>judge</code> function to decide if the estimate passed as first argument represents a regression versus the second estimate:</p><pre><code class="language-julia hljs">julia&gt; m1 = median(@benchmark eigen(rand(10, 10)))
+BenchmarkTools.TrialEstimate:
+  time:             38.745 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
+
+julia&gt; m2 = median(@benchmark eigen(rand(10, 10)))
+BenchmarkTools.TrialEstimate:
+  time:             38.611 μs
+  gctime:           0.000 ns (0.00%)
+  memory:           9.30 KiB
+  allocs:           28
+
+# percent change falls within noise tolerance for all fields
+julia&gt; judge(m1, m2)
+BenchmarkTools.TrialJudgement:
+  time:   +0.35% =&gt; invariant (5.00% tolerance)
+  memory: +0.00% =&gt; invariant (1.00% tolerance)
+
+# changing time_tolerance causes it to be marked as a regression
+julia&gt; judge(m1, m2; time_tolerance = 0.0001)
+BenchmarkTools.TrialJudgement:
+  time:   +0.35% =&gt; regression (0.01% tolerance)
+  memory: +0.00% =&gt; invariant (1.00% tolerance)
+
+# switch m1 &amp; m2; from this perspective, the difference is an improvement
+julia&gt; judge(m2, m1; time_tolerance = 0.0001)
+BenchmarkTools.TrialJudgement:
+  time:   -0.35% =&gt; improvement (0.01% tolerance)
+  memory: +0.00% =&gt; invariant (1.00% tolerance)
+
+# you can pass in TrialRatios as well
+julia&gt; judge(ratio(m1, m2)) == judge(m1, m2)
+true</code></pre><p>Note that changes in GC time and allocation count aren&#39;t classified by <code>judge</code>. This is because GC time and allocation count, while sometimes useful for answering <em>why</em> a regression occurred, are not generally useful for answering <em>if</em> a regression occurred. Instead, it&#39;s usually only differences in time and memory usage that determine whether or not a code change is an improvement or a regression. For example, in the unlikely event that a code change decreased time and memory usage, but increased GC time and allocation count, most people would consider that code change to be an improvement. The opposite is also true: an increase in time and memory usage would be considered a regression no matter how much GC time or allocation count decreased.</p><h2 id="The-BenchmarkGroup-type"><a class="docs-heading-anchor" href="#The-BenchmarkGroup-type">The <code>BenchmarkGroup</code> type</a><a id="The-BenchmarkGroup-type-1"></a><a class="docs-heading-anchor-permalink" href="#The-BenchmarkGroup-type" title="Permalink"></a></h2><p>In the real world, one often deals with whole suites of benchmarks rather than just individual benchmarks. The <code>BenchmarkGroup</code> type serves as the &quot;organizational unit&quot; of such suites, and can be used to store and structure benchmark definitions, raw <code>Trial</code> data, estimation results, and even other <code>BenchmarkGroup</code> instances.</p><h3 id="Defining-benchmark-suites"><a class="docs-heading-anchor" href="#Defining-benchmark-suites">Defining benchmark suites</a><a id="Defining-benchmark-suites-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-benchmark-suites" title="Permalink"></a></h3><p>A <code>BenchmarkGroup</code> stores a <code>Dict</code> that maps benchmark IDs to values, as well as descriptive &quot;tags&quot; that can be used to filter the group by topic. To get started, let&#39;s demonstrate how one might use the <code>BenchmarkGroup</code> type to define a simple benchmark suite:</p><pre><code class="language-julia hljs"># Define a parent BenchmarkGroup to contain our suite
+suite = BenchmarkGroup()
+
+# Add some child groups to our benchmark suite. The most relevant BenchmarkGroup constructor
+# for this case is BenchmarkGroup(tags::Vector). These tags are useful for
+# filtering benchmarks by topic, which we&#39;ll cover in a later section.
+suite[&quot;utf8&quot;] = BenchmarkGroup([&quot;string&quot;, &quot;unicode&quot;])
+suite[&quot;trig&quot;] = BenchmarkGroup([&quot;math&quot;, &quot;triangles&quot;])
+
+# Add some benchmarks to the &quot;utf8&quot; group
+teststr = join(rand(&#39;a&#39;:&#39;d&#39;, 10^4));
+suite[&quot;utf8&quot;][&quot;replace&quot;] = @benchmarkable replace($teststr, &quot;a&quot; =&gt; &quot;b&quot;)
+suite[&quot;utf8&quot;][&quot;join&quot;] = @benchmarkable join($teststr, $teststr)
+
+# Add some benchmarks to the &quot;trig&quot; group
+for f in (sin, cos, tan)
+    for x in (0.0, pi)
+        suite[&quot;trig&quot;][string(f), x] = @benchmarkable $(f)($x)
+    end
+end</code></pre><p>Let&#39;s look at our newly defined suite in the REPL:</p><pre><code class="language-julia hljs">julia&gt; suite
+2-element BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;utf8&quot; =&gt; 2-element BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;string&quot;, &quot;unicode&quot;]
+	  &quot;join&quot; =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)
+	  &quot;replace&quot; =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)
+  &quot;trig&quot; =&gt; 6-element BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;math&quot;, &quot;triangles&quot;]
+	  (&quot;cos&quot;, 0.0) =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)
+	  (&quot;sin&quot;, π = 3.1415926535897...) =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)
+	  (&quot;tan&quot;, π = 3.1415926535897...) =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)
+	  (&quot;cos&quot;, π = 3.1415926535897...) =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)
+	  (&quot;sin&quot;, 0.0) =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)
+	  (&quot;tan&quot;, 0.0) =&gt; Benchmark(evals=1, seconds=5.0, samples=10000)</code></pre><p>As you might imagine, <code>BenchmarkGroup</code> supports a subset of Julia&#39;s <code>Associative</code> interface. A full list of these supported functions can be found <a href="../reference/#benchmarkgrouptagsvector-datadict">in the reference document</a>.</p><p>One can also create a nested <code>BenchmarkGroup</code> simply by indexing the keys:</p><pre><code class="language-julia hljs">suite2 = BenchmarkGroup()
+
+suite2[&quot;my&quot;][&quot;nested&quot;][&quot;benchmark&quot;] = @benchmarkable sum(randn(32))</code></pre><p>which will result in a hierarchical benchmark without us needing to create the <code>BenchmarkGroup</code> at each level ourselves.</p><p>Note that keys are automatically created upon access, even if a key does not exist. Thus, if you wish to empty the unused keys, you can use <code>clear_empty!(suite)</code> to do so.</p><h3 id="Tuning-and-running-a-BenchmarkGroup"><a class="docs-heading-anchor" href="#Tuning-and-running-a-BenchmarkGroup">Tuning and running a <code>BenchmarkGroup</code></a><a id="Tuning-and-running-a-BenchmarkGroup-1"></a><a class="docs-heading-anchor-permalink" href="#Tuning-and-running-a-BenchmarkGroup" title="Permalink"></a></h3><p>Similarly to individual benchmarks, you can <code>tune!</code> and <code>run</code> whole <code>BenchmarkGroup</code> instances (following from the previous section):</p><pre><code class="language-julia hljs"># execute `tune!` on every benchmark in `suite`
+julia&gt; tune!(suite);
+
+# run with a time limit of ~1 second per benchmark
+julia&gt; results = run(suite, verbose = true, seconds = 1)
+(1/2) benchmarking &quot;utf8&quot;...
+  (1/2) benchmarking &quot;join&quot;...
+  done (took 1.15406904 seconds)
+  (2/2) benchmarking &quot;replace&quot;...
+  done (took 0.47660775 seconds)
+done (took 1.697970114 seconds)
+(2/2) benchmarking &quot;trig&quot;...
+  (1/6) benchmarking (&quot;tan&quot;,π = 3.1415926535897...)...
+  done (took 0.371586549 seconds)
+  (2/6) benchmarking (&quot;cos&quot;,0.0)...
+  done (took 0.284178292 seconds)
+  (3/6) benchmarking (&quot;cos&quot;,π = 3.1415926535897...)...
+  done (took 0.338527685 seconds)
+  (4/6) benchmarking (&quot;sin&quot;,π = 3.1415926535897...)...
+  done (took 0.345329397 seconds)
+  (5/6) benchmarking (&quot;sin&quot;,0.0)...
+  done (took 0.309887335 seconds)
+  (6/6) benchmarking (&quot;tan&quot;,0.0)...
+  done (took 0.320894744 seconds)
+done (took 2.022673065 seconds)
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;utf8&quot; =&gt; BenchmarkGroup([&quot;string&quot;, &quot;unicode&quot;])
+  &quot;trig&quot; =&gt; BenchmarkGroup([&quot;math&quot;, &quot;triangles&quot;])</code></pre><h3 id="Working-with-trial-data-in-a-BenchmarkGroup"><a class="docs-heading-anchor" href="#Working-with-trial-data-in-a-BenchmarkGroup">Working with trial data in a <code>BenchmarkGroup</code></a><a id="Working-with-trial-data-in-a-BenchmarkGroup-1"></a><a class="docs-heading-anchor-permalink" href="#Working-with-trial-data-in-a-BenchmarkGroup" title="Permalink"></a></h3><p>Following from the previous section, we see that running our benchmark suite returns a <code>BenchmarkGroup</code> that stores <code>Trial</code> data instead of benchmarks:</p><pre><code class="language-julia hljs">julia&gt; results[&quot;utf8&quot;]
+BenchmarkTools.BenchmarkGroup:
+  tags: [&quot;string&quot;, &quot;unicode&quot;]
+  &quot;join&quot; =&gt; Trial(133.84 ms) # summary(::Trial) displays the minimum time estimate
+  &quot;replace&quot; =&gt; Trial(202.3 μs)
+
+julia&gt; results[&quot;trig&quot;]
+BenchmarkTools.BenchmarkGroup:
+  tags: [&quot;math&quot;, &quot;triangles&quot;]
+  (&quot;tan&quot;,π = 3.1415926535897...) =&gt; Trial(28.0 ns)
+  (&quot;cos&quot;,0.0) =&gt; Trial(6.0 ns)
+  (&quot;cos&quot;,π = 3.1415926535897...) =&gt; Trial(22.0 ns)
+  (&quot;sin&quot;,π = 3.1415926535897...) =&gt; Trial(21.0 ns)
+  (&quot;sin&quot;,0.0) =&gt; Trial(6.0 ns)
+  (&quot;tan&quot;,0.0) =&gt; Trial(6.0 ns)</code></pre><p>Most of the functions on result-related types (<code>Trial</code>, <code>TrialEstimate</code>, <code>TrialRatio</code>, and <code>TrialJudgement</code>) work on <code>BenchmarkGroup</code>s as well. Usually, these functions simply map onto the groups&#39; values:</p><pre><code class="language-julia hljs">julia&gt; m1 = median(results[&quot;utf8&quot;]) # == median(results[&quot;utf8&quot;])
+BenchmarkTools.BenchmarkGroup:
+  tags: [&quot;string&quot;, &quot;unicode&quot;]
+  &quot;join&quot; =&gt; TrialEstimate(143.68 ms)
+  &quot;replace&quot; =&gt; TrialEstimate(203.24 μs)
+
+julia&gt; m2 = median(run(suite[&quot;utf8&quot;]))
+BenchmarkTools.BenchmarkGroup:
+  tags: [&quot;string&quot;, &quot;unicode&quot;]
+  &quot;join&quot; =&gt; TrialEstimate(144.79 ms)
+  &quot;replace&quot; =&gt; TrialEstimate(202.49 μs)
+
+julia&gt; judge(m1, m2; time_tolerance = 0.001) # use 0.1 % time tolerance
+BenchmarkTools.BenchmarkGroup:
+  tags: [&quot;string&quot;, &quot;unicode&quot;]
+  &quot;join&quot; =&gt; TrialJudgement(-0.76% =&gt; improvement)
+  &quot;replace&quot; =&gt; TrialJudgement(+0.37% =&gt; regression)</code></pre><h3 id="Indexing-into-a-BenchmarkGroup-using-@tagged"><a class="docs-heading-anchor" href="#Indexing-into-a-BenchmarkGroup-using-@tagged">Indexing into a <code>BenchmarkGroup</code> using <code>@tagged</code></a><a id="Indexing-into-a-BenchmarkGroup-using-@tagged-1"></a><a class="docs-heading-anchor-permalink" href="#Indexing-into-a-BenchmarkGroup-using-@tagged" title="Permalink"></a></h3><p>Sometimes, especially in large benchmark suites, you&#39;d like to filter benchmarks by topic without necessarily worrying about the key-value structure of the suite. For example, you might want to run all string-related benchmarks, even though they might be spread out among many different groups or subgroups. To solve this problem, the <code>BenchmarkGroup</code> type incorporates a tagging system.</p><p>Consider the following <code>BenchmarkGroup</code>, which contains several nested child groups that are all individually tagged:</p><pre><code class="language-julia hljs">julia&gt; g = BenchmarkGroup([], # no tags in the parent
+                          &quot;c&quot; =&gt; BenchmarkGroup([&quot;5&quot;, &quot;6&quot;, &quot;7&quot;]), # tagged &quot;5&quot;, &quot;6&quot;, &quot;7&quot;
+                          &quot;b&quot; =&gt; BenchmarkGroup([&quot;3&quot;, &quot;4&quot;, &quot;5&quot;]), # tagged &quot;3&quot;, &quot;4&quot;, &quot;5&quot;
+                          &quot;a&quot; =&gt; BenchmarkGroup([&quot;1&quot;, &quot;2&quot;, &quot;3&quot;],  # contains tags and child groups
+                                                &quot;d&quot; =&gt; BenchmarkGroup([&quot;8&quot;], 1 =&gt; 1),
+                                                &quot;e&quot; =&gt; BenchmarkGroup([&quot;9&quot;], 2 =&gt; 2)));
+julia&gt; g
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;c&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;5&quot;, &quot;6&quot;, &quot;7&quot;]
+  &quot;b&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;3&quot;, &quot;4&quot;, &quot;5&quot;]
+  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;]
+	  &quot;e&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: [&quot;9&quot;]
+		  2 =&gt; 2
+	  &quot;d&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: [&quot;8&quot;]
+		  1 =&gt; 1</code></pre><p>We can filter this group by tag using the <code>@tagged</code> macro. This macro takes in a special predicate, and returns an object that can be used to index into a <code>BenchmarkGroup</code>. For example, we can select all groups marked <code>&quot;3&quot;</code> or <code>&quot;7&quot;</code> and not <code>&quot;1&quot;</code>:</p><pre><code class="language-julia hljs">julia&gt; g[@tagged (&quot;3&quot; || &quot;7&quot;) &amp;&amp; !(&quot;1&quot;)]
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;c&quot; =&gt; BenchmarkGroup([&quot;5&quot;, &quot;6&quot;, &quot;7&quot;])
+  &quot;b&quot; =&gt; BenchmarkGroup([&quot;3&quot;, &quot;4&quot;, &quot;5&quot;])</code></pre><p>As you can see, the allowable syntax for the <code>@tagged</code> predicate includes <code>!</code>, <code>()</code>, <code>||</code>, <code>&amp;&amp;</code>, in addition to the tags themselves. The <code>@tagged</code> macro replaces each tag in the predicate expression with a check to see if the group has the given tag, returning <code>true</code> if so and <code>false</code> otherwise. A group <code>g</code> is considered to have a given tag <code>t</code> if:</p><ul><li><code>t</code> is attached explicitly to <code>g</code> by construction (e.g. <code>g = BenchmarkGroup([t])</code>)</li><li><code>t</code> is a key that points to <code>g</code> in <code>g</code>&#39;s parent group (e.g. <code>BenchmarkGroup([], t =&gt; g)</code>)</li><li><code>t</code> is a tag of one of <code>g</code>&#39;s parent groups (all the way up to the root group)</li></ul><p>To demonstrate the last two points:</p><pre><code class="language-julia hljs"># also could&#39;ve used `@tagged &quot;1&quot;`, `@tagged &quot;a&quot;`, `@tagged &quot;e&quot; || &quot;d&quot;`
+julia&gt; g[@tagged &quot;8&quot; || &quot;9&quot;]
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;]
+	  &quot;e&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: [&quot;9&quot;]
+		  2 =&gt; 2
+	  &quot;d&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: [&quot;8&quot;]
+		  1 =&gt; 1
+
+julia&gt; g[@tagged &quot;d&quot;]
+BenchmarkTools.BenchmarkGroup:
+    tags: []
+    &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;]
+	  &quot;d&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: [&quot;8&quot;]
+		  1 =&gt; 1
+
+julia&gt; g[@tagged &quot;9&quot;]
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;]
+	  &quot;e&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: [&quot;9&quot;]
+		  2 =&gt; 2</code></pre><h3 id="Indexing-into-a-BenchmarkGroup-using-another-BenchmarkGroup"><a class="docs-heading-anchor" href="#Indexing-into-a-BenchmarkGroup-using-another-BenchmarkGroup">Indexing into a <code>BenchmarkGroup</code> using another <code>BenchmarkGroup</code></a><a id="Indexing-into-a-BenchmarkGroup-using-another-BenchmarkGroup-1"></a><a class="docs-heading-anchor-permalink" href="#Indexing-into-a-BenchmarkGroup-using-another-BenchmarkGroup" title="Permalink"></a></h3><p>It&#39;s sometimes useful to create <code>BenchmarkGroup</code> where the keys are drawn from one <code>BenchmarkGroup</code>, but the values are drawn from another. You can accomplish this by indexing into the latter <code>BenchmarkGroup</code> with the former:</p><pre><code class="language-julia hljs">julia&gt; g # leaf values are integers
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;c&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; 1
+	  &quot;2&quot; =&gt; 2
+	  &quot;3&quot; =&gt; 3
+  &quot;b&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; 1
+	  &quot;2&quot; =&gt; 2
+	  &quot;3&quot; =&gt; 3
+  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; 1
+	  &quot;2&quot; =&gt; 2
+	  &quot;3&quot; =&gt; 3
+  &quot;d&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; 1
+	  &quot;2&quot; =&gt; 2
+	  &quot;3&quot; =&gt; 3
+
+julia&gt; x # note that leaf values are characters
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;c&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;2&quot; =&gt; &#39;2&#39;
+  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; &#39;1&#39;
+	  &quot;3&quot; =&gt; &#39;3&#39;
+  &quot;d&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; &#39;1&#39;
+	  &quot;2&quot; =&gt; &#39;2&#39;
+	  &quot;3&quot; =&gt; &#39;3&#39;
+
+julia&gt; g[x] # index into `g` with the keys of `x`
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;c&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;2&quot; =&gt; 2
+  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; 1
+	  &quot;3&quot; =&gt; 3
+  &quot;d&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;1&quot; =&gt; 1
+	  &quot;2&quot; =&gt; 2
+	  &quot;3&quot; =&gt; 3</code></pre><p>An example scenario where this would be useful: You have a suite of benchmarks, and a corresponding group of <code>TrialJudgement</code>s, and you want to rerun the benchmarks in your suite that are considered regressions in the judgement group. You can easily do this with the following code:</p><pre><code class="language-julia hljs">run(suite[regressions(judgements)])</code></pre><h3 id="Indexing-into-a-BenchmarkGroup-using-a-Vector"><a class="docs-heading-anchor" href="#Indexing-into-a-BenchmarkGroup-using-a-Vector">Indexing into a <code>BenchmarkGroup</code> using a <code>Vector</code></a><a id="Indexing-into-a-BenchmarkGroup-using-a-Vector-1"></a><a class="docs-heading-anchor-permalink" href="#Indexing-into-a-BenchmarkGroup-using-a-Vector" title="Permalink"></a></h3><p>You may have noticed that nested <code>BenchmarkGroup</code> instances form a tree-like structure, where the root node is the parent group, intermediate nodes are child groups, and the leaves take values like trial data and benchmark definitions.</p><p>Since these trees can be arbitrarily asymmetric, it can be cumbersome to write certain <code>BenchmarkGroup</code> transformations using only the indexing facilities previously discussed.</p><p>To solve this problem, BenchmarkTools allows you to uniquely index group nodes using a <code>Vector</code> of the node&#39;s parents&#39; keys. For example:</p><pre><code class="language-julia hljs">julia&gt; g = BenchmarkGroup([], 1 =&gt; BenchmarkGroup([], &quot;a&quot; =&gt; BenchmarkGroup([], :b =&gt; 1234)));
+
+julia&gt; g
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  1 =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: []
+		  :b =&gt; 1234
+
+julia&gt; g[[1]] # == g[1]
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  :b =&gt; 1234
+julia&gt; g[[1, &quot;a&quot;]] # == g[1][&quot;a&quot;]
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  :b =&gt; 1234
+julia&gt; g[[1, &quot;a&quot;, :b]] # == g[1][&quot;a&quot;][:b]
+1234</code></pre><p>Keep in mind that this indexing scheme also works with <code>setindex!</code>:</p><pre><code class="language-julia hljs">julia&gt; g[[1, &quot;a&quot;, :b]] = &quot;hello&quot;
+&quot;hello&quot;
+
+julia&gt; g
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  1 =&gt; BenchmarkTools.BenchmarkGroup:
+	  tags: []
+	  &quot;a&quot; =&gt; BenchmarkTools.BenchmarkGroup:
+		  tags: []
+		  :b =&gt; &quot;hello&quot;</code></pre><p>Assigning into a <code>BenchmarkGroup</code> with a <code>Vector</code> creates sub-groups as necessary:</p><pre><code class="language-julia hljs">julia&gt;  g[[2, &quot;a&quot;, :b]] = &quot;hello again&quot;
+&quot;hello again&quot;
+
+julia&gt; g
+2-element BenchmarkTools.BenchmarkGroup:
+  tags: []
+  2 =&gt; 1-element BenchmarkTools.BenchmarkGroup:
+          tags: []
+          &quot;a&quot; =&gt; 1-element BenchmarkTools.BenchmarkGroup:
+                  tags: []
+                  :b =&gt; &quot;hello again&quot;
+  1 =&gt; 1-element BenchmarkTools.BenchmarkGroup:
+          tags: []
+          &quot;a&quot; =&gt; 1-element BenchmarkTools.BenchmarkGroup:
+                  tags: []
+                  :b =&gt; &quot;hello&quot;</code></pre><p>You can use the <code>leaves</code> function to construct an iterator over a group&#39;s leaf index/value pairs:</p><pre><code class="language-julia hljs">julia&gt; g = BenchmarkGroup([&quot;1&quot;],
+                          &quot;2&quot; =&gt; BenchmarkGroup([&quot;3&quot;], 1 =&gt; 1),
+                          4 =&gt; BenchmarkGroup([&quot;3&quot;], 5 =&gt; 6),
+                          7 =&gt; 8,
+                          9 =&gt; BenchmarkGroup([&quot;2&quot;],
+                                              10 =&gt; BenchmarkGroup([&quot;3&quot;]),
+                                              11 =&gt; BenchmarkGroup()));
+
+julia&gt; collect(leaves(g))
+3-element Array{Any,1}:
+ ([7],8)
+ ([4,5],6)
+ ([&quot;2&quot;,1],1)</code></pre><p>Note that terminal child group nodes are not considered &quot;leaves&quot; by the <code>leaves</code> function.</p><h2 id="Caching-Parameters"><a class="docs-heading-anchor" href="#Caching-Parameters">Caching <code>Parameters</code></a><a id="Caching-Parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Caching-Parameters" title="Permalink"></a></h2><p>A common workflow used in BenchmarkTools is the following:</p><ol><li>Start a Julia session</li><li>Execute a benchmark suite using an old version of your package  <code>julia  old_results = run(suite, verbose = true)</code></li><li>Save the results somehow (e.g. in a JSON file)  <code>julia  BenchmarkTools.save(&quot;old_results.json&quot;, old_results)</code></li><li>Start a new Julia session</li><li>Execute a benchmark suite using a new version of your package<pre><code class="language-julia hljs">results = run(suite, verbose = true)</code></pre></li><li>Compare the new results with the results saved in step 3 to determine regression status  <code>julia  old_results = BenchmarkTools.load(&quot;old_results.json&quot;)  BenchmarkTools.judge(minimum(results), minimum(old_results))</code></li></ol><p>There are a couple of problems with this workflow, and all of which revolve around parameter tuning (which would occur during steps 2 and 5):</p><ul><li>Consistency: Given enough time, successive calls to <code>tune!</code> will usually yield reasonably consistent values for the &quot;evaluations per sample&quot; parameter, even in spite of noise. However, some benchmarks are highly sensitive to slight changes in this parameter. Thus, it would be best to have some guarantee that all experiments are configured equally (i.e., a guarantee that step 2 will use the exact same parameters as step 5).</li><li>Turnaround time: For most benchmarks, <code>tune!</code> needs to perform many evaluations to determine the proper parameters for any given benchmark - often more evaluations than are performed when running a trial. In fact, the majority of total benchmarking time is usually spent tuning parameters, rather than actually running trials.</li></ul><p>BenchmarkTools solves these problems by allowing you to pre-tune your benchmark suite, save the &quot;evaluations per sample&quot; parameters, and load them on demand:</p><pre><code class="language-julia hljs"># untuned example suite
+julia&gt; suite
+BenchmarkTools.BenchmarkGroup:
+  tags: []
+  &quot;utf8&quot; =&gt; BenchmarkGroup([&quot;string&quot;, &quot;unicode&quot;])
+  &quot;trig&quot; =&gt; BenchmarkGroup([&quot;math&quot;, &quot;triangles&quot;])
+
+# tune the suite to configure benchmark parameters
+julia&gt; tune!(suite);
+
+# save the suite&#39;s parameters using a thin wrapper
+# over JSON (this wrapper maintains compatibility
+# across BenchmarkTools versions)
+julia&gt; BenchmarkTools.save(&quot;params.json&quot;, params(suite));</code></pre><p>Now, instead of tuning <code>suite</code> every time we load the benchmarks in a new Julia session, we can simply load the parameters in the JSON file using the <code>loadparams!</code> function. The <code>[1]</code> on the <code>load</code> call gets the first value that was serialized into the JSON file, which in this case is the parameters.</p><pre><code class="language-julia hljs"># syntax is loadparams!(group, paramsgroup, fields...)
+julia&gt; loadparams!(suite, BenchmarkTools.load(&quot;params.json&quot;)[1], :evals, :samples);</code></pre><p>Caching parameters in this manner leads to a far shorter turnaround time, and more importantly, much more consistent results.</p><h2 id="Visualizing-benchmark-results"><a class="docs-heading-anchor" href="#Visualizing-benchmark-results">Visualizing benchmark results</a><a id="Visualizing-benchmark-results-1"></a><a class="docs-heading-anchor-permalink" href="#Visualizing-benchmark-results" title="Permalink"></a></h2><p>For comparing two or more benchmarks against one another, you can manually specify the range of the histogram using an <code>IOContext</code> to set <code>:histmin</code> and <code>:histmax</code>:</p><pre><code class="language-julia hljs">julia&gt; io = IOContext(stdout, :histmin=&gt;0.5, :histmax=&gt;8, :logbins=&gt;true)
+IOContext(Base.TTY(RawFD(13) open, 0 bytes waiting))
+
+julia&gt; b = @benchmark x^3   setup=(x = rand()); show(io, MIME(&quot;text/plain&quot;), b)
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  1.239 ns … 31.433 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     1.244 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   1.266 ns ±  0.611 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+       █
+  ▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▂
+  0.5 ns       Histogram: log(frequency) by time        8 ns &lt;
+
+ Memory estimate: 0 bytes, allocs estimate: 0.
+julia&gt; b = @benchmark x^3.0 setup=(x = rand()); show(io, MIME(&quot;text/plain&quot;), b)
+BenchmarkTools.Trial: 10000 samples with 1000 evaluations.
+ Range (min … max):  5.636 ns … 38.756 ns  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     5.662 ns              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   5.767 ns ±  1.384 ns  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+                                         █▆    ▂             ▁
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁███▄▄▃█▁▁▁▁▁▁▁▁▁▁▁▁ █
+  0.5 ns       Histogram: log(frequency) by time        8 ns &lt;
+
+ Memory estimate: 0 bytes, allocs estimate: 0.
+</code></pre><p>Set <code>:logbins</code> to <code>true</code> or <code>false</code> to ensure that all use the same vertical scaling (log frequency or frequency).</p><p>The <code>Trial</code> object can be visualized using the <code>BenchmarkPlots</code> package:</p><pre><code class="language-julia hljs">using BenchmarkPlots, StatsPlots
+b = @benchmarkable lu(rand(10,10))
+t = run(b)
+
+plot(t)</code></pre><p>This will show the timing results of the trial as a violin plot. You can use all the keyword arguments from <code>Plots.jl</code>, for instance <code>st=:box</code> or <code>yaxis=:log10</code>.</p><p>If a <code>BenchmarkGroup</code> contains (only) <code>Trial</code>s, its results can be visualized simply by</p><pre><code class="language-julia hljs">using BenchmarkPlots, StatsPlots
+t = run(g)
+plot(t)</code></pre><p>This will display each <code>Trial</code> as a violin plot.</p><h2 id="Miscellaneous-tips-and-info"><a class="docs-heading-anchor" href="#Miscellaneous-tips-and-info">Miscellaneous tips and info</a><a id="Miscellaneous-tips-and-info-1"></a><a class="docs-heading-anchor-permalink" href="#Miscellaneous-tips-and-info" title="Permalink"></a></h2><ul><li>BenchmarkTools restricts the minimum measurable benchmark execution time to one picosecond.</li><li>If you use <code>rand</code> or something similar to generate the values that are used in your benchmarks, you should seed the RNG (or provide a seeded RNG) so that the values are consistent between trials/samples/evaluations.</li><li>BenchmarkTools attempts to be robust against machine noise occurring between <em>samples</em>, but BenchmarkTools can&#39;t do very much about machine noise occurring between <em>trials</em>. To cut down on the latter kind of noise, it is advised that you dedicate CPUs and memory to the benchmarking Julia process by using a shielding tool such as <a href="http://manpages.ubuntu.com/manpages/precise/man1/cset.1.html">cset</a>.</li><li>On some machines, for some versions of BLAS and Julia, the number of BLAS worker threads can exceed the number of available cores. This can occasionally result in scheduling issues and inconsistent performance for BLAS-heavy benchmarks. To fix this issue, you can use <code>BLAS.set_num_threads(i::Int)</code> in the Julia REPL to ensure that the number of BLAS threads is equal to or less than the number of available cores.</li><li><code>@benchmark</code> is evaluated in global scope, even if called from local scope.</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../linuxtips/">Linux-based environments »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 17 October 2025 01:22">Friday 17 October 2025</span>. Using Julia version 1.12.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
