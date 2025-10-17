@@ -37,8 +37,7 @@ end
 # This method may be removed if the upstream issue is fixed.
 function JSON.lower(x::BenchmarkGroup)
     d = Dict{String,Any}(
-        "data" => Dict(string(k) => v for (k, v) in x.data),
-        "tags" => x.tags,
+        "data" => Dict(string(k) => v for (k, v) in x.data), "tags" => x.tags
     )
     return ["BenchmarkGroup", d]
 end
