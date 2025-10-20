@@ -29,19 +29,6 @@ function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
     return [string(nameof(typeof(x))), d]
 end
 
-# Special support is needed for JSON@1, because it doesn't know how to support
-# NTuple{N,String} as a dictionary key.
-#
-# Upstream issue: https://github.com/JuliaIO/JSON.jl/issues/399
-#
-# This method may be removed if the upstream issue is fixed.
-function JSON.lower(x::BenchmarkGroup)
-    d = Dict{String,Any}(
-        "data" => Dict(string(k) => v for (k, v) in x.data), "tags" => x.tags
-    )
-    return ["BenchmarkGroup", d]
-end
-
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
 safeeval(@nospecialize x) = x
 safeeval(x::QuoteNode) = x.value
