@@ -26,7 +26,7 @@ jobs:
         include:
           - version: '1.7'
             arch: x64
-            os: ubuntu-20.04
+            os: ubuntu-22.04
           - version: '1.8'
             arch: x64
             os: ubuntu-22.04
