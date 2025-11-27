@@ -715,12 +715,14 @@ returning the value of the expression.
 Unlike `@time`, it uses the `@benchmark`
 macro, and accepts all of the same additional
 parameters as `@benchmark`.  The printed time
-is the *minimum* elapsed time measured during the benchmark.
+is the *minimum* elapsed time measured during
+the benchmark, unless there are allocations then
+*mean* as the main valuable timing.
 """
 macro btime(args...)
     _, params = prunekwargs(args...)
     bench, trial, result = gensym(), gensym(), gensym()
-    trialmin, trialallocs = gensym(), gensym()
+    trialmin, trialmean, trialallocs = gensym(), gensym(), gensym()
     tune_phase = hasevals(params) ? :() : :($BenchmarkTools.tune!($bench))
     return esc(
         quote
@@ -730,18 +732,29 @@ macro btime(args...)
                 $bench; warmup=$(hasevals(params))
             )
             local $trialmin = $BenchmarkTools.minimum($trial)
+            local $trialmean = $BenchmarkTools.mean($trial)
             local $trialallocs = $BenchmarkTools.allocs($trialmin)
-            println(
-                "  ",
-                $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
-                " (",
-                $trialallocs,
-                " allocation",
-                $trialallocs == 1 ? "" : "s",
-                ": ",
-                $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)),
-                ")",
-            )
+            if $trialallocs == 0
+                println(
+                    "  ",
+                    $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
+                    " (minimum time; 0 allocations)",
+                )
+            else
+                println(
+                    "  ",
+                    $BenchmarkTools.prettytime($BenchmarkTools.time($trialmean)),
+                    " (mean time; miniumum is ",
+                    $BenchmarkTools.prettytime($BenchmarkTools.time($trialmin)),
+                    ", ",
+                    $trialallocs,
+                    " allocation",
+                    $trialallocs == 1 ? "" : "s",
+                    ": ",
+                    $BenchmarkTools.prettymemory($BenchmarkTools.memory($trialmin)),
+                    ")",
+                )
+            end
             $result
         end,
     )
