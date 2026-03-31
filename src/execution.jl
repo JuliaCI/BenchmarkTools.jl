@@ -588,9 +588,6 @@ function generate_benchmark_definition(
                 # Wrap each interpolated variable with blackbox inside
                 # the corefunc body to prevent LLVM from hoisting
                 # loop-invariant pure calls out of the benchmark loop (LICM).
-                # We must barrier inside corefunc (on unboxed scalars) rather
-                # than outside (on tuple element pointers), because the tuple
-                # argument is marked readonly and LLVM won't reload it.
                 barrier_stmts = [:($(v) = Base.blackbox($(v))) for v in quote_vars]
                 core_body = Expr(:block, barrier_stmts..., core_body)
             end
