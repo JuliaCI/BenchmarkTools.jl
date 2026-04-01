@@ -584,6 +584,13 @@ function generate_benchmark_definition(
             core_body = :($(core); $(returns))
         end
         @static if isdefined(Base, :donotdelete)
+            if isdefined(Base, :blackbox)
+                # Wrap each interpolated variable with blackbox inside
+                # the corefunc body to prevent LLVM from hoisting
+                # loop-invariant pure calls out of the benchmark loop (LICM).
+                barrier_stmts = [:($(v) = Base.blackbox($(v))) for v in quote_vars]
+                core_body = Expr(:block, barrier_stmts..., core_body)
+            end
             invocation = :(
                 let x = $invocation
                     Base.donotdelete(x)
