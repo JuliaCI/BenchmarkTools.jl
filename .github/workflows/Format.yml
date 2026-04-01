@@ -8,6 +8,6 @@ jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - uses: julia-actions/julia-format@v4
+      - uses: julia-actions/julia-format@d758beeb6b381459ef1254656f351627155a0f0a # v4.1.0
         with:
-          version: '1' # Change this to pin to a specific JuliaFormatter version
+          version: '1'
