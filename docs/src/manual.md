@@ -552,7 +552,7 @@ julia> suite
 	  ("tan", 0.0) => Benchmark(evals=1, seconds=5.0, samples=10000)
 ```
 
-As you might imagine, `BenchmarkGroup` supports a subset of Julia's `Associative` interface. A full list of
+As you might imagine, `BenchmarkGroup` supports a subset of Julia's `AbstractDict` interface. A full list of
 these supported functions can be found [in the reference document](reference.md#benchmarkgrouptagsvector-datadict).
 
 One can also create a nested `BenchmarkGroup` simply by indexing the keys:
