@@ -14,9 +14,9 @@ end
 # Benchmark #
 #############
 
-mutable struct Benchmark
-    samplefunc
-    quote_vals
+mutable struct Benchmark{F,Q}
+    samplefunc::F
+    quote_vals::Q
     params::Parameters
 end
 
@@ -110,18 +110,32 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
     if warmup
-        b.samplefunc(b.quote_vals, Parameters(params; evals=1)) #warmup sample
+        warmup_allocs = b.samplefunc(b.quote_vals, Parameters(params; evals=1))[4]
+        params.gctrial && warmup_allocs > 0 && gcscrub()
     end
     trial = Trial(params)
-    params.gctrial && gcscrub()
     start_time = Base.time()
     s = b.samplefunc(b.quote_vals, params)
     push!(trial, s[1:(end - 1)]...)
     return_val = s[end]
+    # Use the first real sample time to estimate how many samples will fit, then
+    # pre-allocate to avoid repeated vector growth and GC during the run.
+    sample_time_s = s[1] * params.evals / 1e9
+    estimated_remaining = if sample_time_s > 0
+        min(
+            params.samples - 1,
+            ceil(Int, (params.seconds - (Base.time() - start_time)) / sample_time_s),
+        )
+    else
+        params.samples - 1
+    end
+    sizehint!(trial.times, 1 + estimated_remaining)
+    sizehint!(trial.gctimes, 1 + estimated_remaining)
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-        params.gcsample && gcscrub()
-        push!(trial, b.samplefunc(b.quote_vals, params)[1:(end - 1)]...)
+        params.gcsample && s[4] > 0 && gcscrub()
+        s = b.samplefunc(b.quote_vals, params)
+        push!(trial, s[1:(end - 1)]...)
         iters += 1
     end
     return trial, return_val
@@ -183,13 +197,16 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     estimates = zeros(maxevals)
     completed = 0
     params.evals = 1
-    b.samplefunc(b.quote_vals, params) #warmup sample
-    params.gctrial && gcscrub()
+    warmup_allocs = b.samplefunc(b.quote_vals, params)[4] #warmup sample
+    params.gctrial && warmup_allocs > 0 && gcscrub()
     start_time = time()
+    prev_allocs = warmup_allocs
     for evals in eachindex(estimates)
-        params.gcsample && gcscrub()
+        params.gcsample && prev_allocs > 0 && gcscrub()
         params.evals = evals
-        estimates[evals] = first(b.samplefunc(b.quote_vals, params))
+        s = b.samplefunc(b.quote_vals, params)
+        estimates[evals] = first(s)
+        prev_allocs = s[4]
         completed += 1
         ((time() - start_time) > params.seconds) && break
     end

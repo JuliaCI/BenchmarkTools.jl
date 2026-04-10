@@ -317,6 +317,10 @@ str = String(take!(io))
 b = @bprofile 1 + 1 gctrial = true
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
+@test !occursin("gcscrub", str)  # no allocs, so gcscrub is skipped even with gctrial=true
+b = @bprofile Ref(1) gctrial = true gcsample = true
+Profile.print(IOContext(io, :displaysize => (24, 200)))
+str = String(take!(io))
 @test occursin("gcscrub", str)
 
 ########
@@ -397,6 +401,13 @@ b = @benchmarkable $x
 b = x = nothing
 GC.gc()
 @test x_finalized
+
+# Ensure the harness itself doesn't allocate for a zero-allocation benchmark
+let b = @benchmarkable sin($(1))
+    tune!(b)
+    s = b.samplefunc(b.quote_vals, b.params)
+    @test s[4] == 0  # allocs
+end
 
 # Ensure mapvals(f) throws MethodError
 @test_throws MethodError BenchmarkTools.mapvals(max)
