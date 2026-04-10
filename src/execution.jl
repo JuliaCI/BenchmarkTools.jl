@@ -113,17 +113,19 @@ function _run(
 )
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
+    sample_ref = Ref{SampleResult}((0.0, 0.0, 0, 0))
     if warmup
         saved_evals = params.evals
         params.evals = 1
-        warmup_s = b.samplefunc(b.quote_vals, params)::SampleResult
-        warmup_allocs = warmup_s[4]
+        b.samplefunc(b.quote_vals, params, sample_ref, nothing)
+        warmup_allocs = sample_ref[][4]
         params.evals = saved_evals
         params.gctrial && warmup_allocs > 0 && gcscrub()
     end
     trial = Trial(params)
     start_time = Base.time()
-    s = b.samplefunc(b.quote_vals, params)::SampleResult
+    b.samplefunc(b.quote_vals, params, sample_ref, nothing)
+    s = sample_ref[]
     push!(trial, s[1], s[2], s[3], s[4])
     sample_time_s = s[1] * params.evals / 1e9
     estimated_remaining = if sample_time_s > 0
@@ -139,13 +141,14 @@ function _run(
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
         params.gcsample && s[4] > 0 && gcscrub()
-        s = b.samplefunc(b.quote_vals, params)::SampleResult
+        b.samplefunc(b.quote_vals, params, sample_ref, nothing)
+        s = sample_ref[]
         push!(trial, s[1], s[2], s[3], s[4])
         iters += 1
     end
     return_val = if capture_result
         result_ref = Ref{Any}()
-        b.samplefunc(b.quote_vals, params, result_ref)
+        b.samplefunc(b.quote_vals, params, sample_ref, result_ref)
         result_ref[]
     else
         nothing
@@ -208,16 +211,18 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     params = Parameters(p; kwargs...)
     estimates = zeros(maxevals)
     completed = 0
+    sample_ref = Ref{SampleResult}((0.0, 0.0, 0, 0))
     params.evals = 1
-    warmup_s = b.samplefunc(b.quote_vals, params)::SampleResult
-    warmup_allocs = warmup_s[4]
+    b.samplefunc(b.quote_vals, params, sample_ref, nothing)
+    warmup_allocs = sample_ref[][4]
     params.gctrial && warmup_allocs > 0 && gcscrub()
     start_time = time()
     prev_allocs = warmup_allocs
     for evals in eachindex(estimates)
         params.gcsample && prev_allocs > 0 && gcscrub()
         params.evals = evals
-        s = b.samplefunc(b.quote_vals, params)::SampleResult
+        b.samplefunc(b.quote_vals, params, sample_ref, nothing)
+        s = sample_ref[]
         estimates[evals] = s[1]
         prev_allocs = s[4]
         completed += 1
@@ -638,7 +643,8 @@ function generate_benchmark_definition(
                 @noinline function $(samplefunc)(
                     $(Expr(:tuple, quote_vars...)),
                     __params::$BenchmarkTools.Parameters,
-                    __result_ref::Union{Ref{Any},Nothing}=nothing,
+                    __sample_ref::Ref{$BenchmarkTools.SampleResult},
+                    __result_ref::Union{Ref{Any},Nothing},
                 )
                     $(setup)
                     __evals = __params.evals
@@ -666,7 +672,8 @@ function generate_benchmark_definition(
                             __evals,
                         ),
                     )
-                    return __time, __gctime, __memory, __allocs
+                    __sample_ref[] = (__time, __gctime, __memory, __allocs)
+                    return nothing
                 end
             end,
         )

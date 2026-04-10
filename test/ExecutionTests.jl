@@ -405,7 +405,9 @@ GC.gc()
 # Ensure the harness itself doesn't allocate for a zero-allocation benchmark
 let b = @benchmarkable sin($(1))
     tune!(b)
-    s = b.samplefunc(b.quote_vals, b.params)
+    sample_ref = Ref{BenchmarkTools.SampleResult}((0.0, 0.0, 0, 0))
+    b.samplefunc(b.quote_vals, b.params, sample_ref, nothing)
+    s = sample_ref[]
     @test s[4] == 0  # allocs
 end
 
