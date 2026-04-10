@@ -14,9 +14,9 @@ end
 # Benchmark #
 #############
 
-mutable struct Benchmark{F,Q}
-    samplefunc::F
-    quote_vals::Q
+mutable struct Benchmark
+    samplefunc
+    quote_vals
     params::Parameters
 end
 
@@ -109,14 +109,23 @@ end
 function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
+    return _run_inner(b.samplefunc, b.quote_vals, params, warmup)
+end
+
+# Function barrier: Julia specializes this on the concrete types of samplefunc/quote_vals,
+# avoiding dynamic dispatch in the hot loop without parameterizing Benchmark.
+function _run_inner(samplefunc::F, quote_vals::Q, params, warmup) where {F,Q}
     if warmup
-        warmup_allocs = b.samplefunc(b.quote_vals, Parameters(params; evals=1))[4]
+        saved_evals = params.evals
+        params.evals = 1
+        warmup_allocs = samplefunc(quote_vals, params)[4]
+        params.evals = saved_evals
         params.gctrial && warmup_allocs > 0 && gcscrub()
     end
     trial = Trial(params)
     start_time = Base.time()
-    s = b.samplefunc(b.quote_vals, params)
-    push!(trial, s[1:(end - 1)]...)
+    s = samplefunc(quote_vals, params)
+    push!(trial, s[1], s[2], s[3], s[4])
     return_val = s[end]
     # Use the first real sample time to estimate how many samples will fit, then
     # pre-allocate to avoid repeated vector growth and GC during the run.
@@ -134,8 +143,8 @@ function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, k
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
         params.gcsample && s[4] > 0 && gcscrub()
-        s = b.samplefunc(b.quote_vals, params)
-        push!(trial, s[1:(end - 1)]...)
+        s = samplefunc(quote_vals, params)
+        push!(trial, s[1], s[2], s[3], s[4])
         iters += 1
     end
     return trial, return_val
@@ -194,23 +203,28 @@ end
 
 function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION, kwargs...)
     params = Parameters(p; kwargs...)
+    return _lineartrial_inner(b.samplefunc, b.quote_vals, params, maxevals)
+end
+
+function _lineartrial_inner(samplefunc::F, quote_vals::Q, params, maxevals) where {F,Q}
     estimates = zeros(maxevals)
     completed = 0
     params.evals = 1
-    warmup_allocs = b.samplefunc(b.quote_vals, params)[4] #warmup sample
+    warmup_allocs = samplefunc(quote_vals, params)[4]
     params.gctrial && warmup_allocs > 0 && gcscrub()
     start_time = time()
     prev_allocs = warmup_allocs
     for evals in eachindex(estimates)
         params.gcsample && prev_allocs > 0 && gcscrub()
         params.evals = evals
-        s = b.samplefunc(b.quote_vals, params)
+        s = samplefunc(quote_vals, params)
         estimates[evals] = first(s)
         prev_allocs = s[4]
         completed += 1
         ((time() - start_time) > params.seconds) && break
     end
-    return estimates[1:completed]
+    resize!(estimates, completed)
+    return estimates
 end
 
 function warmup(item; verbose::Bool=true)

@@ -421,7 +421,7 @@ for T in [Float32, Float64], n in [10, 100], m in [5, 20]
     @test string(T) in keys(g1["sum"].data)
     @test n in keys(g1["sum"][T].data)
     @test m in keys(g1["sum"][T][n].data)
-    @test g1["sum"][T][n][m] isa BenchmarkTools.Benchmark
+    @test typeof(g1["sum"][T][n][m]) == BenchmarkTools.Benchmark
 end
 
 # Expected side effect is that accessing groups creates them:
@@ -451,7 +451,7 @@ for T in [Float32, Float64], n in [10, 100], m in [5, 20]
     @test string(T) in keys(g1["sum"].data)
     @test n in keys(g1["sum"][T].data)
     @test m in keys(g1["sum"][T][n].data)
-    @test g1["sum"][T][n][m] isa BenchmarkTools.Benchmark
+    @test typeof(g1["sum"][T][n][m]) == BenchmarkTools.Benchmark
 end
 
 # end # module
