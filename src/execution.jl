@@ -20,6 +20,8 @@ mutable struct Benchmark
     params::Parameters
 end
 
+const SampleResult = Tuple{Float64,Float64,Int,Int}
+
 params(b::Benchmark) = b.params
 
 function loadparams!(b::Benchmark, params::Parameters, fields...)
@@ -106,29 +108,23 @@ end
 # Note that trials executed via `run` and `lineartrial` are always executed at top-level
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
-function _run(b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, kwargs...)
+function _run(
+    b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, capture_result=true, kwargs...
+)
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-    return _run_inner(b.samplefunc, b.quote_vals, params, warmup)
-end
-
-# Function barrier: Julia specializes this on the concrete types of samplefunc/quote_vals,
-# avoiding dynamic dispatch in the hot loop without parameterizing Benchmark.
-function _run_inner(samplefunc::F, quote_vals::Q, params, warmup) where {F,Q}
     if warmup
         saved_evals = params.evals
         params.evals = 1
-        warmup_allocs = samplefunc(quote_vals, params)[4]
+        warmup_s = b.samplefunc(b.quote_vals, params)::SampleResult
+        warmup_allocs = warmup_s[4]
         params.evals = saved_evals
         params.gctrial && warmup_allocs > 0 && gcscrub()
     end
     trial = Trial(params)
     start_time = Base.time()
-    s = samplefunc(quote_vals, params)
+    s = b.samplefunc(b.quote_vals, params)::SampleResult
     push!(trial, s[1], s[2], s[3], s[4])
-    return_val = s[end]
-    # Use the first real sample time to estimate how many samples will fit, then
-    # pre-allocate to avoid repeated vector growth and GC during the run.
     sample_time_s = s[1] * params.evals / 1e9
     estimated_remaining = if sample_time_s > 0
         min(
@@ -143,9 +139,16 @@ function _run_inner(samplefunc::F, quote_vals::Q, params, warmup) where {F,Q}
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
         params.gcsample && s[4] > 0 && gcscrub()
-        s = samplefunc(quote_vals, params)
+        s = b.samplefunc(b.quote_vals, params)::SampleResult
         push!(trial, s[1], s[2], s[3], s[4])
         iters += 1
+    end
+    return_val = if capture_result
+        result_ref = Ref{Any}()
+        b.samplefunc(b.quote_vals, params, result_ref)
+        result_ref[]
+    else
+        nothing
     end
     return trial, return_val
 end
@@ -163,7 +166,7 @@ function Base.run(
     ndone=NaN,
     kwargs...,
 )
-    return run_result(b, p; kwargs...)[1]
+    return run_result(b, p; capture_result=false, kwargs...)[1]
 end
 
 """
@@ -203,22 +206,19 @@ end
 
 function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION, kwargs...)
     params = Parameters(p; kwargs...)
-    return _lineartrial_inner(b.samplefunc, b.quote_vals, params, maxevals)
-end
-
-function _lineartrial_inner(samplefunc::F, quote_vals::Q, params, maxevals) where {F,Q}
     estimates = zeros(maxevals)
     completed = 0
     params.evals = 1
-    warmup_allocs = samplefunc(quote_vals, params)[4]
+    warmup_s = b.samplefunc(b.quote_vals, params)::SampleResult
+    warmup_allocs = warmup_s[4]
     params.gctrial && warmup_allocs > 0 && gcscrub()
     start_time = time()
     prev_allocs = warmup_allocs
     for evals in eachindex(estimates)
         params.gcsample && prev_allocs > 0 && gcscrub()
         params.evals = evals
-        s = samplefunc(quote_vals, params)
-        estimates[evals] = first(s)
+        s = b.samplefunc(b.quote_vals, params)::SampleResult
+        estimates[evals] = s[1]
         prev_allocs = s[4]
         completed += 1
         ((time() - start_time) > params.seconds) && break
@@ -636,7 +636,9 @@ function generate_benchmark_definition(
                     $(core_body)
                 end
                 @noinline function $(samplefunc)(
-                    $(Expr(:tuple, quote_vars...)), __params::$BenchmarkTools.Parameters
+                    $(Expr(:tuple, quote_vars...)),
+                    __params::$BenchmarkTools.Parameters,
+                    __result_ref::Union{Ref{Any},Nothing}=nothing,
                 )
                     $(setup)
                     __evals = __params.evals
@@ -649,6 +651,9 @@ function generate_benchmark_definition(
                     __sample_time = time_ns() - __start_time
                     __gcdiff = Base.GC_Diff(Base.gc_num(), __gc_start)
                     $(teardown)
+                    if __result_ref !== nothing
+                        __result_ref[] = __return_val
+                    end
                     __time = max((__sample_time / __evals) - __params.overhead, 0.001)
                     __gctime = max((__gcdiff.total_time / __evals) - __params.overhead, 0.0)
                     __memory = Int(Base.fld(__gcdiff.allocd, __evals))
@@ -661,7 +666,7 @@ function generate_benchmark_definition(
                             __evals,
                         ),
                     )
-                    return __time, __gctime, __memory, __allocs, __return_val
+                    return __time, __gctime, __memory, __allocs
                 end
             end,
         )
