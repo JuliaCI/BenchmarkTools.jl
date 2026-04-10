@@ -109,7 +109,13 @@ end
 # scope, in order to allow transfer of locally-scoped variables into benchmark scope.
 
 function _run(
-    b::Benchmark, p::Parameters; verbose=false, pad="", warmup=true, capture_result=true, kwargs...
+    b::Benchmark,
+    p::Parameters;
+    verbose=false,
+    pad="",
+    warmup=true,
+    capture_result=true,
+    kwargs...,
 )
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
