@@ -371,7 +371,7 @@ Base.show(io::IO, t::TrialEstimate) = _show(io, t)
 Base.show(io::IO, t::TrialRatio) = _show(io, t)
 Base.show(io::IO, t::TrialJudgement) = _show(io, t)
 
-function Base.show(io::IO, ::MIME"text/plain", t::Trial)
+function Base.show(@nospecialize(io::IO), ::MIME"text/plain", t::Trial)
     pad = get(io, :pad, "")
     print(
         io,
@@ -578,7 +578,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::Trial)
     return print(io, ".")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
+function Base.show(@nospecialize(io::IO), ::MIME"text/plain", t::TrialEstimate)
     println(io, "BenchmarkTools.TrialEstimate: ")
     pad = get(io, :pad, "")
     println(io, pad, "  time:             ", prettytime(time(t)))
@@ -595,7 +595,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::TrialEstimate)
     return print(io, pad, "  allocs:           ", allocs(t))
 end
 
-function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
+function Base.show(@nospecialize(io::IO), ::MIME"text/plain", t::TrialRatio)
     println(io, "BenchmarkTools.TrialRatio: ")
     pad = get(io, :pad, "")
     println(io, pad, "  time:             ", time(t))
@@ -604,7 +604,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::TrialRatio)
     return print(io, pad, "  allocs:           ", allocs(t))
 end
 
-function Base.show(io::IO, ::MIME"text/plain", t::TrialJudgement)
+function Base.show(@nospecialize(io::IO), ::MIME"text/plain", t::TrialJudgement)
     println(io, "BenchmarkTools.TrialJudgement: ")
     pad = get(io, :pad, "")
     print(io, pad, "  time:   ", prettydiff(time(ratio(t))), " => ")
