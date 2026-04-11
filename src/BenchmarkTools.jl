@@ -10,6 +10,8 @@ using Printf
 using Profile
 using Compat
 
+using PrecompileTools: @compile_workload, @setup_workload
+
 ##############
 # Parameters #
 ##############
@@ -79,5 +81,13 @@ export tune!,
 #################
 
 include("serialization.jl")
+
+@setup_workload begin
+    @compile_workload begin
+        s = @benchmark 1 + 1
+        io = IOContext(IOBuffer(), :color => true)
+        show(io, MIME("text/plain"), s)
+    end
+end
 
 end # module BenchmarkTools

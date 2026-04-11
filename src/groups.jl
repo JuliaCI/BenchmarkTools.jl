@@ -336,7 +336,7 @@ function Base.summary(io::IO, group::BenchmarkGroup)
     return print(io, "$(length(group))-element BenchmarkGroup($(tagrepr(group.tags)))")
 end
 
-function Base.show(io::IO, group::BenchmarkGroup)
+function Base.show(@nospecialize(io::IO), group::BenchmarkGroup)
     limit = get(io, :limit, true)
     if !(limit isa Bool)
         msg = (
