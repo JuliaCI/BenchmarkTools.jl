@@ -7,3 +7,4 @@ docs/Manifest.toml
 docs/build
 docs/src/assets/indigo.css
 Manifest.toml
+.DS_Store
