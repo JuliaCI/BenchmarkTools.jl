@@ -405,7 +405,7 @@ GC.gc()
 # Ensure the harness itself doesn't allocate for a zero-allocation benchmark
 let b = @benchmarkable sin($(1))
     tune!(b)
-    sample_ref = Ref{BenchmarkTools.SampleResult}((0.0, 0.0, 0, 0))
+    sample_ref = Ref{BenchmarkTools.SampleResult}((0.0, 0.0, 0, 0, 0.0))
     b.samplefunc(b.quote_vals, b.params, sample_ref, nothing)
     s = sample_ref[]
     @test s[4] == 0  # allocs
@@ -419,5 +419,27 @@ end
 @test_throws MethodError min()
 @test_throws MethodError ratio()
 @test_throws MethodError judge()
+
+#########################
+# compilation=true mode #
+#########################
+# Benchmark compilation time by invalidating the target call's entry-point
+# MethodInstance between samples so each sample forces a fresh codegen.
+if isdefined(Base, :invalidate_calls)
+    compile_bench_target(x) = sum(abs2, x) + prod(x .+ one(eltype(x)))
+    # Warm up to ensure we exercise the already-compiled path.
+    compile_bench_target(rand(8))
+    let t = @benchmark compile_bench_target($(rand(8))) samples=5 seconds=30 compilation=true evals=1
+        @test length(t) >= 2
+        @test t.params.compilation
+        @test t.params.evals == 1
+        @test length(t.compiletimes) == length(t.times)
+        # At least one sample should observe non-zero compile time. Allow a
+        # generous tolerance since the underlying invalidation + codegen is
+        # stochastic across the harness.
+        @test any(>(0), t.compiletimes)
+        @test compiletime(t) >= 0.0
+    end
+end
 
 end # module

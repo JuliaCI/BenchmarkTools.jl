@@ -6,27 +6,34 @@ mutable struct Trial
     params::Parameters
     times::Vector{Float64}
     gctimes::Vector{Float64}
+    compiletimes::Vector{Float64}
     memory::Int
     allocs::Int
 end
 
-Trial(params::Parameters) = Trial(params, Float64[], Float64[], typemax(Int), typemax(Int))
+Trial(params::Parameters) = Trial(params, Float64[], Float64[], Float64[], typemax(Int), typemax(Int))
+
+# Backward-compatible 5-arg constructor (pre-compile-time-tracking).
+Trial(params::Parameters, times::AbstractVector, gctimes::AbstractVector, memory::Integer, allocs::Integer) =
+    Trial(params, times, gctimes, zeros(Float64, length(times)), memory, allocs)
 
 function Base.:(==)(a::Trial, b::Trial)
     return a.params == b.params &&
            a.times == b.times &&
            a.gctimes == b.gctimes &&
+           a.compiletimes == b.compiletimes &&
            a.memory == b.memory &&
            a.allocs == b.allocs
 end
 
 function Base.copy(t::Trial)
-    return Trial(copy(t.params), copy(t.times), copy(t.gctimes), t.memory, t.allocs)
+    return Trial(copy(t.params), copy(t.times), copy(t.gctimes), copy(t.compiletimes), t.memory, t.allocs)
 end
 
-function Base.push!(t::Trial, time, gctime, memory, allocs)
+function Base.push!(t::Trial, time, gctime, memory, allocs, compiletime=0.0)
     push!(t.times, time)
     push!(t.gctimes, gctime)
+    push!(t.compiletimes, compiletime)
     memory < t.memory && (t.memory = memory)
     allocs < t.allocs && (t.allocs = allocs)
     return t
@@ -35,20 +42,22 @@ end
 function Base.deleteat!(t::Trial, i)
     deleteat!(t.times, i)
     deleteat!(t.gctimes, i)
+    deleteat!(t.compiletimes, i)
     return t
 end
 
 Base.length(t::Trial) = length(t.times)
 function Base.getindex(t::Trial, i::Number)
-    return push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs)
+    return push!(Trial(t.params), t.times[i], t.gctimes[i], t.memory, t.allocs, t.compiletimes[i])
 end
-Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.memory, t.allocs)
+Base.getindex(t::Trial, i) = Trial(t.params, t.times[i], t.gctimes[i], t.compiletimes[i], t.memory, t.allocs)
 Base.lastindex(t::Trial) = length(t)
 
 function Base.sort!(t::Trial)
     inds = sortperm(t.times)
     t.times = t.times[inds]
     t.gctimes = t.gctimes[inds]
+    t.compiletimes = t.compiletimes[inds]
     return t
 end
 
@@ -56,6 +65,7 @@ Base.sort(t::Trial) = sort!(copy(t))
 
 Base.time(t::Trial) = time(minimum(t))
 gctime(t::Trial) = gctime(minimum(t))
+compiletime(t::Trial) = length(t.compiletimes) == 0 ? 0.0 : minimum(t.compiletimes)
 memory(t::Trial) = t.memory
 allocs(t::Trial) = t.allocs
 params(t::Trial) = t.params
@@ -575,7 +585,23 @@ function Base.show(@nospecialize(io::IO), ::MIME"text/plain", t::Trial)
     print(io, ", allocs estimate")
     printstyled(io, ": "; color=:light_black)
     printstyled(io, allocsstr; color=:yellow)
-    return print(io, ".")
+    print(io, ".")
+
+    # Compile-time info (only shown when compilation benchmarking was enabled)
+    if t.params.compilation && !isempty(t.compiletimes)
+        minct = minimum(t.compiletimes)
+        medct = median(t.compiletimes)
+        maxct = maximum(t.compiletimes)
+        print(io, "\n ")
+        printstyled(io, "Compile"; color=:yellow, bold=true)
+        printstyled(io, " (min … median … max): "; color=:light_black)
+        printstyled(io, prettytime(minct); color=:yellow)
+        print(io, " … ")
+        printstyled(io, prettytime(medct); color=:yellow, bold=true)
+        print(io, " … ")
+        printstyled(io, prettytime(maxct); color=:yellow)
+    end
+    return nothing
 end
 
 function Base.show(@nospecialize(io::IO), ::MIME"text/plain", t::TrialEstimate)
