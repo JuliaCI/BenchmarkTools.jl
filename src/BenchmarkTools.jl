@@ -27,6 +27,7 @@ export loadparams!
 include("trials.jl")
 
 export gctime,
+    compiletime,
     memory,
     allocs,
     params,

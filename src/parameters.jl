@@ -15,9 +15,10 @@ mutable struct Parameters
     gcsample::Bool
     time_tolerance::Float64
     memory_tolerance::Float64
+    compilation::Bool
 end
 
-const DEFAULT_PARAMETERS = Parameters(5.0, 10000, 1, false, 0, true, false, 0.05, 0.01)
+const DEFAULT_PARAMETERS = Parameters(5.0, 10000, 1, false, 0, true, false, 0.05, 0.01, false)
 
 function Parameters(;
     seconds=DEFAULT_PARAMETERS.seconds,
@@ -29,6 +30,7 @@ function Parameters(;
     gcsample=DEFAULT_PARAMETERS.gcsample,
     time_tolerance=DEFAULT_PARAMETERS.time_tolerance,
     memory_tolerance=DEFAULT_PARAMETERS.memory_tolerance,
+    compilation=DEFAULT_PARAMETERS.compilation,
 )
     return Parameters(
         seconds,
@@ -40,6 +42,7 @@ function Parameters(;
         gcsample,
         time_tolerance,
         memory_tolerance,
+        compilation,
     )
 end
 
@@ -53,6 +56,7 @@ function Parameters(
     gcsample=nothing,
     time_tolerance=nothing,
     memory_tolerance=nothing,
+    compilation=nothing,
 )
     params = Parameters()
     params.seconds = seconds != nothing ? seconds : default.seconds
@@ -65,6 +69,7 @@ function Parameters(
         time_tolerance != nothing ? time_tolerance : default.time_tolerance
     params.memory_tolerance =
         memory_tolerance != nothing ? memory_tolerance : default.memory_tolerance
+    params.compilation = compilation != nothing ? compilation : default.compilation
     return params::BenchmarkTools.Parameters
 end
 
@@ -76,7 +81,8 @@ function Base.:(==)(a::Parameters, b::Parameters)
            a.gctrial == b.gctrial &&
            a.gcsample == b.gcsample &&
            a.time_tolerance == b.time_tolerance &&
-           a.memory_tolerance == b.memory_tolerance
+           a.memory_tolerance == b.memory_tolerance &&
+           a.compilation == b.compilation
 end
 
 function Base.copy(p::Parameters)
@@ -90,6 +96,7 @@ function Base.copy(p::Parameters)
         p.gcsample,
         p.time_tolerance,
         p.memory_tolerance,
+        p.compilation,
     )
 end
 
