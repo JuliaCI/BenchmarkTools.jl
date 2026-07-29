@@ -232,6 +232,9 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
         estimates[evals] = s[1]
         prev_allocs = s[4]
         completed += 1
+        # If several samples exceed RESOLUTION, more samples cannot change the
+        # number of evaluations chosen by guessevals.
+        completed >= 3 && minimum(view(estimates, 1:completed)) > RESOLUTION && break
         ((time() - start_time) > params.seconds) && break
     end
     resize!(estimates, completed)
@@ -252,7 +255,9 @@ end
 
 # The tuning process is as follows:
 #
-#   1. Using `lineartrial`, take one sample of the benchmark for each `evals` in `1:RESOLUTION`.
+#   1. Using `lineartrial`, take one sample of the benchmark for each `evals` in
+#      `1:RESOLUTION`. Stop after three samples if they all take longer than
+#      `RESOLUTION`, because additional samples cannot change the result in step 3.
 #
 #   2. Extract the minimum sample found in this trial. Hopefully, this value will be
 #      reasonably close to the true benchmark time. At the very least, we can be certain

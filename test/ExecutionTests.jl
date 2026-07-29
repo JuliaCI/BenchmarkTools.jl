@@ -86,6 +86,13 @@ b_fail = @benchmarkable test_length_and_push!(y) setup = (y = randn(2))
 b_pass = @benchmarkable test_length_and_push!(y) setup = (y = randn(2)) evals = 1
 @test tune!(b_pass) isa BenchmarkTools.Benchmark
 
+# Tuning stops after three samples when a benchmark is slow enough to use one evaluation.
+
+b_slow = @benchmarkable sleep(0.01)
+@test length(BenchmarkTools.lineartrial(b_slow, b_slow.params)) == 3
+tune!(b_slow)
+@test params(b_slow).evals == 1
+
 #######
 # run #
 #######
