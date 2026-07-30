@@ -430,15 +430,14 @@ end
     )
 
     calls = Ref(0)
-    samplefunc = (_, _, sample_ref, _) -> begin
-        calls[] += 1
-        sample_ref[] = calls[] == 1 ? (100.0, 20.0, 0, 0) : (100.0, 0.0, 0, 0)
-        return nothing
-    end
+    samplefunc =
+        (_, _, sample_ref, _) -> begin
+            calls[] += 1
+            sample_ref[] = calls[] == 1 ? (100.0, 20.0, 0, 0) : (100.0, 0.0, 0, 0)
+            return nothing
+        end
     benchmark = BenchmarkTools.Benchmark(samplefunc, (), params)
-    trial, _ = BenchmarkTools._run(
-        benchmark, params; warmup=false, capture_result=false
-    )
+    trial, _ = BenchmarkTools._run(benchmark, params; warmup=false, capture_result=false)
     @test calls[] == 4
     @test trial.gctimes == [0.0, 0.0, 0.0]
 
@@ -449,9 +448,7 @@ end
         return nothing
     end
     benchmark = BenchmarkTools.Benchmark(samplefunc, (), params)
-    trial, _ = BenchmarkTools._run(
-        benchmark, params; warmup=false, capture_result=false
-    )
+    trial, _ = BenchmarkTools._run(benchmark, params; warmup=false, capture_result=false)
     @test calls[] == 4
     @test trial.gctimes == [20.0, 20.0, 20.0]
 end
