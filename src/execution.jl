@@ -151,6 +151,7 @@ function _run(
     # hits GC, keep it and stop retrying: GC is part of the benchmark's normal cost.
     gc_retry = Ref(true)
     function take_sample()
+        local s
         b.samplefunc(b.quote_vals, params, sample_ref, nothing)
         s = sample_ref[]
         if gc_retry[] && s[2] > s[1] / 10
@@ -633,7 +634,7 @@ function generate_benchmark_definition(
     ]
     samplefunc = get!(samplefunc_cache, samplefunc_key) do
         corefunc = gensym("core")
-        samplefunc = gensym("sample")
+        local samplefunc = gensym("sample")
         type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
         signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
         signature_def = Expr(
