@@ -1,11 +1,11 @@
-# Trigger several successive GC sweeps. This is more comprehensive than running just a
-# single sweep, since freeable objects may need more than one sweep to be appropriately
-# marked and freed.
+# Two sweeps: the second reclaims memory released by finalizers (they run after the
+# first sweep) and completes generational promotion of survivors, keeping later
+# collections cheap. A third sweep has no measurable effect on Julia 1.10-1.13.
 function gcscrub()
     GC.gc()
     GC.gc()
-    GC.gc()
     @static if VERSION < v"1.10"
+        GC.gc()
         GC.gc()
     end
 end
