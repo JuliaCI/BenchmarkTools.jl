@@ -10,6 +10,24 @@ function gcscrub()
     end
 end
 
+"""
+    SCRUB_BYTES
+
+Minimum bytes allocated since the last collection before scrubbing. `0` uses
+`max(16 MiB, live heap ÷ 10)`.
+"""
+const SCRUB_BYTES = Ref(0)
+
+# Skip full collections while allocation pressure is low. Any collection resets the
+# counter; `_run` retries samples interrupted by GC.
+function maybe_gcscrub()
+    g = Base.gc_num()
+    limit = SCRUB_BYTES[]
+    limit > 0 || (limit = max(16 << 20, Base.gc_live_bytes() ÷ 10))
+    g.allocd + g.deferred_alloc > limit && gcscrub()
+    return nothing
+end
+
 #############
 # Benchmark #
 #############
@@ -126,12 +144,26 @@ function _run(
         b.samplefunc(b.quote_vals, params, sample_ref, nothing)
         warmup_allocs = sample_ref[][4]
         params.evals = saved_evals
-        params.gctrial && warmup_allocs > 0 && gcscrub()
+        params.gctrial && warmup_allocs > 0 && maybe_gcscrub()
+    end
+    # Retry when GC takes more than 10% of a sample; below that, contamination is
+    # within ordinary timing noise and the estimators absorb it. If the retry also
+    # hits GC, keep it and stop retrying: GC is part of the benchmark's normal cost.
+    gc_retry = Ref(true)
+    function take_sample()
+        local s
+        b.samplefunc(b.quote_vals, params, sample_ref, nothing)
+        s = sample_ref[]
+        if gc_retry[] && s[2] > s[1] / 10
+            b.samplefunc(b.quote_vals, params, sample_ref, nothing)
+            s = sample_ref[]
+            s[2] > s[1] / 10 && (gc_retry[] = false)
+        end
+        return s
     end
     trial = Trial(params)
     start_time = Base.time()
-    b.samplefunc(b.quote_vals, params, sample_ref, nothing)
-    s = sample_ref[]
+    s = take_sample()
     push!(trial, s[1], s[2], s[3], s[4])
     sample_time_s = s[1] * params.evals / 1e9
     estimated_remaining = if sample_time_s > 0
@@ -146,9 +178,8 @@ function _run(
     sizehint!(trial.gctimes, 1 + estimated_remaining)
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
-        params.gcsample && s[4] > 0 && gcscrub()
-        b.samplefunc(b.quote_vals, params, sample_ref, nothing)
-        s = sample_ref[]
+        params.gcsample && s[4] > 0 && maybe_gcscrub()
+        s = take_sample()
         push!(trial, s[1], s[2], s[3], s[4])
         iters += 1
     end
@@ -186,7 +217,7 @@ Run the benchmark group, with benchmark parameters set to `group`'s by default.
 function Base.run(group::BenchmarkGroup, args...; verbose::Bool=false, pad="", kwargs...)
     _withprogress("Benchmarking", group; kwargs...) do progressid, nleaves, ndone
         result = similar(group)
-        gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
+        maybe_gcscrub()
         i = 1
         for id in keys(group)
             @logmsg(
@@ -221,11 +252,11 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     params.evals = 1
     b.samplefunc(b.quote_vals, params, sample_ref, nothing)
     warmup_allocs = sample_ref[][4]
-    params.gctrial && warmup_allocs > 0 && gcscrub()
+    params.gctrial && warmup_allocs > 0 && maybe_gcscrub()
     start_time = time()
     prev_allocs = warmup_allocs
     for evals in eachindex(estimates)
-        params.gcsample && prev_allocs > 0 && gcscrub()
+        params.gcsample && prev_allocs > 0 && maybe_gcscrub()
         params.evals = evals
         b.samplefunc(b.quote_vals, params, sample_ref, nothing)
         s = sample_ref[]
@@ -304,7 +335,7 @@ trials.
 """
 function tune!(group::BenchmarkGroup; verbose::Bool=false, pad="", kwargs...)
     _withprogress("Tuning", group; kwargs...) do progressid, nleaves, ndone
-        gcscrub() # run GC before running group, even if individual benchmarks don't manually GC
+        maybe_gcscrub()
         i = 1
         for id in keys(group)
             @logmsg(ProgressLevel, "Tuning", progress = ndone / nleaves, _id = progressid)
@@ -603,7 +634,7 @@ function generate_benchmark_definition(
     ]
     samplefunc = get!(samplefunc_cache, samplefunc_key) do
         corefunc = gensym("core")
-        samplefunc = gensym("sample")
+        local samplefunc = gensym("sample")
         type_vars = [gensym() for i in 1:(length(quote_vars) + length(setup_vars))]
         signature = Expr(:call, corefunc, quote_vars..., setup_vars...)
         signature_def = Expr(

@@ -329,13 +329,12 @@ bindata(sorteddata, nbins) = bindata(sorteddata, nbins, first(sorteddata), last(
 
 function asciihist(bins, height=1)
     histbars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
-    if minimum(bins) == 0
-        barheights =
-            2 .+ round.(Int, (height * length(histbars) - 2) * bins ./ maximum(bins))
-        barheights[bins .== 0] .= 1
+    barheights = if minimum(bins) == 0
+        bh = 2 .+ round.(Int, (height * length(histbars) - 2) * bins ./ maximum(bins))
+        bh[bins .== 0] .= 1
+        bh
     else
-        barheights =
-            1 .+ round.(Int, (height * length(histbars) - 1) * bins ./ maximum(bins))
+        1 .+ round.(Int, (height * length(histbars) - 1) * bins ./ maximum(bins))
     end
     heightmatrix = [
         min(length(histbars), barheights[b] - (h - 1) * length(histbars)) for
