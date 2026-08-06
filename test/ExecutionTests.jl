@@ -315,7 +315,11 @@ b = @bprofile likegcd(x, y) setup = (x = rand(2:200); y = rand(2:200))
 io = IOBuffer()
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
-@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ] #?_run", str)
+# Sampling happens in the `take_sample` closure inside `_run`; which of the two shows
+# up depends on how far the profiler can unwind (Windows on 1.6 stops at the closure).
+@test occursin(
+    r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ].*(_run|take_sample)", str
+)
 @test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ] #?tune!", str)
 b = @bprofile 1 + 1
 Profile.print(IOContext(io, :displaysize => (24, 200)))
