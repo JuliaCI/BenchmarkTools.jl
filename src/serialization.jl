@@ -55,6 +55,11 @@ function recover(x::Vector)
         else
             xsi = if fn == "evals_set" && !haskey(fields, fn)
                 false
+            elseif fn == "compilation" && !haskey(fields, fn)
+                false
+            elseif fn == "compiletimes" && !haskey(fields, fn)
+                # Old serialized Trials predate compile-time tracking; fill with zeros.
+                zeros(Float64, length(get(fields, "times", Float64[])))
             elseif fn in ("seconds", "overhead", "time_tolerance", "memory_tolerance") &&
                 fields[fn] === nothing
                 # JSON spec doesn't support Inf

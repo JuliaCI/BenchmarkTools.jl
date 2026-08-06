@@ -20,7 +20,7 @@ mutable struct Benchmark
     params::Parameters
 end
 
-const SampleResult = Tuple{Float64,Float64,Int,Int}
+const SampleResult = Tuple{Float64,Float64,Int,Int,Float64}
 
 params(b::Benchmark) = b.params
 
@@ -119,7 +119,13 @@ function _run(
 )
     params = Parameters(p; kwargs...)
     @assert params.seconds > 0.0 "time limit must be greater than 0.0"
-    sample_ref = Ref{SampleResult}((0.0, 0.0, 0, 0))
+    if params.compilation
+        # Each sample recompiles the target; running it multiple times per sample
+        # would hit the cache for all but the first eval, so the cost would be
+        # amortized away. Force one eval per sample.
+        params.evals = 1
+    end
+    sample_ref = Ref{SampleResult}((0.0, 0.0, 0, 0, 0.0))
     if warmup
         saved_evals = params.evals
         params.evals = 1
@@ -132,7 +138,7 @@ function _run(
     start_time = Base.time()
     b.samplefunc(b.quote_vals, params, sample_ref, nothing)
     s = sample_ref[]
-    push!(trial, s[1], s[2], s[3], s[4])
+    push!(trial, s[1], s[2], s[3], s[4], s[5])
     sample_time_s = s[1] * params.evals / 1e9
     estimated_remaining = if sample_time_s > 0
         min(
@@ -144,12 +150,13 @@ function _run(
     end
     sizehint!(trial.times, 1 + estimated_remaining)
     sizehint!(trial.gctimes, 1 + estimated_remaining)
+    sizehint!(trial.compiletimes, 1 + estimated_remaining)
     iters = 2
     while (Base.time() - start_time) < params.seconds && iters ≤ params.samples
         params.gcsample && s[4] > 0 && gcscrub()
         b.samplefunc(b.quote_vals, params, sample_ref, nothing)
         s = sample_ref[]
-        push!(trial, s[1], s[2], s[3], s[4])
+        push!(trial, s[1], s[2], s[3], s[4], s[5])
         iters += 1
     end
     return_val = if capture_result
@@ -217,7 +224,7 @@ function _lineartrial(b::Benchmark, p::Parameters=b.params; maxevals=RESOLUTION,
     params = Parameters(p; kwargs...)
     estimates = zeros(maxevals)
     completed = 0
-    sample_ref = Ref{SampleResult}((0.0, 0.0, 0, 0))
+    sample_ref = Ref{SampleResult}((0.0, 0.0, 0, 0, 0.0))
     params.evals = 1
     b.samplefunc(b.quote_vals, params, sample_ref, nothing)
     warmup_allocs = sample_ref[][4]
@@ -654,6 +661,41 @@ function generate_benchmark_definition(
                 )
                     $(setup)
                     __evals = __params.evals
+                    local __compiletime = 0.0
+                    if __params.compilation
+                        # Scoped invalidation of the call's entry-point MethodInstance,
+                        # then a single timed eval that captures wall + compile time.
+                        # We call via `invokelatest` so the direct call site baked
+                        # into this samplefunc's own machine code is bypassed —
+                        # invalidation caps the CodeInstance but does not
+                        # propagate to backedges (that would defeat the purpose),
+                        # so a devirtualized call would keep using the stale fptr.
+                        __arg_types = Tuple{$([:(Core.Typeof($v)) for v in [quote_vars; setup_vars]]...)}
+                        __mi = Base.method_instance($(corefunc), __arg_types)
+                        if __mi !== nothing
+                            Base.invalidate_calls(Core.MethodInstance[__mi])
+                        end
+                        __stats = Base.@timed Base.invokelatest(
+                            $(corefunc), $(quote_vars...), $(setup_vars...)
+                        )
+                        $(teardown)
+                        if __result_ref !== nothing
+                            __result_ref[] = __stats.value
+                        end
+                        __gcdiff = __stats.gcstats
+                        __time = max(__stats.time * 1e9 - __params.overhead, 0.001)
+                        __gctime = max(__stats.gctime * 1e9 - __params.overhead, 0.0)
+                        __memory = Int(__gcdiff.allocd)
+                        __allocs = Int(
+                            __gcdiff.malloc +
+                            __gcdiff.realloc +
+                            __gcdiff.poolalloc +
+                            __gcdiff.bigalloc,
+                        )
+                        __compiletime = __stats.compile_time * 1e9
+                        __sample_ref[] = (__time, __gctime, __memory, __allocs, __compiletime)
+                        return nothing
+                    end
                     __gc_start = Base.gc_num()
                     __start_time = time_ns()
                     __return_val = $(invocation)
@@ -678,7 +720,7 @@ function generate_benchmark_definition(
                             __evals,
                         ),
                     )
-                    __sample_ref[] = (__time, __gctime, __memory, __allocs)
+                    __sample_ref[] = (__time, __gctime, __memory, __allocs, __compiletime)
                     return nothing
                 end
             end,
