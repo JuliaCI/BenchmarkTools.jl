@@ -3,7 +3,12 @@ using BenchmarkTools
 using Test
 
 print("Testing code quality...")
-took_seconds = @elapsed Aqua.test_all(BenchmarkTools)
+took_seconds = @elapsed begin
+    if isdefined(Test, :detect_closure_boxes)
+        @test isempty(Test.detect_closure_boxes(BenchmarkTools))
+    end
+    Aqua.test_all(BenchmarkTools)
+end
 println("done (took ", took_seconds, " seconds)")
 
 print("Testing Parameters...")

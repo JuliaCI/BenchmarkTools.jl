@@ -86,6 +86,13 @@ b_fail = @benchmarkable test_length_and_push!(y) setup = (y = randn(2))
 b_pass = @benchmarkable test_length_and_push!(y) setup = (y = randn(2)) evals = 1
 @test tune!(b_pass) isa BenchmarkTools.Benchmark
 
+# Tuning stops after three samples when a benchmark is slow enough to use one evaluation.
+
+b_slow = @benchmarkable sleep(0.01)
+@test length(BenchmarkTools.lineartrial(b_slow, b_slow.params)) == 3
+tune!(b_slow)
+@test params(b_slow).evals == 1
+
 #######
 # run #
 #######
@@ -308,7 +315,11 @@ b = @bprofile likegcd(x, y) setup = (x = rand(2:200); y = rand(2:200))
 io = IOBuffer()
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
-@test occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ] #?_run", str)
+# Sampling happens in the `take_sample` closure inside `_run`; which of the two shows
+# up depends on how far the profiler can unwind (Windows on 1.6 stops at the closure).
+@test occursin(
+    r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ].*(_run|take_sample)", str
+)
 @test !occursin(r"BenchmarkTools(\.jl)?(/|\\)src(/|\\)execution\.jl:\d+[; ] #?tune!", str)
 b = @bprofile 1 + 1
 Profile.print(IOContext(io, :displaysize => (24, 200)))
@@ -318,10 +329,16 @@ b = @bprofile 1 + 1 gctrial = true
 Profile.print(IOContext(io, :displaysize => (24, 200)))
 str = String(take!(io))
 @test !occursin("gcscrub", str)  # no allocs, so gcscrub is skipped even with gctrial=true
-b = @bprofile Ref(1) gctrial = true gcsample = true
-Profile.print(IOContext(io, :displaysize => (24, 200)))
-str = String(take!(io))
-@test occursin("gcscrub", str)
+old_scrub_bytes = BenchmarkTools.SCRUB_BYTES[]
+try
+    BenchmarkTools.SCRUB_BYTES[] = 1
+    b = @bprofile Ref(1) gctrial = true gcsample = true
+    Profile.print(IOContext(io, :displaysize => (24, 200)))
+    str = String(take!(io))
+    @test occursin("gcscrub", str)
+finally
+    BenchmarkTools.SCRUB_BYTES[] = old_scrub_bytes
+end
 
 ########
 # misc #
@@ -409,6 +426,35 @@ let b = @benchmarkable sin($(1))
     b.samplefunc(b.quote_vals, b.params, sample_ref, nothing)
     s = sample_ref[]
     @test s[4] == 0  # allocs
+end
+
+@testset "retry samples interrupted by GC" begin
+    params = BenchmarkTools.Parameters(;
+        seconds=1, samples=3, gctrial=false, gcsample=false
+    )
+
+    calls = Ref(0)
+    samplefunc =
+        (_, _, sample_ref, _) -> begin
+            calls[] += 1
+            sample_ref[] = calls[] == 1 ? (100.0, 20.0, 0, 0) : (100.0, 0.0, 0, 0)
+            return nothing
+        end
+    benchmark = BenchmarkTools.Benchmark(samplefunc, (), params)
+    trial, _ = BenchmarkTools._run(benchmark, params; warmup=false, capture_result=false)
+    @test calls[] == 4
+    @test trial.gctimes == [0.0, 0.0, 0.0]
+
+    calls[] = 0
+    samplefunc = (_, _, sample_ref, _) -> begin
+        calls[] += 1
+        sample_ref[] = (100.0, 20.0, 0, 0)
+        return nothing
+    end
+    benchmark = BenchmarkTools.Benchmark(samplefunc, (), params)
+    trial, _ = BenchmarkTools._run(benchmark, params; warmup=false, capture_result=false)
+    @test calls[] == 4
+    @test trial.gctimes == [20.0, 20.0, 20.0]
 end
 
 # Ensure mapvals(f) throws MethodError
