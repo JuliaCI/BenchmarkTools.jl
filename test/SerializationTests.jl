@@ -1,6 +1,7 @@
 module SerializationTests
 
 using BenchmarkTools
+using JSON
 using Test
 
 function eq(x::T, y::T) where {T<:Union{values(BenchmarkTools.SUPPORTED_TYPES)...}}
@@ -16,6 +17,23 @@ function withtempdir(f::Function)
         rm(d; force=true, recursive=true)
     end
     return nothing
+end
+
+@testset "save/load error when JSON is not loaded" begin
+    # This must run in a fresh process: the rest of this file does `using JSON`,
+    # which triggers the BenchmarkToolsJSONExt extension for the remainder of
+    # this process, so the "not loaded" error path can no longer be observed here.
+    script = """
+        using BenchmarkTools
+        using Test
+        @test_throws "save requires the JSON.jl package" BenchmarkTools.save("x.json", 1)
+        @test_throws "load requires the JSON.jl package" BenchmarkTools.load("x.json")
+        """
+    cmd = `$(Base.julia_cmd()) --project=$(Base.active_project()) -e $script`
+    io = IOBuffer()
+    ok = success(pipeline(cmd; stdout=io, stderr=io))
+    ok || print(String(take!(io)))
+    @test ok
 end
 
 @testset "Successful (de)serialization" begin

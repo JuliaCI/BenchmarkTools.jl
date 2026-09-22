@@ -16,19 +16,6 @@ const SUPPORTED_TYPES = Dict{Symbol,Type}(
 )
 # n.b. Benchmark type not included here, since it is gensym'd
 
-function JSON.lower(x::Union{values(SUPPORTED_TYPES)...})
-    d = Dict{String,Any}()
-    T = typeof(x)
-    for i in 1:nfields(x)
-        name = String(fieldname(T, i))
-        field = getfield(x, i)
-        ft = typeof(field)
-        value = ft <: get(SUPPORTED_TYPES, nameof(ft), Union{}) ? JSON.lower(field) : field
-        d[name] = value isa Float64 && !isfinite(value) ? nothing : value
-    end
-    return [string(nameof(typeof(x))), d]
-end
-
 # a minimal 'eval' function, mirroring KeyTypes, but being slightly more lenient
 safeeval(@nospecialize x) = x
 safeeval(x::QuoteNode) = x.value
@@ -102,63 +89,28 @@ end
     BenchmarkTools.save(filename, args...)
 
 Save serialized benchmarking objects (e.g. results or parameters) to a JSON file.
-"""
-function save(filename::AbstractString, args...)
-    endswith(filename, ".json") || badext(filename)
-    open(filename, "w") do io
-        save(io, args...)
-    end
-end
 
-function save(io::IO, args...)
-    isempty(args) && throw(ArgumentError("Nothing to save"))
-    goodargs = Any[]
-    for arg in args
-        if arg isa String
-            @warn(
-                "Naming variables in serialization is no longer supported.\n" *
-                    "The name will be ignored and the object will be serialized " *
-                    "in the order it appears in the input."
-            )
-            continue
-        elseif !(arg isa get(SUPPORTED_TYPES, nameof(typeof(arg)), Union{}))
-            throw(ArgumentError("Only BenchmarkTools types can be serialized."))
-        end
-        push!(goodargs, arg)
-    end
-    isempty(goodargs) && error("Nothing to save")
-    return JSON.print(io, [VERSIONS, goodargs])
+!!! note
+    This function requires the JSON.jl package. Run `using JSON` (or `import JSON`)
+    to load the serialization extension before calling this function.
+"""
+function save(args...)
+    return error(
+        "BenchmarkTools.save requires the JSON.jl package. Run `using JSON` (or `import JSON`) first to enable JSON serialization.",
+    )
 end
 
 """
     BenchmarkTools.load(filename)
 
 Load serialized benchmarking objects (e.g. results or parameters) from a JSON file.
-"""
-function load(filename::AbstractString, args...)
-    endswith(filename, ".json") || badext(filename)
-    open(filename, "r") do f
-        load(f, args...)
-    end
-end
 
-function load(io::IO, args...)
-    if !isempty(args)
-        throw(
-            ArgumentError(
-                "Looking up deserialized values by name is no longer supported, " *
-                "as names are no longer saved.",
-            ),
-        )
-    end
-    parsed = JSON.parse(io)
-    if !isa(parsed, Vector) ||
-        length(parsed) != 2 ||
-        !isa(parsed[1], AbstractDict) ||
-        !isa(parsed[2], Vector)
-        error("Unexpected JSON format. Was this file originally written by BenchmarkTools?")
-    end
-    versions = parsed[1]::AbstractDict
-    values = parsed[2]::Vector
-    return map!(recover, values, values)
+!!! note
+    This function requires the JSON.jl package. Run `using JSON` (or `import JSON`)
+    to load the serialization extension before calling this function.
+"""
+function load(args...)
+    return error(
+        "BenchmarkTools.load requires the JSON.jl package. Run `using JSON` (or `import JSON`) first to enable JSON serialization.",
+    )
 end
