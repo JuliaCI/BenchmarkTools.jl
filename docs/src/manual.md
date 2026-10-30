@@ -892,6 +892,11 @@ Note that terminal child group nodes are not considered "leaves" by the `leaves`
 
 ## Caching `Parameters`
 
+!!! note
+    `BenchmarkTools.save` and `BenchmarkTools.load` are implemented in a package
+    extension that depends on JSON.jl. Run `using JSON` (or `import JSON`) before
+    calling either function.
+
 A common workflow used in BenchmarkTools is the following:
 
 1. Start a Julia session
