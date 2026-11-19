@@ -1,5 +1,6 @@
 
 using BenchmarkTools
+using JSON
 
 # Define a parent BenchmarkGroup to contain our suite
 const suite = BenchmarkGroup()
