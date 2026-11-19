@@ -995,19 +995,52 @@ plot(t)
 ```
 
 This will show the timing results of the trial as a violin plot. You can use
-all the keyword arguments from `Plots.jl`, for instance `st=:box` or
-`yaxis=:log10`.
+all the keyword arguments from `Plots.jl`, for instance `seriestype=:box` or
+`yscale=:log10`.
 
 If a `BenchmarkGroup` contains (only) `Trial`s, its results can be visualized
 simply by
 
 ```julia
 using BenchmarkPlots, StatsPlots
+g = BenchmarkGroup()
+for alg in algorithm_symbols
+    g[alg] = @benchmarkable runalgorithm(x, $alg) setup=(x=randn(1000))
+end
 t = run(g)
-plot(t)
+plot(t; yscale=:log10)
 ```
 
-This will display each `Trial` as a violin plot.
+This will display each `Trial` as a violin plot. 
+
+![Violin plots of BenchmarkGroup](./assets/violins.png)
+
+A `BenchmarkGroup` whose
+elements are `BenchmarkGroup`s can be visualized the same way, but no separation
+will be made between the element groups - shared keys will get several violins,
+and there is no visual indication that a result belongs to one group or the
+other.
+
+The exception is `BenchmarkGroup`s whose keys are `Number`s. These keys will be
+interpreted as a size parameter, and the violin plots will be replaced by a line
+plot showing the minimum time, with a shaded region up to the mean time. If you
+want to bypass this, to still get violin (or similar) plots for the numeric
+keys, explicitly make them strings.
+
+```julia
+g = BenchmarkGroup()
+for alg in algorithm_symbols
+    g[alg] = BenchmarkGroup()
+    for size in 2 .^ [1:15]
+        g[alg][size] = @benchmarkable runalgorithm(x, $alg)
+setup=(x=randn($size))
+    end
+end
+t = run(g)
+plot(t; scale=:log10, xguide="size", legendposition=:topleft)
+```
+
+![Plot of a BenchmarkGroup containing BenchmarkGroups with numerical keys](./assets/algorithms.png)
 
 ## Miscellaneous tips and info
 
